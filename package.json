@@ -1,0 +1,24 @@
+{
+  "name": "simple-xcm-js",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "ts-node ./src/index.ts",
+    "lint": "eslint .",
+    "fix": "yarn lint --fix",
+    "fmt": "yarn prettier --config .prettierrc './src/**/*.ts' --write"
+  },
+  "dependencies": {
+    "@polkadot/api": "^12.1.1",
+    "@types/lodash": "^4.17.7",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "eslint": "^9.6.0",
+    "lodash": "^4.17.21",
+    "prettier": "^3.3.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3"
+  }
+}

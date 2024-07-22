@@ -53,7 +53,9 @@ export class Registry {
 
   addUniveralLocation(locationName: string, location: InteriorLocation) {
     if (this.relativeLocations.get(locationName)) {
-      throw new Error(`${locationName}: can't registered as a universal location because it's already a relative one`);
+      throw new Error(
+        `${locationName}: can't registered as a universal location because it's already a relative one`
+      );
     }
 
     this.universalLocations.set(locationName, location);
@@ -66,7 +68,9 @@ export class Registry {
 
   addRelativeLocation(locationName: string, location: Location) {
     if (this.universalLocations.get(locationName)) {
-      throw new Error(`${locationName}: can't registered as a relative location because it's already a universal one`);
+      throw new Error(
+        `${locationName}: can't registered as a relative location because it's already a universal one`
+      );
     }
 
     this.relativeLocations.set(locationName, location);
@@ -81,7 +85,7 @@ export class Registry {
     const chainLocation = this.universalLocation(chainId);
 
     if (!chainLocation) {
-        throw new Error(`${chainId}: chain's universal location is not found`);
+      throw new Error(`${chainId}: chain's universal location is not found`);
     }
 
     return this.chainInfoByLocation(chainLocation);

@@ -1,10 +1,10 @@
 import { Registry } from './registry';
 import {
-    asset,
+  asset,
   fungible,
   parachainUniveralLocation,
   relaychainUniversalLocation,
-  location,
+  location
 } from './util';
 
 (async () => {
@@ -31,44 +31,51 @@ import {
       'wss://asia-ws.unique.network',
       'wss://eu-ws.unique.network'
     ])
-    .addUniveralLocation(PolkadotNativeToken, relaychainUniversalLocation('Polkadot'))
+    .addUniveralLocation(
+      PolkadotNativeToken,
+      relaychainUniversalLocation('Polkadot')
+    )
     .addUniveralLocation(
       UniqueNativeToken,
       parachainUniveralLocation('Polkadot', 2037)
     )
-    .addRelativeLocation('Test Account', location(0, [{
-      AccountId32: { id: '0x006ddf51db56437ce5c886ab28cd767fc85ad5cc5d4a679376a1f7e71328b501' }
-    }]));
+    .addRelativeLocation(
+      'Test Account',
+      location(0, [
+        {
+          AccountId32: {
+            id: '0x006ddf51db56437ce5c886ab28cd767fc85ad5cc5d4a679376a1f7e71328b501'
+          }
+        }
+      ])
+    );
 
   const xcm = await registry.connectXcm('Polkadot');
-//   xcm.enforceXcmVersion(2);
-//   xcm.enforceXcmVersion(3);
+  //   xcm.enforceXcmVersion(2);
+  //   xcm.enforceXcmVersion(3);
   console.log('XCM version:', xcm.xcmVersion);
 
   // TODO check/convert all junctions add arbitrary byte data
   // TODO conversion for account id text reprs
   const transferTx = await xcm.composeTransfer({
     assets: [
-      asset(
-        location(0, 'Here'),
-        fungible(100000000000),
-      ),
+      asset(location(0, 'Here'), fungible(100000000000)),
 
       asset('DOT', fungible(500000000)),
 
       {
         id: 'DOT',
-        fun: fungible(42424242),
+        fun: fungible(42424242)
       },
 
       {
         id: { parents: 0, interior: 'Here' },
-        fun: { Fungible: 500500500500 },
-      },
+        fun: { Fungible: 500500500500 }
+      }
     ],
     feeAssetId: 'DOT',
     destination: 'Unique Network',
-    beneficiary: 'Test Account',
+    beneficiary: 'Test Account'
   });
 
   console.log(transferTx.method.toHex());

@@ -29,7 +29,8 @@ import {
   RegistryLookup,
   Fungibility,
   AssetLookup,
-  Interior
+  Interior,
+  MIN_XCM_VERSION
 } from './xcmtypes';
 import _ from 'lodash';
 
@@ -89,18 +90,24 @@ function arrayToInterior(interiorVersion: XcmVersion, junctions: any[]): any {
   }
 }
 
-export function asset(id: AssetId | RegistryLookup, fun: Fungibility): AssetLookup {
+export function asset(
+  id: AssetId | RegistryLookup,
+  fun: Fungibility
+): AssetLookup {
   return {
     id,
-    fun,
-  }
+    fun
+  };
 }
 
-export function location(parents: number, junctions: 'Here' | Junction[]): Location {
+export function location(
+  parents: number,
+  junctions: 'Here' | Junction[]
+): Location {
   if (junctions == 'Here') {
     return {
       parents,
-      interior: 'Here',
+      interior: 'Here'
     };
   }
 
@@ -108,7 +115,7 @@ export function location(parents: number, junctions: 'Here' | Junction[]): Locat
 
   return {
     parents,
-    interior,
+    interior
   };
 }
 
@@ -235,15 +242,14 @@ export function convertLocationVersion(
 export function extractVersion<V2, V3, V4>(
   versioned: Versioned<V2, V3, V4>
 ): XcmVersion {
-  if ('V2' in versioned) {
-    return 2;
-  } else if ('V3' in versioned) {
-    return 3;
-  } else if ('V4' in versioned) {
-    return 4;
-  } else {
-    throw new Error('extractVersion: unknown XCM version');
+  let version: XcmVersion;
+  for (version = MIN_XCM_VERSION; version <= CURRENT_XCM_VERSION; ++version) {
+    if (`V${version}` in versioned) {
+      return version;
+    }
   }
+
+  throw new Error(`extractVersion - ${version}: unknown XCM version`);
 }
 
 export function downgradeAsset(asset: VersionedAsset): VersionedAsset {
@@ -353,10 +359,6 @@ export function upgradeLocation(
     throw new Error('upgradeLocation: unknown XCM version');
   }
 }
-
-// export function downgradeFungibilityVersion(fungibility: VersionedFungibility): Versi {
-
-// }
 
 export function downgradeLocationV4(location: Location): LocationV3 {
   return {

@@ -638,7 +638,7 @@ export function fungible(amount: number | bigint) {
 }
 
 function textByteLength(text: string) {
-  const hexMatch = text.match(/^0x(?<numberPart>[0-9a-f]*)$/i);
+  const hexMatch = text.match(/^0x(?<numberPart>[0-9a-fA-F]*)$/i);
   if (hexMatch) {
     const numberPart = hexMatch.groups!.numberPart;
     return Math.ceil(numberPart.length / 2);

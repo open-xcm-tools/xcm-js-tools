@@ -86,7 +86,9 @@ function arrayToInterior(interiorVersion: XcmVersion, junctions: any[]): any {
   } else if (junctions.length == 8) {
     return { X8: [...junctions] };
   } else {
-    throw new Error('arrayToInterior: invalid interior array length');
+    throw new Error(
+      `arrayToInterior - ${junctions.length} invalid interior array length`
+    );
   }
 }
 

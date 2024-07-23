@@ -15,7 +15,10 @@ import {
   convertAssetsVersion,
   convertLocationVersion,
   fungible,
-  locationRelativeToPrefix
+  location,
+  locationRelativeToPrefix,
+  relativeLocaionToUniversal,
+  toJunctions
 } from './util';
 
 export type PalletXcmName = 'polkadotXcm' | 'xcmPallet';
@@ -25,6 +28,13 @@ export type TransferParams = {
   feeAssetId: AssetId | RegistryLookup;
   destination: Location | RegistryLookup;
   beneficiary: Location | RegistryLookup;
+};
+
+type PreparedTransferParams = {
+  assets: Asset[];
+  feeAssetIndex: number;
+  destination: Location;
+  beneficiary: Location;
 };
 
 interface TransferBackend {
@@ -55,7 +65,36 @@ export class SimpleXcm {
         `The requested XCM version ${version} is greater than the chain supports (= ${this.maxXcmVersion})`
       );
     }
+
     this.xcmVersion = version;
+  }
+
+  adjustToCurrencyUnit(asset: AssetLookup): AssetLookup {
+    if ('NonFungible' in asset.fun) {
+      throw new Error('non-fungibles are not currencies');
+    }
+
+    let decimals: number;
+
+    if (typeof asset.id == 'string') {
+      decimals = this.registry.currencyInfoBySymbol(asset.id).decimals;
+    } else {
+      const currencyUniversalLocation = relativeLocaionToUniversal({
+        relativeLocation: asset.id,
+        context: this.chainInfo.universalLocation
+      });
+
+      decimals = this.registry.currencyInfoByLocation(
+        currencyUniversalLocation
+      ).decimals;
+    }
+
+    const value = BigInt(asset.fun.Fungible) * BigInt(10) ** BigInt(decimals);
+
+    return {
+      id: asset.id,
+      fun: { Fungible: value }
+    };
   }
 
   disconnect() {
@@ -137,20 +176,34 @@ export class SimpleXcm {
       return new PalletXcmBackend(this);
     }
 
+    console.warn(
+      'pallet-xcm does not have the needed "transferAssets" extrinsic'
+    );
+    console.warn('looking for an alternative transfer backend...');
+
     const pallets = this.api.registry.metadata.pallets;
-    for (let pallet of pallets) {
+
+    let palletName: string;
+    let backend: TransferBackend | undefined;
+    loop: for (let pallet of pallets) {
       const palletRuntimeName = pallet.name.toPrimitive();
-      const palletName = palletApiTxName(palletRuntimeName);
+      palletName = palletApiTxName(palletRuntimeName);
 
       switch (palletName) {
         case 'xTokens':
-          return new XTokensBackend(this);
+          backend = new XTokensBackend(this);
+          break loop;
 
         default:
       }
     }
 
-    throw new Error('No known backend pallet is found');
+    if (backend) {
+      console.warn(`using an alternative transfer backend: ${palletName!}`);
+      return backend;
+    } else {
+      throw new Error('No known backend pallet is found');
+    }
   }
 
   resolveRelativeLocation(lookup: Location | RegistryLookup) {
@@ -192,40 +245,31 @@ export class PalletXcmBackend implements TransferBackend {
   async composeTransfer(
     transferParams: TransferParams
   ): Promise<SubmittableExtrinsic<'promise'>> {
-    const destination = this.simpleXcm.resolveRelativeLocation(
-      transferParams.destination
+    const preparedParams = prepareTransferParams(
+      this.simpleXcm,
+      transferParams
     );
-    const beneficiary = this.simpleXcm.resolveRelativeLocation(
-      transferParams.beneficiary
-    );
-    const feeAssetId = this.simpleXcm.resolveRelativeLocation(
-      transferParams.feeAssetId
-    );
-    const assets = transferParams.assets.map((asset) =>
-      this.simpleXcm.resolveRelativeAsset(asset)
-    );
-
-    const dummyFeeAsset: Asset = {
-      id: feeAssetId,
-      fun: fungible(1)
-    };
-    const feeAssetIndex = assets.length;
-    assets.push(dummyFeeAsset);
 
     const xcmVersion = this.simpleXcm.xcmVersion;
 
-    const destinationVx = convertLocationVersion(xcmVersion, destination);
-    const beneficiaryVx = convertLocationVersion(xcmVersion, beneficiary);
-    const assetsVx = convertAssetsVersion(xcmVersion, assets);
+    const assets = convertAssetsVersion(xcmVersion, preparedParams.assets);
+    const destination = convertLocationVersion(
+      xcmVersion,
+      preparedParams.destination
+    );
+    const beneficiary = convertLocationVersion(
+      xcmVersion,
+      preparedParams.beneficiary
+    );
 
     const palletXcm = this.simpleXcm.api.tx[this.simpleXcm.palletXcm];
     const noXcmWeightLimit = 'Unlimited';
 
     const txToDryRun = palletXcm.transferAssets(
-      destinationVx,
-      beneficiaryVx,
-      assetsVx,
-      feeAssetIndex,
+      destination,
+      beneficiary,
+      assets,
+      preparedParams.feeAssetIndex,
       noXcmWeightLimit
     );
 
@@ -249,8 +293,83 @@ export class XTokensBackend implements TransferBackend {
   async composeTransfer(
     transferParams: TransferParams
   ): Promise<SubmittableExtrinsic<'promise'>> {
-    throw new Error('Method not implemented.');
+    const preparedParams = prepareTransferParams(
+      this.simpleXcm,
+      transferParams
+    );
+
+    if (preparedParams.beneficiary.parents != 0) {
+      throw new Error(`
+        The beneficiary must be an interior location (parents = 0) when using the XTokens backend.
+        The actual parents = ${preparedParams.beneficiary.parents}
+      `);
+    }
+
+    const beneficiaryJunctions = toJunctions(
+      preparedParams.beneficiary.interior
+    );
+    const destinationJunctions = toJunctions(
+      preparedParams.destination.interior
+    );
+
+    const destinationBeneficiary = location(
+      preparedParams.destination.parents,
+      [...destinationJunctions, ...beneficiaryJunctions]
+    );
+
+    const xcmVersion = this.simpleXcm.xcmVersion;
+
+    const assets = convertAssetsVersion(xcmVersion, preparedParams.assets);
+    const destination = convertLocationVersion(
+      xcmVersion,
+      destinationBeneficiary
+    );
+
+    const xTokens = this.simpleXcm.api.tx['xTokens'];
+    const noXcmWeightLimit = 'Unlimited';
+
+    const txToDryRun = xTokens.transferMultiassets(
+      assets,
+      preparedParams.feeAssetIndex,
+      destination,
+      noXcmWeightLimit
+    );
+
+    // FIXME
+    return txToDryRun;
   }
+}
+
+function prepareTransferParams(
+  simpleXcm: SimpleXcm,
+  transferParams: TransferParams
+): PreparedTransferParams {
+  const destination = simpleXcm.resolveRelativeLocation(
+    transferParams.destination
+  );
+  const beneficiary = simpleXcm.resolveRelativeLocation(
+    transferParams.beneficiary
+  );
+  const feeAssetId = simpleXcm.resolveRelativeLocation(
+    transferParams.feeAssetId
+  );
+  const assets = transferParams.assets.map((asset) =>
+    simpleXcm.resolveRelativeAsset(asset)
+  );
+
+  const dummyFeeAsset: Asset = {
+    id: feeAssetId,
+    fun: fungible(1)
+  };
+  const feeAssetIndex = assets.length;
+  assets.push(dummyFeeAsset);
+
+  return {
+    assets,
+    feeAssetIndex,
+    destination,
+    beneficiary
+  };
 }
 
 function palletApiTxName(palletRuntimeName: string) {

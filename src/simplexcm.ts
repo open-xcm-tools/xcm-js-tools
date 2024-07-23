@@ -38,6 +38,7 @@ export class SimpleXcm {
   registry: Registry;
   chainInfo: ChainInfo;
   palletXcm: PalletXcmName;
+  maxXcmVersion: XcmVersion;
   xcmVersion: XcmVersion;
 
   async composeTransfer(
@@ -49,6 +50,11 @@ export class SimpleXcm {
   }
 
   enforceXcmVersion(version: XcmVersion) {
+    if (version > this.maxXcmVersion) {
+      throw new Error(
+        `The requested XCM version ${version} is greater than the chain supports (= ${this.maxXcmVersion})`
+      );
+    }
     this.xcmVersion = version;
   }
 
@@ -61,13 +67,14 @@ export class SimpleXcm {
     registry: Registry,
     chainInfo: ChainInfo,
     palletXcm: PalletXcmName,
-    xcmVersion: XcmVersion
+    maxXcmVersion: XcmVersion
   ) {
     this.api = apiPromise;
     this.registry = registry;
     this.chainInfo = chainInfo;
     this.palletXcm = palletXcm;
-    this.xcmVersion = xcmVersion;
+    this.maxXcmVersion = maxXcmVersion;
+    this.xcmVersion = maxXcmVersion;
   }
 
   static async create(chainId: string, registry: Registry) {

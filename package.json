@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@polkadot/api": "^12.1.1",
+    "@polkadot/apps-config": "^0.142.1",
     "@types/lodash": "^4.17.7",
     "@typescript-eslint/eslint-plugin": "^7.16.0",
     "@typescript-eslint/parser": "^7.16.0",

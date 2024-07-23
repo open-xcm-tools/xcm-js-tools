@@ -8,7 +8,8 @@
     "start": "ts-node ./src/index.ts",
     "lint": "eslint .",
     "fix": "yarn lint --fix",
-    "fmt": "yarn prettier --config .prettierrc './src/**/*.ts' --write"
+    "fmt": "yarn prettier --config .prettierrc './src/**/*.ts' --write",
+    "test": "vitest"
   },
   "dependencies": {
     "@polkadot/api": "^12.1.1",
@@ -19,6 +20,7 @@
     "lodash": "^4.17.21",
     "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vitest": "^2.0.4"
   }
 }

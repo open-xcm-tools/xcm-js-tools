@@ -1,23 +1,44 @@
 import { describe, expect, it } from "vitest";
-import { convertLocationVersion, location } from "../src/util.ts"
-import { VersionedLocation, Location } from "../src/xcmtypes.ts";
+import { convertLocationVersion } from "../src/util.ts"
+import { VersionedLocation } from "../src/xcmtypes.ts";
 
-describe('asset location convert', () => {
+describe('asset location convert v4->v3', () => {
     it('location v4->v3', () => {
-        const fake_location : Location = location(2, [{Parachain: 1001},         {
-            AccountId32: {
-              id: '0x006ddf51db56437ce5c886ab28cd767fc85ad5cc5d4a679376a1f7e71328b501'
+        const locationV4: VersionedLocation = {
+            V4: {
+              parents: 1,
+              interior: {
+                X1: [{ GlobalConsensus: 'Kusama' }]
+              }
             }
-          }]);
+          };
 
-        const fake_location_v4 = convertLocationVersion(4, fake_location);
-        console.log(fake_location_v4);
-        expect(fake_location_v4).equal({V4: fake_location});
+        expect(convertLocationVersion(3, locationV4)).toStrictEqual({ V3: { parents: 1, interior: { X1: { GlobalConsensus: 'Kusama' } } }});
+    })
 
-        const fake_location_v3 = convertLocationVersion(3, fake_location);
-        expect(fake_location_v3).toBe({V3: fake_location});
+    it('location v4->v3 bitcoin', () => {
+        const locationWithBitcoin: VersionedLocation = {
+            V4: {
+              parents: 1,
+              interior: {
+                X1: [{ GlobalConsensus: 'BitcoinCore' }]
+              }
+            }
+          };
 
-        const fake_location_v2 = convertLocationVersion(2, fake_location);
-        expect(fake_location_v2).toBe({V2: fake_location});
+        expect(convertLocationVersion(3, locationWithBitcoin)).toStrictEqual({ V3: { parents: 1, interior: { X1: { GlobalConsensus: 'BitcoinCore' } } }})
+    })
+
+    it('location v4->v3 with miltiple junction', () => {
+        const locationWithMultipleJunctions: VersionedLocation = {
+            V4: {
+              parents: 2,
+              interior: {
+                X2: [{ GlobalConsensus: 'Polkadot' }, { Parachain: 200 }]
+              }
+            }
+          };
+
+        expect(convertLocationVersion(3, locationWithMultipleJunctions)).toStrictEqual({V3: { parents: 2, interior: { X2: [{ GlobalConsensus: 'Polkadot' }, { Parachain: 200 }] } }})
     })
 })

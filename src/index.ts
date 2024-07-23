@@ -1,44 +1,11 @@
 import { Registry } from './registry';
-import {
-  asset,
-  fungible,
-  parachainUniveralLocation,
-  relaychainUniversalLocation,
-  location
-} from './util';
+import { asset, fungible, location } from './util';
+import { Asset, AssetLookup } from './xcmtypes';
 
 (async () => {
-  const PolkadotNativeToken = 'DOT';
-  const UniqueNativeToken = 'UNQ';
-
   const registry = new Registry()
-    .addChain('Polkadot', relaychainUniversalLocation('Polkadot'), [
-      'wss://polkadot-rpc.dwellir.com',
-      'wss://polkadot-rpc.publicnode.com',
-      'wss://polkadot-public-rpc.blockops.network/ws',
-      'wss://polkadot-rpc-tn.dwellir.com',
-      'wss://rpc.ibp.network/polkadot',
-      'wss://rpc.dotters.network/polkadot',
-      'wss://rpc-polkadot.luckyfriday.io',
-      'wss://polkadot.api.onfinality.io/public-ws',
-      'wss://polkadot.public.curie.radiumblock.co/ws',
-      'wss://rockx-dot.w3node.com/polka-public-dot/ws',
-      'wss://dot-rpc.stakeworld.io'
-    ])
-    .addChain('Unique Network', parachainUniveralLocation('Polkadot', 2037), [
-      'wss://unique-rpc.dwellir.com',
-      'wss://us-ws.unique.network',
-      'wss://asia-ws.unique.network',
-      'wss://eu-ws.unique.network'
-    ])
-    .addUniveralLocation(
-      PolkadotNativeToken,
-      relaychainUniversalLocation('Polkadot')
-    )
-    .addUniveralLocation(
-      UniqueNativeToken,
-      parachainUniveralLocation('Polkadot', 2037)
-    )
+    .addEcosystemChains('Polkadot')
+    .addEcosystemChains('Kusama')
     .addRelativeLocation(
       'Test Account',
       location(0, [
@@ -50,31 +17,38 @@ import {
       ])
     );
 
-  const xcm = await registry.connectXcm('Polkadot');
-  //   xcm.enforceXcmVersion(2);
-  //   xcm.enforceXcmVersion(3);
+  await registry.addNativeCurrency('Polkadot');
+  await registry.addNativeCurrency('Unique Network');
+  await registry.addNativeCurrency('QUARTZ by UNIQUE');
+
+  const xcm = await registry.connectXcm('Unique Network');
+  // xcm.enforceXcmVersion(2);
+  // xcm.enforceXcmVersion(3);
+  // xcm.enforceXcmVersion(4);
   console.log('XCM version:', xcm.xcmVersion);
 
   // TODO check/convert all junctions add arbitrary byte data
   // TODO conversion for account id text reprs
   const transferTx = await xcm.composeTransfer({
     assets: [
-      asset(location(0, 'Here'), fungible(100000000000)),
+      asset(location(0, 'Here'), fungible(100)),
 
-      asset('DOT', fungible(500000000)),
+      asset('DOT', fungible(5)),
 
-      {
+      <AssetLookup>{
         id: 'DOT',
-        fun: fungible(42424242)
+        fun: fungible(42)
       },
 
-      {
+      <Asset>{
         id: { parents: 0, interior: 'Here' },
-        fun: { Fungible: 500500500500 }
-      }
-    ],
+        fun: { Fungible: 88 }
+      },
+
+      asset('QTZ', fungible(77))
+    ].map(asset => xcm.adjustToCurrencyUnit(asset)),
     feeAssetId: 'DOT',
-    destination: 'Unique Network',
+    destination: 'Acala',
     beneficiary: 'Test Account'
   });
 

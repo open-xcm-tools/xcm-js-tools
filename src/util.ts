@@ -86,7 +86,9 @@ function arrayToInterior(interiorVersion: XcmVersion, junctions: any[]): any {
   } else if (junctions.length == 8) {
     return { X8: [...junctions] };
   } else {
-    throw new Error('arrayToInterior: invalid interior array length');
+    throw new Error(
+      `arrayToInterior - ${junctions.length} invalid interior array length`
+    );
   }
 }
 
@@ -111,12 +113,34 @@ export function location(
     };
   }
 
-  const interior: Interior = arrayToInterior(CURRENT_XCM_VERSION, junctions);
+  const interior: Interior = toInterior(junctions);
 
   return {
     parents,
     interior
   };
+}
+
+export function toInterior(junctions: Junction[]): Interior {
+  return arrayToInterior(CURRENT_XCM_VERSION, junctions);
+}
+
+export function toJunctions(interior: Interior): Junction[] {
+  return interiorToArray(CURRENT_XCM_VERSION, interior);
+}
+
+export function concatInterior(a: Interior, b: Interior): Interior {
+  const junctionsA = toJunctions(a);
+  const junctionsB = toJunctions(b);
+
+  const resultLength = junctionsA.length + junctionsB.length;
+  if (resultLength > 8) {
+    throw Error(
+      `The concatenated interior length ${resultLength} is greater than the max length (= 8)`
+    );
+  }
+
+  return toInterior([...junctionsA, ...junctionsB]);
 }
 
 export function relativeLocaionToUniversal({
@@ -125,12 +149,9 @@ export function relativeLocaionToUniversal({
 }: {
   relativeLocation: Location;
   context: InteriorLocation;
-}) {
-  const locationJunctions = interiorToArray(
-    CURRENT_XCM_VERSION,
-    relativeLocation
-  );
-  const contextJunctions = interiorToArray(CURRENT_XCM_VERSION, context);
+}): InteriorLocation {
+  const locationJunctions = toJunctions(relativeLocation.interior);
+  const contextJunctions = toJunctions(context);
 
   if (relativeLocation.parents > contextJunctions.length) {
     throw new Error(
@@ -139,12 +160,7 @@ export function relativeLocaionToUniversal({
   }
 
   const universalPrefix = contextJunctions.slice(relativeLocation.parents);
-  return <InteriorLocation>(
-    arrayToInterior(CURRENT_XCM_VERSION, [
-      ...universalPrefix,
-      ...locationJunctions
-    ])
-  );
+  return toInterior([...universalPrefix, ...locationJunctions]);
 }
 
 export function locationRelativeToPrefix({
@@ -154,14 +170,8 @@ export function locationRelativeToPrefix({
   location: InteriorLocation;
   prefix: InteriorLocation;
 }): Location {
-  let locationJunctions: Junction[] = interiorToArray(
-    CURRENT_XCM_VERSION,
-    location
-  );
-  let prefixJunctions: Junction[] = interiorToArray(
-    CURRENT_XCM_VERSION,
-    prefix
-  );
+  let locationJunctions: Junction[] = toJunctions(location);
+  let prefixJunctions: Junction[] = toJunctions(prefix);
 
   while (
     locationJunctions.length > 0 &&
@@ -174,7 +184,7 @@ export function locationRelativeToPrefix({
 
   return {
     parents: prefixJunctions.length,
-    interior: arrayToInterior(CURRENT_XCM_VERSION, locationJunctions)
+    interior: toInterior(locationJunctions)
   };
 }
 
@@ -621,14 +631,14 @@ export function parachainUniveralLocation(
   };
 }
 
-export function fungible(amount: number) {
+export function fungible(amount: number | bigint) {
   return {
     Fungible: amount
   };
 }
 
 function textByteLength(text: string) {
-  const hexMatch = text.match(/^0x(?<numberPart>[0-9a-f]*)$/i);
+  const hexMatch = text.match(/^0x(?<numberPart>[0-9a-fA-F]*)$/i);
   if (hexMatch) {
     const numberPart = hexMatch.groups!.numberPart;
     return Math.ceil(numberPart.length / 2);
@@ -638,9 +648,9 @@ function textByteLength(text: string) {
   }
 }
 
-export function nonfungible(id: number | string) {
+export function nonfungible(id: number | bigint | string) {
   let assetInstance;
-  if (typeof id == 'number') {
+  if (typeof id == 'number' || typeof id == 'bigint') {
     assetInstance = {
       Index: id
     };

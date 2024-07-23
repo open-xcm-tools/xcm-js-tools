@@ -48,7 +48,7 @@ export type VersionedFungibility = Versioned<
 >;
 
 type GenericFungibility<Instance> =
-  | { Fungible: number }
+  | { Fungible: number | bigint }
   | { NonFungible: Instance };
 
 export type FungibilityV2 = GenericFungibility<AssetInstanceV2>;
@@ -59,7 +59,7 @@ export type AssetInstance = AssetInstanceV4;
 
 export type AssetInstanceV2 =
   | 'Undefined'
-  | { Index: number }
+  | { Index: number | bigint }
   | { Array4: string }
   | { Array8: string }
   | { Array16: string }

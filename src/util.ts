@@ -129,6 +129,20 @@ export function toJunctions(interior: Interior): Junction[] {
   return interiorToArray(CURRENT_XCM_VERSION, interior);
 }
 
+export function concatInterior(a: Interior, b: Interior): Interior {
+  const junctionsA = toJunctions(a);
+  const junctionsB = toJunctions(b);
+
+  const resultLength = junctionsA.length + junctionsB.length;
+  if (resultLength > 8) {
+    throw Error(
+      `The concatenated interior length ${resultLength} is greater than the max length (= 8)`
+    );
+  }
+
+  return toInterior([...junctionsA, ...junctionsB]);
+}
+
 export function relativeLocaionToUniversal({
   relativeLocation,
   context

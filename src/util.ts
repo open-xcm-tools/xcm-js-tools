@@ -111,12 +111,20 @@ export function location(
     };
   }
 
-  const interior: Interior = arrayToInterior(CURRENT_XCM_VERSION, junctions);
+  const interior: Interior = toInterior(junctions);
 
   return {
     parents,
     interior
   };
+}
+
+export function toInterior(junctions: Junction[]): Interior {
+  return arrayToInterior(CURRENT_XCM_VERSION, junctions);
+}
+
+export function toJunctions(interior: Interior): Junction[] {
+  return interiorToArray(CURRENT_XCM_VERSION, interior);
 }
 
 export function relativeLocaionToUniversal({
@@ -125,12 +133,9 @@ export function relativeLocaionToUniversal({
 }: {
   relativeLocation: Location;
   context: InteriorLocation;
-}) {
-  const locationJunctions = interiorToArray(
-    CURRENT_XCM_VERSION,
-    relativeLocation
-  );
-  const contextJunctions = interiorToArray(CURRENT_XCM_VERSION, context);
+}): InteriorLocation {
+  const locationJunctions = toJunctions(relativeLocation.interior);
+  const contextJunctions = toJunctions(context);
 
   if (relativeLocation.parents > contextJunctions.length) {
     throw new Error(
@@ -139,12 +144,7 @@ export function relativeLocaionToUniversal({
   }
 
   const universalPrefix = contextJunctions.slice(relativeLocation.parents);
-  return <InteriorLocation>(
-    arrayToInterior(CURRENT_XCM_VERSION, [
-      ...universalPrefix,
-      ...locationJunctions
-    ])
-  );
+  return toInterior([...universalPrefix, ...locationJunctions]);
 }
 
 export function locationRelativeToPrefix({
@@ -154,14 +154,8 @@ export function locationRelativeToPrefix({
   location: InteriorLocation;
   prefix: InteriorLocation;
 }): Location {
-  let locationJunctions: Junction[] = interiorToArray(
-    CURRENT_XCM_VERSION,
-    location
-  );
-  let prefixJunctions: Junction[] = interiorToArray(
-    CURRENT_XCM_VERSION,
-    prefix
-  );
+  let locationJunctions: Junction[] = toJunctions(location);
+  let prefixJunctions: Junction[] = toJunctions(prefix);
 
   while (
     locationJunctions.length > 0 &&
@@ -174,7 +168,7 @@ export function locationRelativeToPrefix({
 
   return {
     parents: prefixJunctions.length,
-    interior: arrayToInterior(CURRENT_XCM_VERSION, locationJunctions)
+    interior: toInterior(locationJunctions)
   };
 }
 

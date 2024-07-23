@@ -621,7 +621,7 @@ export function parachainUniveralLocation(
   };
 }
 
-export function fungible(amount: number) {
+export function fungible(amount: number | bigint) {
   return {
     Fungible: amount
   };
@@ -638,9 +638,9 @@ function textByteLength(text: string) {
   }
 }
 
-export function nonfungible(id: number | string) {
+export function nonfungible(id: number | bigint | string) {
   let assetInstance;
-  if (typeof id == 'number') {
+  if (typeof id == 'number' || typeof id == 'bigint') {
     assetInstance = {
       Index: id
     };

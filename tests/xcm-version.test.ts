@@ -274,7 +274,7 @@ describe('asset xcm tests', () => {
       });
     });
 
-    it('create v4 from v4 asset', () => {
+    it('create v3 from v4 asset', () => {
       expect(convertAssetVersion(3, assetV4.V4)).toStrictEqual(assetV3);
       expect(convertAssetVersion(3, assetJunctionV4.V4)).toStrictEqual(
         assetJunctionV3
@@ -322,17 +322,17 @@ describe('asset xcm tests', () => {
   });
 
   describe('asset convert v3->v2', () => {
-    it('asset v3->v4', () => {
+    it('asset v3->v2', () => {
       expect(convertAssetVersion(2, assetV3)).toStrictEqual(assetV2);
     });
 
-    it('asset v3->v4 interior', () => {
+    it('asset v3->v2 interior', () => {
       expect(convertAssetVersion(2, assetJunctionV3)).toStrictEqual(
         assetJunctionV2
       );
     });
 
-    it('asset v3->v4 multiple interior', () => {
+    it('asset v3->v2 multiple interior', () => {
       // "network": "Any"
       expect(
         convertAssetVersion(2, assetWithMultipleJunctionsV3)

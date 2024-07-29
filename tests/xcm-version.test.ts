@@ -397,15 +397,7 @@ describe('asset xcm tests', () => {
       id: {
         parents: 2,
         interior: {
-          X3: [
-            { GlobalConsensus: 'Polkadot' },
-            { Parachain: 2002 },
-            {
-              AccountId32: {
-                id: '1LLF3L51WAHNtSmRvE2Y6UzGf9saNFz9d84pcUsAKZxt7v2'
-              }
-            }
-          ]
+          X2: [{ GlobalConsensus: 'Polkadot' }, { Parachain: 2002 }]
         }
       },
       fun: { Fungible: 1000 }
@@ -455,15 +447,7 @@ describe('asset xcm tests', () => {
         Concrete: {
           parents: 2,
           interior: {
-            X3: [
-              { GlobalConsensus: 'Polkadot' },
-              { Parachain: 2002 },
-              {
-                AccountId32: {
-                  id: '1LLF3L51WAHNtSmRvE2Y6UzGf9saNFz9d84pcUsAKZxt7v2'
-                }
-              }
-            ]
+            X2: [{ GlobalConsensus: 'Polkadot' }, { Parachain: 2002 }]
           }
         }
       },

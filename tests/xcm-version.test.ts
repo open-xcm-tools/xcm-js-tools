@@ -59,6 +59,23 @@ describe('xcm location tests', () => {
     }
   };
 
+  const locationWithGlobalConsensusV4: VersionedLocation = {
+    V4: {
+      parents: 2,
+      interior: {
+        X3: [
+          { GlobalConsensus: 'Polkadot' },
+          { Parachain: 2002 },
+          {
+            AccountId32: {
+              id: '1LLF3L51WAHNtSmRvE2Y6UzGf9saNFz9d84pcUsAKZxt7v2'
+            }
+          }
+        ]
+      }
+    }
+  };
+
   const locationV3: VersionedLocation = {
     V3: { parents: 1, interior: { X1: { Parachain: 2001 } } }
   };
@@ -113,119 +130,22 @@ describe('xcm location tests', () => {
     }
   };
 
-  describe('identity test for locations', () => {
-    it('v4 identity test with versioned location', () => {
-      expect(convertLocationVersion(4, locationV4)).toStrictEqual(locationV4);
-      expect(convertLocationVersion(4, locationWithBitcoinV4)).toStrictEqual(
-        locationWithBitcoinV4
-      );
-      expect(
-        convertLocationVersion(4, locationWithMultipleJunctionsV4)
-      ).toStrictEqual(locationWithMultipleJunctionsV4);
-      expect(convertLocationVersion(4, locationWithNetworkIdV4)).toStrictEqual(
-        locationWithNetworkIdV4
-      );
-      expect(
-        convertLocationVersion(4, locationWithEthereumNetworkV4)
-      ).toStrictEqual(locationWithEthereumNetworkV4);
-    });
-
-    it('v4 identity test with location', () => {
-      expect(convertLocationVersion(4, locationV4.V4)).toStrictEqual(
-        locationV4
-      );
-      expect(convertLocationVersion(4, locationWithBitcoinV4.V4)).toStrictEqual(
-        locationWithBitcoinV4
-      );
-      expect(
-        convertLocationVersion(4, locationWithMultipleJunctionsV4.V4)
-      ).toStrictEqual(locationWithMultipleJunctionsV4);
-      expect(
-        convertLocationVersion(4, locationWithNetworkIdV4.V4)
-      ).toStrictEqual(locationWithNetworkIdV4);
-      expect(
-        convertLocationVersion(4, locationWithEthereumNetworkV4.V4)
-      ).toStrictEqual(locationWithEthereumNetworkV4);
-    });
-
-    it('v3 identity test with location', () => {
-      expect(convertLocationVersion(3, locationV4.V4)).toStrictEqual(
-        locationV3
-      );
-      expect(convertLocationVersion(3, locationWithBitcoinV4.V4)).toStrictEqual(
-        locationWithBitcoinV3
-      );
-      expect(
-        convertLocationVersion(3, locationWithMultipleJunctionsV4.V4)
-      ).toStrictEqual(locationWithMultipleJunctionsV3);
-      expect(
-        convertLocationVersion(3, locationWithNetworkIdV4.V4)
-      ).toStrictEqual(locationWithNetworkIdV3);
-      expect(
-        convertLocationVersion(3, locationWithEthereumNetworkV4.V4)
-      ).toStrictEqual(locationWithEthereumNetworkV3);
-    });
-  });
-
-  describe('location convert v4->v3', () => {
-    it('location v4->v3', () => {
-      expect(convertLocationVersion(3, locationV4)).toStrictEqual(locationV3);
-    });
-
-    it('location v4->v3 bitcoin', () => {
-      expect(convertLocationVersion(3, locationWithBitcoinV4)).toStrictEqual(
-        locationWithBitcoinV3
-      );
-    });
-
-    it('location v4->v3 with miltiple junction', () => {
-      expect(
-        convertLocationVersion(3, locationWithMultipleJunctionsV4)
-      ).toStrictEqual(locationWithMultipleJunctionsV3);
-    });
-
-    it('location v4->v3 with NetworkId', () => {
-      expect(convertLocationVersion(3, locationWithNetworkIdV4)).toStrictEqual(
-        locationWithNetworkIdV3
-      );
-    });
-
-    it('location v4->v3 with ethereum', () => {
-      expect(
-        convertLocationVersion(3, locationWithEthereumNetworkV4)
-      ).toStrictEqual(locationWithEthereumNetworkV3);
-    });
-  });
-
-  describe('location convert v3->v4', () => {
-    it('location v3->v4', () => {
-      expect(convertLocationVersion(4, locationV3)).toStrictEqual(locationV4);
-    });
-
-    it('location v3->v4 bitcoin', () => {
-      expect(convertLocationVersion(4, locationWithBitcoinV3)).toStrictEqual(
-        locationWithBitcoinV4
-      );
-    });
-
-    it('location v4->v3 with miltiple junction', () => {
-      expect(
-        convertLocationVersion(4, locationWithMultipleJunctionsV3)
-      ).toStrictEqual(locationWithMultipleJunctionsV4);
-    });
-
-    it('location v3->v4 with NetworkId', () => {
-      expect(convertLocationVersion(4, locationWithNetworkIdV3)).toStrictEqual(
-        locationWithNetworkIdV4
-      );
-    });
-
-    it('location v3->v4 with ethereum', () => {
-      expect(
-        convertLocationVersion(4, locationWithEthereumNetworkV3)
-      ).toStrictEqual(locationWithEthereumNetworkV4);
-    });
-  });
+  const locationWithGlobalConsensusV3: VersionedLocation = {
+    V3: {
+      parents: 2,
+      interior: {
+        X3: [
+          { GlobalConsensus: 'Polkadot' },
+          { Parachain: 2002 },
+          {
+            AccountId32: {
+              id: '1LLF3L51WAHNtSmRvE2Y6UzGf9saNFz9d84pcUsAKZxt7v2'
+            }
+          }
+        ]
+      }
+    }
+  };
 
   const locationV2: VersionedLocation = {
     V2: { parents: 1, interior: { X1: { Parachain: 2001 } } }
@@ -257,7 +177,142 @@ describe('xcm location tests', () => {
     }
   };
 
-  describe('asset location convert v3->v2', () => {
+  describe('identity test for locations', () => {
+    it('v4 identity test with versioned location', () => {
+      expect(convertLocationVersion(4, locationV4)).toStrictEqual(locationV4);
+      expect(convertLocationVersion(4, locationWithBitcoinV4)).toStrictEqual(
+        locationWithBitcoinV4
+      );
+      expect(
+        convertLocationVersion(4, locationWithMultipleJunctionsV4)
+      ).toStrictEqual(locationWithMultipleJunctionsV4);
+      expect(convertLocationVersion(4, locationWithNetworkIdV4)).toStrictEqual(
+        locationWithNetworkIdV4
+      );
+      expect(
+        convertLocationVersion(4, locationWithEthereumNetworkV4)
+      ).toStrictEqual(locationWithEthereumNetworkV4);
+      expect(
+        convertLocationVersion(4, locationWithGlobalConsensusV4)
+      ).toStrictEqual(locationWithGlobalConsensusV4);
+    });
+
+    it('v4 identity test with location', () => {
+      expect(convertLocationVersion(4, locationV4.V4)).toStrictEqual(
+        locationV4
+      );
+      expect(convertLocationVersion(4, locationWithBitcoinV4.V4)).toStrictEqual(
+        locationWithBitcoinV4
+      );
+      expect(
+        convertLocationVersion(4, locationWithMultipleJunctionsV4.V4)
+      ).toStrictEqual(locationWithMultipleJunctionsV4);
+      expect(
+        convertLocationVersion(4, locationWithNetworkIdV4.V4)
+      ).toStrictEqual(locationWithNetworkIdV4);
+      expect(
+        convertLocationVersion(4, locationWithEthereumNetworkV4.V4)
+      ).toStrictEqual(locationWithEthereumNetworkV4);
+      expect(
+        convertLocationVersion(4, locationWithGlobalConsensusV4.V4)
+      ).toStrictEqual(locationWithGlobalConsensusV4);
+    });
+
+    it('v3 identity test with location', () => {
+      expect(convertLocationVersion(3, locationV4.V4)).toStrictEqual(
+        locationV3
+      );
+      expect(convertLocationVersion(3, locationWithBitcoinV4.V4)).toStrictEqual(
+        locationWithBitcoinV3
+      );
+      expect(
+        convertLocationVersion(3, locationWithMultipleJunctionsV4.V4)
+      ).toStrictEqual(locationWithMultipleJunctionsV3);
+      expect(
+        convertLocationVersion(3, locationWithNetworkIdV4.V4)
+      ).toStrictEqual(locationWithNetworkIdV3);
+      expect(
+        convertLocationVersion(3, locationWithEthereumNetworkV4.V4)
+      ).toStrictEqual(locationWithEthereumNetworkV3);
+      expect(
+        convertLocationVersion(3, locationWithGlobalConsensusV4.V4)
+      ).toStrictEqual(locationWithGlobalConsensusV3);
+    });
+  });
+
+  describe('location convert v4->v3', () => {
+    it('location v4->v3', () => {
+      expect(convertLocationVersion(3, locationV4)).toStrictEqual(locationV3);
+    });
+
+    it('location v4->v3 bitcoin', () => {
+      expect(convertLocationVersion(3, locationWithBitcoinV4)).toStrictEqual(
+        locationWithBitcoinV3
+      );
+    });
+
+    it('location v4->v3 with miltiple junction', () => {
+      expect(
+        convertLocationVersion(3, locationWithMultipleJunctionsV4)
+      ).toStrictEqual(locationWithMultipleJunctionsV3);
+    });
+
+    it('location v4->v3 with NetworkId', () => {
+      expect(convertLocationVersion(3, locationWithNetworkIdV4)).toStrictEqual(
+        locationWithNetworkIdV3
+      );
+    });
+
+    it('location v4->v3 with ethereum', () => {
+      expect(
+        convertLocationVersion(3, locationWithEthereumNetworkV4)
+      ).toStrictEqual(locationWithEthereumNetworkV3);
+    });
+
+    it('location v4->v3 with global consensus', () => {
+      expect(
+        convertLocationVersion(3, locationWithGlobalConsensusV4)
+      ).toStrictEqual(locationWithGlobalConsensusV3);
+    });
+  });
+
+  describe('location convert v3->v4', () => {
+    it('location v3->v4', () => {
+      expect(convertLocationVersion(4, locationV3)).toStrictEqual(locationV4);
+    });
+
+    it('location v3->v4 bitcoin', () => {
+      expect(convertLocationVersion(4, locationWithBitcoinV3)).toStrictEqual(
+        locationWithBitcoinV4
+      );
+    });
+
+    it('location v4->v3 with miltiple junction', () => {
+      expect(
+        convertLocationVersion(4, locationWithMultipleJunctionsV3)
+      ).toStrictEqual(locationWithMultipleJunctionsV4);
+    });
+
+    it('location v3->v4 with NetworkId', () => {
+      expect(convertLocationVersion(4, locationWithNetworkIdV3)).toStrictEqual(
+        locationWithNetworkIdV4
+      );
+    });
+
+    it('location v3->v4 with ethereum', () => {
+      expect(
+        convertLocationVersion(4, locationWithEthereumNetworkV3)
+      ).toStrictEqual(locationWithEthereumNetworkV4);
+    });
+
+    it('location v3->v4 with global consensus', () => {
+      expect(
+        convertLocationVersion(4, locationWithGlobalConsensusV3)
+      ).toStrictEqual(locationWithGlobalConsensusV4);
+    });
+  });
+
+  describe('location convert v3->v2', () => {
     it('location v3->v2', () => {
       expect(convertLocationVersion(2, locationV3)).toStrictEqual(locationV2);
     });
@@ -285,9 +340,15 @@ describe('xcm location tests', () => {
         convertLocationVersion(2, locationWithEthereumNetworkV3)
       ).toThrowError(`V2 network ID doesn't include`);
     });
+
+    it('location v3->v2 with global consensus', () => {
+      expect(() =>
+        convertLocationVersion(2, locationWithGlobalConsensusV3)
+      ).toThrowError(`V2 junctions doesn't include`);
+    });
   });
 
-  describe('asset location convert v2->v3', () => {
+  describe('location convert v2->v3', () => {
     it('location v2->v3', () => {
       expect(convertLocationVersion(3, locationV2)).toStrictEqual(locationV3);
     });
@@ -331,6 +392,26 @@ describe('asset xcm tests', () => {
     }
   };
 
+  const assetWithGlobalConsensusV4: VersionedAsset = {
+    V4: {
+      id: {
+        parents: 2,
+        interior: {
+          X3: [
+            { GlobalConsensus: 'Polkadot' },
+            { Parachain: 2002 },
+            {
+              AccountId32: {
+                id: '1LLF3L51WAHNtSmRvE2Y6UzGf9saNFz9d84pcUsAKZxt7v2'
+              }
+            }
+          ]
+        }
+      },
+      fun: { Fungible: 1000 }
+    }
+  };
+
   const assetV3: VersionedAsset = {
     V3: {
       id: { Concrete: { parents: 0, interior: 'Here' } },
@@ -361,6 +442,28 @@ describe('asset xcm tests', () => {
           parents: 3,
           interior: {
             X2: [{ Parachain: 2001 }, { GeneralIndex: 1002 }]
+          }
+        }
+      },
+      fun: { Fungible: 1000 }
+    }
+  };
+
+  const assetWithGlobalConsensusV3: VersionedAsset = {
+    V3: {
+      id: {
+        Concrete: {
+          parents: 2,
+          interior: {
+            X3: [
+              { GlobalConsensus: 'Polkadot' },
+              { Parachain: 2002 },
+              {
+                AccountId32: {
+                  id: '1LLF3L51WAHNtSmRvE2Y6UzGf9saNFz9d84pcUsAKZxt7v2'
+                }
+              }
+            ]
           }
         }
       },
@@ -431,6 +534,9 @@ describe('asset xcm tests', () => {
       expect(convertAssetVersion(4, assetWithNonFungibleV4)).toStrictEqual(
         assetWithNonFungibleV4
       );
+      expect(convertAssetVersion(4, assetWithGlobalConsensusV4)).toStrictEqual(
+        assetWithGlobalConsensusV4
+      );
     });
 
     it('v4 identity test with asset', () => {
@@ -444,6 +550,9 @@ describe('asset xcm tests', () => {
       expect(convertAssetVersion(4, assetWithNonFungibleV4.V4)).toStrictEqual(
         assetWithNonFungibleV4
       );
+      expect(
+        convertAssetVersion(4, assetWithGlobalConsensusV4.V4)
+      ).toStrictEqual(assetWithGlobalConsensusV4);
     });
 
     it('v3 identity test with asset', () => {
@@ -457,6 +566,9 @@ describe('asset xcm tests', () => {
       expect(convertAssetVersion(3, assetWithNonFungibleV4.V4)).toStrictEqual(
         assetWithNonFungibleV3
       );
+      expect(
+        convertAssetVersion(3, assetWithGlobalConsensusV4.V4)
+      ).toStrictEqual(assetWithGlobalConsensusV3);
     });
   });
 
@@ -482,6 +594,12 @@ describe('asset xcm tests', () => {
         convertAssetVersion(3, assetWithMultipleJunctionsV4)
       ).toStrictEqual(assetWithMultipleJunctionsV3);
     });
+
+    it('asset v4->v3 global consensus', () => {
+      expect(convertAssetVersion(3, assetWithGlobalConsensusV4)).toStrictEqual(
+        assetWithGlobalConsensusV3
+      );
+    });
   });
 
   describe('asset convert v3->v4', () => {
@@ -506,6 +624,12 @@ describe('asset xcm tests', () => {
         convertAssetVersion(4, assetWithMultipleJunctionsV3)
       ).toStrictEqual(assetWithMultipleJunctionsV4);
     });
+
+    it('asset v3->v4 global consensus', () => {
+      expect(convertAssetVersion(4, assetWithGlobalConsensusV3)).toStrictEqual(
+        assetWithGlobalConsensusV4
+      );
+    });
   });
 
   describe('asset convert v3->v2', () => {
@@ -529,6 +653,12 @@ describe('asset xcm tests', () => {
       expect(convertAssetVersion(2, assetWithNonFungibleV3)).toStrictEqual(
         assetWithNonFungibleV2
       );
+    });
+
+    it('asset v3->v2 global consensus', () => {
+      expect(() =>
+        convertAssetVersion(2, assetWithGlobalConsensusV4)
+      ).toThrowError(`V2 junctions doesn't include`);
     });
   });
 

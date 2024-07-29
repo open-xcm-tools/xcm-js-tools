@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  asset,
-  convertAssetVersion,
-  convertLocationVersion,
-  fungible,
-  location
-} from '../src/util.ts';
+import { convertAssetVersion, convertLocationVersion } from '../src/util.ts';
 import { VersionedAsset, VersionedLocation } from '../src/xcmtypes.ts';
 
 describe('xcm location tests', () => {
@@ -26,10 +20,7 @@ describe('xcm location tests', () => {
     V4: {
       parents: 2,
       interior: {
-        X2: [
-          { Parachain: 2001 },
-          { AccountId32: { network: 'Polkadot', id: 'TEST' } }
-        ]
+        X2: [{ Parachain: 2001 }, { GeneralIndex: 1002 }]
       }
     }
   };
@@ -37,31 +28,38 @@ describe('xcm location tests', () => {
   const locationV3: VersionedLocation = {
     V3: { parents: 1, interior: { X1: { Parachain: 2001 } } }
   };
-  
+
   const locationWithBitcoinV3: VersionedLocation = {
     V3: {
       parents: 1,
       interior: { X1: { AccountId32: { network: 'BitcoinCore', id: 'TEST' } } }
     }
   };
-  
+
   const locationWithMultipleJunctionsV3: VersionedLocation = {
     V3: {
       parents: 2,
       interior: {
-        X2: [
-          { Parachain: 2001 },
-          { AccountId32: { network: 'Polkadot', id: 'TEST' } }
-        ]
+        X2: [{ Parachain: 2001 }, { GeneralIndex: 1002 }]
       }
     }
   };
 
-  describe('create versions from v4', () => {
-    it('create v4 from v4 location', () => {
-      expect(convertLocationVersion(4, locationV4.V4)).toStrictEqual({
-        V4: location(1, [{ Parachain: 2001 }])
-      });
+  describe('identity test for locations', () => {
+    it('v4 identity test with versioned location', () => {
+      expect(convertLocationVersion(4, locationV4)).toStrictEqual(locationV4);
+      expect(convertLocationVersion(4, locationWithBitcoinV4)).toStrictEqual(
+        locationWithBitcoinV4
+      );
+      expect(
+        convertLocationVersion(4, locationWithMultipleJunctionsV4)
+      ).toStrictEqual(locationWithMultipleJunctionsV4);
+    });
+
+    it('v4 identity test with location', () => {
+      expect(convertLocationVersion(4, locationV4.V4)).toStrictEqual(
+        locationV4
+      );
       expect(convertLocationVersion(4, locationWithBitcoinV4.V4)).toStrictEqual(
         locationWithBitcoinV4
       );
@@ -70,7 +68,7 @@ describe('xcm location tests', () => {
       ).toStrictEqual(locationWithMultipleJunctionsV4);
     });
 
-    it('create v3 from v4 location', () => {
+    it('v3 identity test with location', () => {
       expect(convertLocationVersion(3, locationV4.V4)).toStrictEqual(
         locationV3
       );
@@ -122,15 +120,12 @@ describe('xcm location tests', () => {
   const locationV2: VersionedLocation = {
     V2: { parents: 1, interior: { X1: { Parachain: 2001 } } }
   };
-  
+
   const locationWithMultipleJunctionsV2: VersionedLocation = {
     V2: {
       parents: 2,
       interior: {
-        X2: [
-          { Parachain: 2001 },
-          { AccountId32: { network: 'Polkadot', id: 'TEST' } }
-        ]
+        X2: [{ Parachain: 2001 }, { GeneralIndex: 1002 }]
       }
     }
   };
@@ -143,7 +138,7 @@ describe('xcm location tests', () => {
     it('location v3->v2 bitcoin', () => {
       expect(() =>
         convertLocationVersion(2, locationWithBitcoinV3)
-      ).toThrowError();
+      ).toThrowError(`V2 network ID doesn't include`);
     });
 
     it('location v3->v2 with miltiple junction', () => {
@@ -154,18 +149,6 @@ describe('xcm location tests', () => {
   });
 
   describe('asset location convert v2->v3', () => {
-    const locationWithMultipleJunctionsV3: VersionedLocation = {
-      V3: {
-        parents: 2,
-        interior: {
-          X2: [
-            { Parachain: 2001 },
-            { AccountId32: { network: 'Polkadot', id: 'TEST' } }
-          ]
-        }
-      }
-    };
-
     it('location v2->v3', () => {
       expect(convertLocationVersion(3, locationV2)).toStrictEqual(locationV3);
     });
@@ -182,19 +165,21 @@ describe('asset xcm tests', () => {
   const assetV4: VersionedAsset = {
     V4: { id: { parents: 0, interior: 'Here' }, fun: { Fungible: 1000 } }
   };
-  
+
   const assetJunctionV4: VersionedAsset = {
     V4: {
       id: { parents: 1, interior: { X1: [{ Parachain: 2001 }] } },
       fun: { Fungible: 1000 }
     }
   };
-  
+
   const assetWithMultipleJunctionsV4: VersionedAsset = {
     V4: {
       id: {
         parents: 3,
-        interior: { X2: [{ Parachain: 2001 }, { AccountId32: { id: 'TEST' } }] }
+        interior: {
+          X2: [{ Parachain: 2001 }, { GeneralIndex: 1002 }]
+        }
       },
       fun: { Fungible: 1000 }
     }
@@ -206,21 +191,21 @@ describe('asset xcm tests', () => {
       fun: { Fungible: 1000 }
     }
   };
-  
+
   const assetJunctionV3: VersionedAsset = {
     V3: {
       id: { Concrete: { parents: 1, interior: { X1: { Parachain: 2001 } } } },
       fun: { Fungible: 1000 }
     }
   };
-  
+
   const assetWithMultipleJunctionsV3: VersionedAsset = {
     V3: {
       id: {
         Concrete: {
           parents: 3,
           interior: {
-            X2: [{ Parachain: 2001 }, { AccountId32: { id: 'TEST' } }]
+            X2: [{ Parachain: 2001 }, { GeneralIndex: 1002 }]
           }
         }
       },
@@ -234,21 +219,21 @@ describe('asset xcm tests', () => {
       fun: { Fungible: 1000 }
     }
   };
-  
+
   const assetJunctionV2: VersionedAsset = {
     V2: {
       id: { Concrete: { parents: 1, interior: { X1: { Parachain: 2001 } } } },
       fun: { Fungible: 1000 }
     }
   };
-  
+
   const assetWithMultipleJunctionsV2: VersionedAsset = {
     V2: {
       id: {
         Concrete: {
           parents: 3,
           interior: {
-            X2: [{ Parachain: 2001 }, { AccountId32: { id: 'TEST' } }]
+            X2: [{ Parachain: 2001 }, { GeneralIndex: 1002 }]
           }
         }
       },
@@ -256,25 +241,28 @@ describe('asset xcm tests', () => {
     }
   };
 
-  describe('create versions from assets', () => {
-    it('create v4 from v4 asset', () => {
-      expect(convertAssetVersion(4, assetV4.V4)).toStrictEqual({
-        V4: asset(location(0, 'Here'), fungible(1000))
-      });
-      expect(convertAssetVersion(4, assetJunctionV4.V4)).toStrictEqual({
-        V4: asset(location(1, [{ Parachain: 2001 }]), fungible(1000))
-      });
+  describe('identity test for assets', () => {
+    it('v4 identity test with versioned asset', () => {
+      expect(convertAssetVersion(4, assetV4)).toStrictEqual(assetV4);
+      expect(convertAssetVersion(4, assetJunctionV4)).toStrictEqual(
+        assetJunctionV4
+      );
       expect(
-        convertAssetVersion(4, assetWithMultipleJunctionsV4.V4)
-      ).toStrictEqual({
-        V4: asset(
-          location(3, [{ Parachain: 2001 }, { AccountId32: { id: 'TEST' } }]),
-          fungible(1000)
-        )
-      });
+        convertAssetVersion(4, assetWithMultipleJunctionsV4)
+      ).toStrictEqual(assetWithMultipleJunctionsV4);
     });
 
-    it('create v3 from v4 asset', () => {
+    it('v4 identity test with asset', () => {
+      expect(convertAssetVersion(4, assetV4.V4)).toStrictEqual(assetV4);
+      expect(convertAssetVersion(4, assetJunctionV4.V4)).toStrictEqual(
+        assetJunctionV4
+      );
+      expect(
+        convertAssetVersion(4, assetWithMultipleJunctionsV4.V4)
+      ).toStrictEqual(assetWithMultipleJunctionsV4);
+    });
+
+    it('v3 identity test with asset', () => {
       expect(convertAssetVersion(3, assetV4.V4)).toStrictEqual(assetV3);
       expect(convertAssetVersion(3, assetJunctionV4.V4)).toStrictEqual(
         assetJunctionV3
@@ -333,10 +321,9 @@ describe('asset xcm tests', () => {
     });
 
     it('asset v3->v2 multiple interior', () => {
-      // "network": "Any"
       expect(
         convertAssetVersion(2, assetWithMultipleJunctionsV3)
-      ).not.toStrictEqual(assetWithMultipleJunctionsV2);
+      ).toStrictEqual(assetWithMultipleJunctionsV2);
     });
   });
 });

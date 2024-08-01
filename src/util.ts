@@ -480,7 +480,7 @@ function downgradeJunctionV3(junction: JunctionV3): JunctionV2 {
     };
   } else {
     const junctionStr = JSON.stringify(junction);
-    throw new Error(`V2 junctions doesn't include '${junctionStr}'`);
+    throw new Error(`V2 junctions don't include '${junctionStr}'`);
   }
 }
 
@@ -542,7 +542,7 @@ function downgradeNetworkIdV3(
     return networkId;
   } else {
     const networkStr = JSON.stringify(networkId);
-    throw new Error(`V2 network ID doesn't include '${networkStr}'`);
+    throw new Error(`V2 network ID don't include '${networkStr}'`);
   }
 }
 

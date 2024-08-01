@@ -674,7 +674,7 @@ describe('asset xcm tests', () => {
     });
   });
 
-  describe('create asset versions from asset v4', () => {
+  describe('create asset versions from non-versioned asset', () => {
     it('v3 test create with non-versioned asset', () => {
       expect(convertAssetVersion(3, ftAssetV4.V4)).toStrictEqual(ftAssetV3);
       expect(convertAssetVersion(3, ftAssetX1V4.V4)).toStrictEqual(ftAssetX1V3);

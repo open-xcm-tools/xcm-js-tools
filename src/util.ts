@@ -480,7 +480,7 @@ function downgradeJunctionV3(junction: JunctionV3): JunctionV2 {
     };
   } else {
     const junctionStr = JSON.stringify(junction);
-    throw new Error(`V2 junctions doesn't include '${junctionStr}'`);
+    throw new Error(`V2 junctions don't include '${junctionStr}'`);
   }
 }
 

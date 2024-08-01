@@ -250,7 +250,7 @@ describe('xcm location tests', () => {
       ).toStrictEqual(locationX3GlobalConsensusV4);
     });
 
-    it('v4 identity test with locationV4', () => {
+    it('v4 identity test with non-versioned location', () => {
       expect(convertLocationVersion(4, locationX1V4.V4)).toStrictEqual(
         locationX1V4
       );
@@ -305,8 +305,8 @@ describe('xcm location tests', () => {
     });
   });
 
-  describe('create location versions from location v4', () => {
-    it('v3 test create with location v4', () => {
+  describe('create location versions from non-versioned location', () => {
+    it('v3 test create with non-versioned location', () => {
       expect(convertLocationVersion(3, locationX1V4.V4)).toStrictEqual(
         locationX1V3
       );
@@ -327,7 +327,7 @@ describe('xcm location tests', () => {
       ).toStrictEqual(locationX3GlobalConsensusV3);
     });
 
-    it('v2 test create with location v4', () => {
+    it('v2 test create with non-versioned location', () => {
       expect(convertLocationVersion(2, locationX1V4.V4)).toStrictEqual(
         locationX1V2
       );
@@ -341,37 +341,37 @@ describe('xcm location tests', () => {
   });
 
   describe('location convert v4->v3', () => {
-    it('location x1 v4->v3', () => {
+    it('v4->v3: location x1', () => {
       expect(convertLocationVersion(3, locationX1V4)).toStrictEqual(
         locationX1V3
       );
     });
 
-    it('location x1 v4->v3 bitcoin', () => {
+    it('v4->v3: location x1 bitcoin', () => {
       expect(convertLocationVersion(3, locationX1BitcoinV4)).toStrictEqual(
         locationX1BitcoinV3
       );
     });
 
-    it('location x2 v4->v3', () => {
+    it('v4->v3: location x2', () => {
       expect(convertLocationVersion(3, locationX2V4)).toStrictEqual(
         locationX2V3
       );
     });
 
-    it('location x2 v4->v3 polkadot', () => {
+    it('v4->v3: location x2 v4->v3 polkadot network id', () => {
       expect(
         convertLocationVersion(3, locationX2PolkadotNetworkIdV4)
       ).toStrictEqual(locationX2PolkadotNetworkIdV3);
     });
 
-    it('location x2 v4->v3 ethereum', () => {
+    it('v4->v3: location x2 ethereum network id', () => {
       expect(
         convertLocationVersion(3, locationX2EthereumNetworkIdV4)
       ).toStrictEqual(locationX2EthereumNetworkIdV3);
     });
 
-    it('location x3 v4->v3 global consensus', () => {
+    it('v4->v3: location x3 global consensus', () => {
       expect(
         convertLocationVersion(3, locationX3GlobalConsensusV4)
       ).toStrictEqual(locationX3GlobalConsensusV3);
@@ -379,37 +379,37 @@ describe('xcm location tests', () => {
   });
 
   describe('location convert v3->v4', () => {
-    it('location x1 v3->v4', () => {
+    it('v3->v4: location x1', () => {
       expect(convertLocationVersion(4, locationX1V3)).toStrictEqual(
         locationX1V4
       );
     });
 
-    it('location x1 v3->v4 bitcoin', () => {
+    it('v3->v4: location x1 bitcoin', () => {
       expect(convertLocationVersion(4, locationX1BitcoinV3)).toStrictEqual(
         locationX1BitcoinV4
       );
     });
 
-    it('location x2 v4->v3', () => {
+    it('v3->v4: location x2', () => {
       expect(convertLocationVersion(4, locationX2V3)).toStrictEqual(
         locationX2V4
       );
     });
 
-    it('location x2 v3->v4 polkadot', () => {
+    it('v3->v4: location x2 polkadot network id', () => {
       expect(
         convertLocationVersion(4, locationX2PolkadotNetworkIdV3)
       ).toStrictEqual(locationX2PolkadotNetworkIdV4);
     });
 
-    it('location x2 v3->v4 ethereum', () => {
+    it('v3->v4: location x2 ethereum network id', () => {
       expect(
         convertLocationVersion(4, locationX2EthereumNetworkIdV3)
       ).toStrictEqual(locationX2EthereumNetworkIdV4);
     });
 
-    it('location x3 v3->v4 global consensus', () => {
+    it('v3->v4: location x3 global consensus', () => {
       expect(
         convertLocationVersion(4, locationX3GlobalConsensusV3)
       ).toStrictEqual(locationX3GlobalConsensusV4);
@@ -417,49 +417,49 @@ describe('xcm location tests', () => {
   });
 
   describe('location convert v3->v2', () => {
-    it('location x1 v3->v2', () => {
+    it('v3->v2: location x1', () => {
       expect(convertLocationVersion(2, locationX1V3)).toStrictEqual(
         locationX1V2
       );
     });
 
-    it('location x1 v3->v2 bitcoin', () => {
+    it('v3->v2: location x1 bitcoin', () => {
       expect(() => convertLocationVersion(2, locationX1BitcoinV3)).toThrowError(
-        `V2 network ID don't include`
+        `V2 network ID doesn't include`
       );
     });
 
-    it('location x2 v3->v2', () => {
+    it('v3->v2: location x2', () => {
       expect(convertLocationVersion(2, locationX2V3)).toStrictEqual(
         locationX2V2
       );
     });
 
-    it('location x2 v3->v2 polkadot', () => {
+    it('v3->v2: location x2 polkadot network id', () => {
       expect(
         convertLocationVersion(2, locationX2PolkadotNetworkIdV3)
       ).toStrictEqual(locationX2PolkadotNetworkIdV2);
     });
 
-    it('location x2 v3->v2 rococo', () => {
+    it('v3->v2: location x2 rococo network id', () => {
       expect(() =>
         convertLocationVersion(2, locationX2RococoNetworkIdV3)
-      ).toThrowError(`V2 network ID don't include`);
+      ).toThrowError(`V2 network ID doesn't include`);
     });
 
-    it('location x2 v3->v2 ethereum', () => {
+    it('v3->v2: location x2 ethereum network id', () => {
       expect(() =>
         convertLocationVersion(2, locationX2EthereumNetworkIdV3)
-      ).toThrowError(`V2 network ID don't include`);
+      ).toThrowError(`V2 network ID doesn't include`);
     });
 
-    it('location x3 v3->v2 global consensus', () => {
+    it('v3->v2: location x3 global consensus', () => {
       expect(() =>
         convertLocationVersion(2, locationX3GlobalConsensusV3)
       ).toThrowError(`V2 junctions don't include`);
     });
 
-    it('location x2 v3->v2 null network id', () => {
+    it('v3->v2: location x2 null network id', () => {
       expect(
         convertLocationVersion(2, locationX2NullNetworkIdV3)
       ).toStrictEqual(locationX2AnyNetworkIdV2);
@@ -467,19 +467,19 @@ describe('xcm location tests', () => {
   });
 
   describe('location convert v2->v3', () => {
-    it('location x1 v2->v3', () => {
+    it('v2->v3: location x1', () => {
       expect(convertLocationVersion(3, locationX1V2)).toStrictEqual(
         locationX1V3
       );
     });
 
-    it('location x2 v2->v3', () => {
+    it('v2->v3: location x2', () => {
       expect(convertLocationVersion(3, locationX2V2)).toStrictEqual(
         locationX2V3
       );
     });
 
-    it('location x2 v2->v3 any', () => {
+    it('v2->v3: location x2 any network id', () => {
       expect(convertLocationVersion(3, locationX2AnyNetworkIdV2)).toStrictEqual(
         locationX2NullNetworkIdV3
       );
@@ -643,7 +643,7 @@ describe('asset xcm tests', () => {
       );
     });
 
-    it('v4 identity test with asset', () => {
+    it('v4 identity test with non-versioned asset', () => {
       expect(convertAssetVersion(4, ftAssetV4.V4)).toStrictEqual(ftAssetV4);
       expect(convertAssetVersion(4, ftAssetX1V4.V4)).toStrictEqual(ftAssetX1V4);
       expect(convertAssetVersion(4, ftAssetX2V4.V4)).toStrictEqual(ftAssetX2V4);
@@ -668,11 +668,14 @@ describe('asset xcm tests', () => {
       expect(convertAssetVersion(2, ftAssetX1V2)).toStrictEqual(ftAssetX1V2);
       expect(convertAssetVersion(2, ftAssetX2V2)).toStrictEqual(ftAssetX2V2);
       expect(convertAssetVersion(2, nftAssetV2)).toStrictEqual(nftAssetV2);
+      expect(convertAssetVersion(2, nftBlobAssetX2V2)).toStrictEqual(
+        nftBlobAssetX2V2
+      );
     });
   });
 
-  describe('create asset versions from location v4', () => {
-    it('v3 test create with asset v4', () => {
+  describe('create asset versions from asset v4', () => {
+    it('v3 test create with non-versioned asset', () => {
       expect(convertAssetVersion(3, ftAssetV4.V4)).toStrictEqual(ftAssetV3);
       expect(convertAssetVersion(3, ftAssetX1V4.V4)).toStrictEqual(ftAssetX1V3);
       expect(convertAssetVersion(3, ftAssetX2V4.V4)).toStrictEqual(ftAssetX2V3);
@@ -682,7 +685,7 @@ describe('asset xcm tests', () => {
       ).toStrictEqual(ftAssetX2GlobalConsensusV3);
     });
 
-    it('v3 test create with asset v4', () => {
+    it('v2 test create with non-versioned asset', () => {
       expect(convertAssetVersion(2, ftAssetV4.V4)).toStrictEqual(ftAssetV2);
       expect(convertAssetVersion(2, ftAssetX1V4.V4)).toStrictEqual(ftAssetX1V2);
       expect(convertAssetVersion(2, ftAssetX2V4.V4)).toStrictEqual(ftAssetX2V2);
@@ -691,23 +694,23 @@ describe('asset xcm tests', () => {
   });
 
   describe('asset convert v4->v3', () => {
-    it('fungible asset v4->v3', () => {
+    it('v4->v3: fungible asset', () => {
       expect(convertAssetVersion(3, ftAssetV4)).toStrictEqual(ftAssetV3);
     });
 
-    it('non-fungible asset v4->v3', () => {
+    it('v4->v3: non-fungible asset', () => {
       expect(convertAssetVersion(3, nftAssetV4)).toStrictEqual(nftAssetV3);
     });
 
-    it('fungible asset x1 v4->v3', () => {
+    it('v4->v3: fungible asset x1', () => {
       expect(convertAssetVersion(3, ftAssetX1V4)).toStrictEqual(ftAssetX1V3);
     });
 
-    it('fungible asset x2 v4->v3', () => {
+    it('v4->v3: fungible asset x2', () => {
       expect(convertAssetVersion(3, ftAssetX2V4)).toStrictEqual(ftAssetX2V3);
     });
 
-    it('fungible asset v4->v3 x2 global consensus', () => {
+    it('v4->v3: fungible asset x2 global consensus', () => {
       expect(convertAssetVersion(3, ftAssetX2GlobalConsensusV4)).toStrictEqual(
         ftAssetX2GlobalConsensusV3
       );
@@ -715,23 +718,23 @@ describe('asset xcm tests', () => {
   });
 
   describe('asset convert v3->v4', () => {
-    it('fungible asset v3->v4', () => {
+    it('v3->v4: fungible asset', () => {
       expect(convertAssetVersion(4, ftAssetV3)).toStrictEqual(ftAssetV4);
     });
 
-    it('non-fungible asset v3->v4', () => {
+    it('v3->v4: non-fungible asset', () => {
       expect(convertAssetVersion(4, nftAssetV3)).toStrictEqual(nftAssetV4);
     });
 
-    it('fungible asset x1 v3->v4', () => {
+    it('v3->v4: fungible asset x1', () => {
       expect(convertAssetVersion(4, ftAssetX1V3)).toStrictEqual(ftAssetX1V4);
     });
 
-    it('fungible asset x2 v3->v4', () => {
+    it('v3->v4: fungible asset x2', () => {
       expect(convertAssetVersion(4, ftAssetX2V3)).toStrictEqual(ftAssetX2V4);
     });
 
-    it('fungible asset x2 v3->v4 global consensus', () => {
+    it('v3->v4: fungible asset x2 global consensus', () => {
       expect(convertAssetVersion(4, ftAssetX2GlobalConsensusV3)).toStrictEqual(
         ftAssetX2GlobalConsensusV4
       );
@@ -739,23 +742,23 @@ describe('asset xcm tests', () => {
   });
 
   describe('asset convert v3->v2', () => {
-    it('fungible asset v3->v2', () => {
+    it('v3->v2: fungible asset', () => {
       expect(convertAssetVersion(2, ftAssetV3)).toStrictEqual(ftAssetV2);
     });
 
-    it('fungible asset x1 v3->v2', () => {
+    it('v3->v2: fungible asset x1', () => {
       expect(convertAssetVersion(2, ftAssetX1V3)).toStrictEqual(ftAssetX1V2);
     });
 
-    it('fungible asset x2 v3->v2', () => {
+    it('v3->v2: fungible asset x2', () => {
       expect(convertAssetVersion(2, ftAssetX2V3)).toStrictEqual(ftAssetX2V2);
     });
 
-    it('non-fungible asset v3->v2', () => {
+    it('v3->v2: non-fungible asset', () => {
       expect(convertAssetVersion(2, nftAssetV3)).toStrictEqual(nftAssetV2);
     });
 
-    it('fungible asset x2 v3->v2 global consensus', () => {
+    it('v3->v2: fungible asset x2 global consensus', () => {
       expect(() =>
         convertAssetVersion(2, ftAssetX2GlobalConsensusV4)
       ).toThrowError(`V2 junctions don't include`);
@@ -763,23 +766,23 @@ describe('asset xcm tests', () => {
   });
 
   describe('asset convert v2->v3', () => {
-    it('fungible asset v2->v3', () => {
+    it('v2->v3: fungible asset', () => {
       expect(convertAssetVersion(3, ftAssetV2)).toStrictEqual(ftAssetV3);
     });
 
-    it('fungible asset x1 v2->v3', () => {
+    it('v2->v3: fungible asset x1', () => {
       expect(convertAssetVersion(3, ftAssetX1V2)).toStrictEqual(ftAssetX1V3);
     });
 
-    it('fungible asset x2 v2->v3', () => {
+    it('v2->v3: fungible asset x2', () => {
       expect(convertAssetVersion(3, ftAssetX2V2)).toStrictEqual(ftAssetX2V3);
     });
 
-    it('non-fungible asset v2->v3', () => {
+    it('v2->v3: non-fungible asset', () => {
       expect(convertAssetVersion(3, nftAssetV2)).toStrictEqual(nftAssetV3);
     });
 
-    it('non-fungible asset x2 v2->v3', () => {
+    it('v2->v3: non-fungible asset x2', () => {
       expect(() => convertAssetVersion(3, nftBlobAssetX2V2)).toThrowError(
         `cannot be upgraded to V3`
       );

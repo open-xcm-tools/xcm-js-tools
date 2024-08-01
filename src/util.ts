@@ -542,7 +542,7 @@ function downgradeNetworkIdV3(
     return networkId;
   } else {
     const networkStr = JSON.stringify(networkId);
-    throw new Error(`V2 network ID don't include '${networkStr}'`);
+    throw new Error(`V2 network ID doesn't include '${networkStr}'`);
   }
 }
 

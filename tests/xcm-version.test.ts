@@ -618,7 +618,7 @@ describe('asset xcm tests', () => {
     }
   };
 
-  const nftAssetX2V2: VersionedAsset = {
+  const nftBlobAssetX2V2: VersionedAsset = {
     V2: {
       id: {
         Concrete: {
@@ -780,7 +780,7 @@ describe('asset xcm tests', () => {
     });
 
     it('non-fungible asset x2 v2->v3', () => {
-      expect(() => convertAssetVersion(3, nftAssetX2V2)).toThrowError(
+      expect(() => convertAssetVersion(3, nftBlobAssetX2V2)).toThrowError(
         `cannot be upgraded to V3`
       );
     });

@@ -140,7 +140,7 @@ export class SimpleXcm {
 
   static async #findPalletXcm(api: ApiPromise) {
     const pallets = api.registry.metadata.pallets;
-    for (let pallet of pallets) {
+    for (const pallet of pallets) {
       const palletRuntimeName = pallet.name.toPrimitive();
       const palletName = palletApiTxName(palletRuntimeName);
 
@@ -185,7 +185,7 @@ export class SimpleXcm {
 
     let palletName: string;
     let backend: TransferBackend | undefined;
-    loop: for (let pallet of pallets) {
+    loop: for (const pallet of pallets) {
       const palletRuntimeName = pallet.name.toPrimitive();
       palletName = palletApiTxName(palletRuntimeName);
 

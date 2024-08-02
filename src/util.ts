@@ -1,3 +1,4 @@
+import { decodeAddress } from '@polkadot/keyring';
 import {
   NetworkId,
   Location,
@@ -33,7 +34,13 @@ import {
   MIN_XCM_VERSION
 } from './xcmtypes';
 import _ from 'lodash';
+import { JunctionValidationError } from './errors';
 
+const MAX_UINT8 = 1n ** 8n - 1n;
+const MAX_UINT32 = 1n ** 32n - 1n;
+const MAX_UINT64 = 1n ** 64n - 1n;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function interiorToArray(interiorVersion: XcmVersion, interior: any): any[] {
   if (interior == 'Here') {
     return [];
@@ -62,6 +69,7 @@ function interiorToArray(interiorVersion: XcmVersion, interior: any): any[] {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function arrayToInterior(interiorVersion: XcmVersion, junctions: any[]): any {
   if (junctions.length == 0) {
     return 'Here';
@@ -213,6 +221,7 @@ export function convertAssetsVersion(
   assets: VersionedAsset[] | Asset[]
 ) {
   const assetsVx = assets.map((asset) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const assetVx = convertAssetVersion(version, asset) as any;
     return assetVx[`V${version}`];
   });
@@ -225,6 +234,7 @@ export function convertAssetsVersion(
 export function locationIntoCurrentVersion(
   location: VersionedLocation
 ): Location {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const vCurrent = convertLocationVersion(CURRENT_XCM_VERSION, location) as any;
   return vCurrent[`V${CURRENT_XCM_VERSION}`];
 }
@@ -484,6 +494,93 @@ function downgradeJunctionV3(junction: JunctionV3): JunctionV2 {
   }
 }
 
+function junctionByteDataInvalidLength(junctionName: string, expectedLength: number, actualLength: number) {
+  if (expectedLength !== actualLength) {
+    throw new JunctionValidationError(
+      junctionName,
+      `${junctionName} too large: expected ${expectedLength} bytes, got ${actualLength} bytes`
+    );
+  }
+}
+
+export function validateJunction(junction: Junction) {
+  if (junction !== 'OnlyChild') {
+    if ('Parachain' in junction) {
+      if (junction.Parachain > MAX_UINT32) {
+        throw new JunctionValidationError(
+          'Parachain',
+          'Parachain number is greater than u32'
+        );
+      }
+    }
+
+    if ('AccountId32' in junction) {
+      const byteLength = hexByteLength(junction.AccountId32.id);
+      if (byteLength !== null) {
+        junctionByteDataInvalidLength('AccountId32', 32, byteLength);
+      }
+
+      try {
+        decodeAddress(junction.AccountId32.id);
+      } catch (error) {
+        throw new JunctionValidationError(
+          'AccountId32',
+          `Invalid AccountId format! Account: ${junction.AccountId32.id}.`,
+          error as Error
+        );
+      }
+    }
+
+    if ('AccountIndex64' in junction) {
+      if (junction.AccountIndex64.index > MAX_UINT64) {
+        throw new JunctionValidationError(
+          'AccountIndex64',
+          'AccountIndex is greater than u64!'
+        );
+      }
+    }
+
+    if ('AccountKey20' in junction) {
+      const byteLength = hexByteLength(junction.AccountKey20.key);
+      if (byteLength === null) {
+        throw new JunctionValidationError(
+          'AccountKey20',
+          'AccountKey must be hex string!'
+        );
+      }
+      junctionByteDataInvalidLength('AccountKey20', 20, byteLength);
+    }
+
+    if ('PalletInstance' in junction) {
+      if (junction.PalletInstance > MAX_UINT8) {
+        throw new JunctionValidationError(
+          'PalletInstance',
+          'PalletInstance is greater than u8!'
+        );
+      }
+    }
+
+    if ('GeneralKey' in junction) {
+      const byteLength = hexByteLength(junction.GeneralKey.data);
+      if (byteLength === null) {
+        throw new JunctionValidationError(
+          'GeneralKey',
+          'GeneralKey must be hex string!'
+        );
+      }
+
+      junctionByteDataInvalidLength('GeneralKey', 32, byteLength);
+
+      if (junction.GeneralKey.length > MAX_UINT8) {
+        throw new JunctionValidationError(
+          'GeneralKey',
+          "GeneralKey length parameter too large!"
+        );
+      }
+    }
+  }
+}
+
 function upgradeJunctionV2(junction: JunctionV2): JunctionV3 {
   if (
     junction == 'OnlyChild' ||
@@ -602,12 +699,13 @@ export function isChainUniversalLocation(location: InteriorLocation): boolean {
     case 1:
       return true;
 
-    case 2:
+    case 2: {
       const secondJunction = locationArray[1];
       const parachainJunctionIsSecond =
         typeof secondJunction == 'object' && 'Parachain' in secondJunction;
 
       return parachainJunctionIsSecond;
+    }
 
     default:
       return false;
@@ -637,15 +735,14 @@ export function fungible(amount: number | bigint) {
   };
 }
 
-function textByteLength(text: string) {
+function hexByteLength(text: string): number | null {
   const hexMatch = text.match(/^0x(?<numberPart>[0-9a-fA-F]*)$/i);
-  if (hexMatch) {
-    const numberPart = hexMatch.groups!.numberPart;
-    return Math.ceil(numberPart.length / 2);
-  } else {
-    // In this case, SCALE interprets the `text` as plain ASCII text
-    return text.length;
-  }
+  return hexMatch ? Math.ceil(hexMatch.groups!.numberPart.length / 2) : null;
+}
+
+function textByteLength(text: string) {
+  const byteLength = hexByteLength(text);
+  return byteLength !== null ? byteLength : text.length;
 }
 
 export function nonfungible(id: number | bigint | string) {

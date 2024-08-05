@@ -119,7 +119,7 @@ export class SimpleXcm {
   static async create(chainId: string, registry: Registry) {
     const chainInfo = registry.chainInfoById(chainId);
 
-    const provider = new WsProvider([...chainInfo.endpoints]);
+    const provider = new WsProvider(chainInfo.endpoints);
     const api = await ApiPromise.create({
       provider,
       runtime: {

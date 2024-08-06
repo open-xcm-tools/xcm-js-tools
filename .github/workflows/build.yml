@@ -1,0 +1,11 @@
+name: build
+
+on:
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build project
+        run: echo "Building the project..."

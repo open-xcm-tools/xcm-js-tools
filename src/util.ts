@@ -31,14 +31,17 @@ import {
   Fungibility,
   AssetLookup,
   Interior,
-  MIN_XCM_VERSION
+  MIN_XCM_VERSION,
+  BodyPart,
+  Fraction
 } from './xcmtypes';
 import _ from 'lodash';
 import { JunctionValidationError } from './errors';
 
-const MAX_UINT8 = 1n ** 8n - 1n;
-const MAX_UINT32 = 1n ** 32n - 1n;
-const MAX_UINT64 = 1n ** 64n - 1n;
+const MAX_UINT8 = 2n ** 8n - 1n;
+const MAX_UINT32 = 2n ** 32n - 1n;
+const MAX_UINT64 = 2n ** 64n - 1n;
+const MAX_UINT128 = 2n ** 128n - 1n;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function interiorToArray(interiorVersion: XcmVersion, interior: any): any[] {
@@ -494,30 +497,137 @@ function downgradeJunctionV3(junction: JunctionV3): JunctionV2 {
   }
 }
 
-function junctionByteDataInvalidLength(junctionName: string, expectedLength: number, actualLength: number) {
+function checkByteDataLength(
+  junctionName: string,
+  expectedLength: number,
+  actualLength: number
+) {
   if (expectedLength !== actualLength) {
     throw new JunctionValidationError(
       junctionName,
-      `${junctionName} too large: expected ${expectedLength} bytes, got ${actualLength} bytes`
+      `${junctionName} has incorrect length: expected ${expectedLength} bytes, got ${actualLength} bytes`
     );
+  }
+}
+
+function checkNumberBitSize(
+  junctionName: string,
+  expectedBitSize: 8 | 32 | 64 | 128,
+  actualNumber: number | bigint
+) {
+  let expectedMaxNumber: number | bigint;
+  switch (expectedBitSize) {
+    case 8:
+      expectedMaxNumber = MAX_UINT8;
+      break;
+    case 32:
+      expectedMaxNumber = MAX_UINT32;
+      break;
+    case 64:
+      expectedMaxNumber = MAX_UINT64;
+      break;
+    case 128:
+      expectedMaxNumber = MAX_UINT128;
+      break;
+    default:
+      throw new Error('Unknown bit size for junction');
+  }
+  if (actualNumber > expectedMaxNumber) {
+    throw new JunctionValidationError(
+      junctionName,
+      `${junctionName} is greater than u${expectedBitSize}`
+    );
+  }
+}
+
+function validateNetworkId(network: NetworkId, junctionName: string) {
+  if (typeof network !== 'string') {
+    if ('ByGenesis' in network) {
+      const byteLength = hexByteLength(network.ByGenesis);
+      if (byteLength === null) {
+        throw new JunctionValidationError(
+          junctionName,
+          `${junctionName}.network.ByGenesis must be hex string!`
+        );
+      }
+      checkByteDataLength(`${junctionName}.network.ByGenesis`, 32, byteLength);
+    }
+
+    if ('ByFork' in network) {
+      checkNumberBitSize(
+        `${junctionName}.network.ByFork.blockNumber`,
+        64,
+        network.ByFork.blockNumber
+      );
+      const byteLength = hexByteLength(network.ByFork.blockHash);
+      if (byteLength === null) {
+        throw new JunctionValidationError(
+          junctionName,
+          `${junctionName}.network.ByFork.blockHash must be hex string!`
+        );
+      }
+      checkByteDataLength(
+        `${junctionName}.network.ByFork.blockHash`,
+        32,
+        byteLength
+      );
+    }
+
+    if ('Ethereum' in network) {
+      checkNumberBitSize(
+        `${junctionName}.network.Ethereum.chainId`,
+        64,
+        network.Ethereum.chainId
+      );
+    }
+  }
+}
+
+function validateFraction(fraction: Fraction, junctionName: string) {
+  checkNumberBitSize(`${junctionName}.nom`, 32, fraction.nom);
+  checkNumberBitSize(`${junctionName}.denom`, 32, fraction.denom);
+}
+
+function validateBodyPart(bodyPart: BodyPart, junctionName: string) {
+  if (typeof bodyPart !== 'string') {
+    if ('Members' in bodyPart) {
+      checkNumberBitSize(
+        `${junctionName}.bodyPart.Members`,
+        32,
+        bodyPart.Members
+      );
+    }
+
+    if ('Fraction' in bodyPart) {
+      validateFraction(bodyPart.Fraction, `${junctionName}.bodyPart.Fraction`);
+    }
+
+    if ('AtLeastProportion' in bodyPart) {
+      validateFraction(
+        bodyPart.AtLeastProportion,
+        `${junctionName}.bodyPart.AtLeastProportion`
+      );
+    }
+
+    if ('MoreThanProportion' in bodyPart) {
+      validateFraction(
+        bodyPart.MoreThanProportion,
+        `${junctionName}.bodyPart.MoreThanProportion`
+      );
+    }
   }
 }
 
 export function validateJunction(junction: Junction) {
   if (junction !== 'OnlyChild') {
     if ('Parachain' in junction) {
-      if (junction.Parachain > MAX_UINT32) {
-        throw new JunctionValidationError(
-          'Parachain',
-          'Parachain number is greater than u32'
-        );
-      }
+      checkNumberBitSize('Parachain', 32, junction.Parachain);
     }
 
     if ('AccountId32' in junction) {
       const byteLength = hexByteLength(junction.AccountId32.id);
       if (byteLength !== null) {
-        junctionByteDataInvalidLength('AccountId32', 32, byteLength);
+        checkByteDataLength('AccountId32', 32, byteLength);
       }
 
       try {
@@ -529,14 +639,20 @@ export function validateJunction(junction: Junction) {
           error as Error
         );
       }
+
+      if (junction.AccountId32.network) {
+        validateNetworkId(junction.AccountId32.network, 'AccountId32');
+      }
     }
 
     if ('AccountIndex64' in junction) {
-      if (junction.AccountIndex64.index > MAX_UINT64) {
-        throw new JunctionValidationError(
-          'AccountIndex64',
-          'AccountIndex is greater than u64!'
-        );
+      checkNumberBitSize(
+        'AccountIndex64.index',
+        32,
+        junction.AccountIndex64.index
+      );
+      if (junction.AccountIndex64.network) {
+        validateNetworkId(junction.AccountIndex64.network, 'AccountIndex64');
       }
     }
 
@@ -548,16 +664,18 @@ export function validateJunction(junction: Junction) {
           'AccountKey must be hex string!'
         );
       }
-      junctionByteDataInvalidLength('AccountKey20', 20, byteLength);
+      checkByteDataLength('AccountKey20', 20, byteLength);
+      if (junction.AccountKey20.network) {
+        validateNetworkId(junction.AccountKey20.network, 'AccountKey20');
+      }
     }
 
     if ('PalletInstance' in junction) {
-      if (junction.PalletInstance > MAX_UINT8) {
-        throw new JunctionValidationError(
-          'PalletInstance',
-          'PalletInstance is greater than u8!'
-        );
-      }
+      checkNumberBitSize('PalletInstance', 8, junction.PalletInstance);
+    }
+
+    if ('GeneralIndex' in junction) {
+      checkNumberBitSize('GeneralIndex', 128, junction.GeneralIndex)
     }
 
     if ('GeneralKey' in junction) {
@@ -569,14 +687,37 @@ export function validateJunction(junction: Junction) {
         );
       }
 
-      junctionByteDataInvalidLength('GeneralKey', 32, byteLength);
+      checkByteDataLength('GeneralKey', 32, byteLength);
+      checkNumberBitSize('GeneralKey.length', 8, junction.GeneralKey.length);
+    }
 
-      if (junction.GeneralKey.length > MAX_UINT8) {
-        throw new JunctionValidationError(
-          'GeneralKey',
-          "GeneralKey length parameter too large!"
-        );
+    if ('Plurality' in junction) {
+      if (typeof junction.Plurality.id !== 'string') {
+        if ('Moniker' in junction.Plurality.id) {
+          const byteLength = hexByteLength(junction.Plurality.id.Moniker);
+          if (byteLength === null) {
+            throw new JunctionValidationError(
+              'Plurality',
+              'Plurality.id.Moniker must be hex string!'
+            );
+          }
+          checkByteDataLength('Plurality.id.Moniker', 4, byteLength);
+        }
+
+        if ('Index' in junction.Plurality.id) {
+          checkNumberBitSize(
+            'junction.Plurality.id.Index',
+            32,
+            junction.Plurality.id.Index
+          );
+        }
       }
+
+      validateBodyPart(junction.Plurality.part, 'Plurality');
+    }
+
+    if ('GlobalConsensus' in junction) {
+      validateNetworkId(junction.GlobalConsensus, 'GlobalConsensus');
     }
   }
 }

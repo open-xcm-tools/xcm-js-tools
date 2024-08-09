@@ -123,13 +123,13 @@ export type NetworkId = NetworkIdV4;
 export type NetworkIdV2 = 'Any' | { Named: string } | 'Polkadot' | 'Kusama';
 export type NetworkIdV3 =
   | { ByGenesis: string }
-  | { ByFork: { blockNumber: number; blockHash: string } }
+  | { ByFork: { blockNumber: number | bigint; blockHash: string } }
   | 'Polkadot'
   | 'Kusama'
   | 'Westend'
   | 'Rococo'
   | 'Wococo'
-  | { Ethereum: { chainId: number } }
+  | { Ethereum: { chainId: number | bigint } }
   | 'BitcoinCore'
   | 'BitcoinCash'
   | 'PolkadotBulletin';
@@ -152,7 +152,7 @@ export type BodyIdV3 =
   | { Moniker: string };
 export type BodyIdV4 = BodyIdV3;
 
-type Fraction = { nom: number; denom: number };
+export type Fraction = { nom: number; denom: number };
 export type BodyPart =
   | 'Voice'
   | { Members: number }
@@ -164,10 +164,10 @@ export type Junction = JunctionV4;
 export type JunctionV2 =
   | { Parachain: number }
   | { AccountId32: { network: NetworkIdV2; id: string } }
-  | { AccountIndex64: { network: NetworkIdV2; index: number } }
+  | { AccountIndex64: { network: NetworkIdV2; index: number | bigint } }
   | { AccountKey20: { network: NetworkIdV2; key: string } }
   | { PalletInstance: number }
-  | { GeneralIndex: number }
+  | { GeneralIndex: number | bigint  }
   | { GeneralKey: string }
   | 'OnlyChild'
   | { Plurality: { id: BodyIdV2; part: BodyPart } };
@@ -175,10 +175,10 @@ export type JunctionV2 =
 export type JunctionV3 =
   | { Parachain: number }
   | { AccountId32: { network?: NetworkIdV3 | null; id: string } }
-  | { AccountIndex64: { network?: NetworkIdV3 | null; index: number } }
+  | { AccountIndex64: { network?: NetworkIdV3 | null; index: number | bigint } }
   | { AccountKey20: { network?: NetworkIdV3 | null; key: string } }
   | { PalletInstance: number }
-  | { GeneralIndex: number }
+  | { GeneralIndex: number | bigint }
   | { GeneralKey: { length: number; data: string } }
   | 'OnlyChild'
   | { Plurality: { id: BodyIdV3; part: BodyPart } }

@@ -4,11 +4,11 @@ import {
   XcmVersion,
   Location,
   Asset,
-  AssetId,
-  RegistryLookup,
   CURRENT_XCM_VERSION,
   MIN_XCM_VERSION,
-  AssetLookup
+  AssetLookup,
+  LocationLookup,
+  AssetIdLookup
 } from './xcmtypes';
 import { ChainInfo, Registry } from './registry';
 import {
@@ -25,9 +25,9 @@ export type PalletXcmName = 'polkadotXcm' | 'xcmPallet';
 
 export type TransferParams = {
   assets: AssetLookup[];
-  feeAssetId: AssetId | RegistryLookup;
-  destination: Location | RegistryLookup;
-  beneficiary: Location | RegistryLookup;
+  feeAssetId: AssetIdLookup;
+  destination: LocationLookup;
+  beneficiary: LocationLookup;
 };
 
 type PreparedTransferParams = {
@@ -69,18 +69,14 @@ export class SimpleXcm {
     this.xcmVersion = version;
   }
 
-  adjustToCurrencyUnit(asset: AssetLookup): AssetLookup {
-    if ('NonFungible' in asset.fun) {
-      throw new Error('non-fungibles are not currencies');
-    }
-
+  adjustedFungible(assetId: AssetIdLookup, amount: number): AssetLookup {
     let decimals: number;
 
-    if (typeof asset.id == 'string') {
-      decimals = this.registry.currencyInfoBySymbol(asset.id).decimals;
+    if (typeof assetId == 'string') {
+      decimals = this.registry.currencyInfoBySymbol(assetId).decimals;
     } else {
       const currencyUniversalLocation = relativeLocaionToUniversal({
-        relativeLocation: asset.id,
+        relativeLocation: assetId,
         context: this.chainInfo.universalLocation
       });
 
@@ -89,11 +85,12 @@ export class SimpleXcm {
       ).decimals;
     }
 
-    const value = BigInt(asset.fun.Fungible) * BigInt(10) ** BigInt(decimals);
+    // FIXME
+    const value = BigInt(amount) * BigInt(10) ** BigInt(decimals);
 
     return {
-      id: asset.id,
-      fun: { Fungible: value }
+      id: assetId,
+      fun: { fungible: value }
     };
   }
 
@@ -270,7 +267,7 @@ export class SimpleXcm {
     }
   }
 
-  resolveRelativeLocation(lookup: Location | RegistryLookup) {
+  resolveRelativeLocation(lookup: LocationLookup) {
     if (typeof lookup == 'string') {
       const universalLocation = this.registry.universalLocation(lookup);
       if (universalLocation) {
@@ -362,7 +359,7 @@ export class XTokensBackend implements TransferBackend {
       transferParams
     );
 
-    if (preparedParams.beneficiary.parents != 0) {
+    if (preparedParams.beneficiary.parents != 0n) {
       throw new Error(`
         The beneficiary must be an interior location (parents = 0) when using the XTokens backend.
         The actual parents = ${preparedParams.beneficiary.parents}
@@ -423,7 +420,7 @@ function prepareTransferParams(
 
   const dummyFeeAsset: Asset = {
     id: feeAssetId,
-    fun: fungible(1)
+    fun: fungible(1n)
   };
   const feeAssetIndex = assets.length;
   assets.push(dummyFeeAsset);

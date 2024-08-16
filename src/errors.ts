@@ -18,8 +18,8 @@ class ValidationError extends Error {
 }
 
 export class JunctionValidationError extends ValidationError {
-  constructor(field: string, description: string, cause?: Error) {
-    super('Junction Validation', field, description, cause);
+  constructor(reason: string, description: string, cause?: Error) {
+    super('Junction Validation', reason, description, cause);
     this.name = 'Junction validation error';
   }
 }

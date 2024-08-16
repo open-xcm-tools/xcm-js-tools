@@ -26,17 +26,18 @@ import {
   FungibilityV3,
   Asset,
   VersionedAssets,
-  AssetId,
-  RegistryLookup,
   Fungibility,
   AssetLookup,
   Interior,
   MIN_XCM_VERSION,
   BodyPart,
-  Fraction
+  Fraction,
+  AssetIdLookup,
+  BodyId,
 } from './xcmtypes';
 import _ from 'lodash';
 import { JunctionValidationError } from './errors';
+import { stringify, u8aToHex } from '@polkadot/util';
 
 const MAX_UINT8 = 2n ** 8n - 1n;
 const MAX_UINT32 = 2n ** 32n - 1n;
@@ -45,28 +46,28 @@ const MAX_UINT128 = 2n ** 128n - 1n;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function interiorToArray(interiorVersion: XcmVersion, interior: any): any[] {
-  if (interior == 'Here') {
+  if (interior == 'here') {
     return [];
-  } else if ('X1' in interior) {
+  } else if ('x1' in interior) {
     if (interiorVersion < 4) {
-      return [interior.X1];
+      return [interior.x1];
     } else {
-      return [...interior.X1];
+      return [...interior.x1];
     }
-  } else if ('X2' in interior) {
-    return [...interior.X2];
-  } else if ('X3' in interior) {
-    return [...interior.X3];
-  } else if ('X4' in interior) {
-    return [...interior.X4];
-  } else if ('X5' in interior) {
-    return [...interior.X5];
-  } else if ('X6' in interior) {
-    return [...interior.X6];
-  } else if ('X7' in interior) {
-    return [...interior.X7];
-  } else if ('X8' in interior) {
-    return [...interior.X8];
+  } else if ('x2' in interior) {
+    return [...interior.x2];
+  } else if ('x3' in interior) {
+    return [...interior.x3];
+  } else if ('x4' in interior) {
+    return [...interior.x4];
+  } else if ('x5' in interior) {
+    return [...interior.x5];
+  } else if ('x6' in interior) {
+    return [...interior.x6];
+  } else if ('x7' in interior) {
+    return [...interior.x7];
+  } else if ('x8' in interior) {
+    return [...interior.x8];
   } else {
     throw new Error('interiorToArray: invalid interior');
   }
@@ -75,27 +76,27 @@ function interiorToArray(interiorVersion: XcmVersion, interior: any): any[] {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function arrayToInterior(interiorVersion: XcmVersion, junctions: any[]): any {
   if (junctions.length == 0) {
-    return 'Here';
+    return 'here';
   } else if (junctions.length == 1) {
     if (interiorVersion < 4) {
-      return { X1: junctions[0] };
+      return { x1: junctions[0] };
     } else {
-      return { X1: [...junctions] };
+      return { x1: [...junctions] };
     }
   } else if (junctions.length == 2) {
-    return { X2: [...junctions] };
+    return { x2: [...junctions] };
   } else if (junctions.length == 3) {
-    return { X3: [...junctions] };
+    return { x3: [...junctions] };
   } else if (junctions.length == 4) {
-    return { X4: [...junctions] };
+    return { x4: [...junctions] };
   } else if (junctions.length == 5) {
-    return { X5: [...junctions] };
+    return { x5: [...junctions] };
   } else if (junctions.length == 6) {
-    return { X6: [...junctions] };
+    return { x6: [...junctions] };
   } else if (junctions.length == 7) {
-    return { X7: [...junctions] };
+    return { x7: [...junctions] };
   } else if (junctions.length == 8) {
-    return { X8: [...junctions] };
+    return { x8: [...junctions] };
   } else {
     throw new Error(
       `arrayToInterior - ${junctions.length} invalid interior array length`
@@ -104,7 +105,7 @@ function arrayToInterior(interiorVersion: XcmVersion, junctions: any[]): any {
 }
 
 export function asset(
-  id: AssetId | RegistryLookup,
+  id: AssetIdLookup,
   fun: Fungibility
 ): AssetLookup {
   return {
@@ -114,13 +115,13 @@ export function asset(
 }
 
 export function location(
-  parents: number,
-  junctions: 'Here' | Junction[]
+  parents: bigint,
+  junctions: 'here' | Junction[]
 ): Location {
-  if (junctions == 'Here') {
+  if (junctions == 'here') {
     return {
       parents,
-      interior: 'Here'
+      interior: 'here'
     };
   }
 
@@ -170,7 +171,7 @@ export function relativeLocaionToUniversal({
     );
   }
 
-  const universalPrefix = contextJunctions.slice(relativeLocation.parents);
+  const universalPrefix = contextJunctions.slice(Number(relativeLocation.parents));
   return toInterior([...universalPrefix, ...locationJunctions]);
 }
 
@@ -194,7 +195,7 @@ export function locationRelativeToPrefix({
   }
 
   return {
-    parents: prefixJunctions.length,
+    parents: BigInt(prefixJunctions.length),
     interior: toInterior(locationJunctions)
   };
 }
@@ -205,7 +206,7 @@ export function convertAssetVersion(
 ) {
   if ('id' in asset) {
     return convertAssetVersion(version, <VersionedAsset>{
-      [`V${CURRENT_XCM_VERSION}`]: asset
+      [`v${CURRENT_XCM_VERSION}`]: asset
     });
   }
 
@@ -226,11 +227,11 @@ export function convertAssetsVersion(
   const assetsVx = assets.map((asset) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const assetVx = convertAssetVersion(version, asset) as any;
-    return assetVx[`V${version}`];
+    return assetVx[`v${version}`];
   });
 
   return <VersionedAssets>{
-    [`V${version}`]: assetsVx
+    [`v${version}`]: assetsVx
   };
 }
 
@@ -239,7 +240,7 @@ export function locationIntoCurrentVersion(
 ): Location {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const vCurrent = convertLocationVersion(CURRENT_XCM_VERSION, location) as any;
-  return vCurrent[`V${CURRENT_XCM_VERSION}`];
+  return vCurrent[`v${CURRENT_XCM_VERSION}`];
 }
 
 export function convertLocationVersion(
@@ -248,7 +249,7 @@ export function convertLocationVersion(
 ): VersionedLocation {
   if ('parents' in location) {
     return convertLocationVersion(version, <VersionedLocation>{
-      [`V${CURRENT_XCM_VERSION}`]: location
+      [`v${CURRENT_XCM_VERSION}`]: location
     });
   }
 
@@ -267,38 +268,38 @@ export function extractVersion<V2, V3, V4>(
 ): XcmVersion {
   let version: XcmVersion;
   for (version = MIN_XCM_VERSION; version <= CURRENT_XCM_VERSION; ++version) {
-    if (`V${version}` in versioned) {
+    if (`v${version}` in versioned) {
       return version;
     }
   }
 
-  throw new Error(`extractVersion - ${version}: unknown XCM version`);
+  throw new Error('extractVersion - failed to extract XCM version');
 }
 
 export function downgradeAsset(asset: VersionedAsset): VersionedAsset {
-  if ('V2' in asset) {
+  if ('v2' in asset) {
     throw new Error('AssetV2 cannot be downgraded');
-  } else if ('V3' in asset) {
+  } else if ('v3' in asset) {
     let assetV2: AssetV2;
 
-    if ('Concrete' in asset.V3.id) {
+    if ('concrete' in asset.v3.id) {
       assetV2 = {
-        id: { Concrete: downgradeLocationV3(asset.V3.id.Concrete) },
-        fun: asset.V3.fun
+        id: { concrete: downgradeLocationV3(asset.v3.id.concrete) },
+        fun: asset.v3.fun
       };
     } else {
       assetV2 = {
-        id: asset.V3.id,
-        fun: asset.V3.fun
+        id: asset.v3.id,
+        fun: asset.v3.fun
       };
     }
 
-    return { V2: assetV2 };
-  } else if ('V4' in asset) {
+    return { v2: assetV2 };
+  } else if ('v4' in asset) {
     return {
-      V3: {
-        id: { Concrete: downgradeLocationV4(asset.V4.id) },
-        fun: asset.V4.fun
+      v3: {
+        id: { concrete: downgradeLocationV4(asset.v4.id) },
+        fun: asset.v4.fun
       }
     };
   } else {
@@ -307,49 +308,49 @@ export function downgradeAsset(asset: VersionedAsset): VersionedAsset {
 }
 
 export function upgradeAsset(asset: VersionedAsset): VersionedAsset {
-  if ('V2' in asset) {
-    const funV2 = asset.V2.fun;
+  if ('v2' in asset) {
+    const funV2 = asset.v2.fun;
     let funV3: FungibilityV3;
 
-    if ('NonFungible' in funV2) {
-      if (typeof funV2.NonFungible == 'object' && 'Blob' in funV2.NonFungible) {
+    if ('nonFungible' in funV2) {
+      if (typeof funV2.nonFungible == 'object' && 'blob' in funV2.nonFungible) {
         throw new Error('Blob AssetInstance cannot be upgraded to V3');
       }
 
       funV3 = {
-        NonFungible: funV2.NonFungible
+        nonFungible: funV2.nonFungible
       };
     } else {
       funV3 = funV2;
     }
 
     let assetV3: AssetV3;
-    if ('Concrete' in asset.V2.id) {
+    if ('concrete' in asset.v2.id) {
       assetV3 = {
-        id: { Concrete: upgradeLocationV2(asset.V2.id.Concrete) },
+        id: { concrete: upgradeLocationV2(asset.v2.id.concrete) },
         fun: funV3
       };
     } else {
       assetV3 = {
-        id: asset.V2.id,
+        id: asset.v2.id,
         fun: funV3
       };
     }
 
-    return { V3: assetV3 };
-  } else if ('V3' in asset) {
-    if ('Concrete' in asset.V3.id) {
+    return { v3: assetV3 };
+  } else if ('v3' in asset) {
+    if ('concrete' in asset.v3.id) {
       return {
-        V4: {
-          id: upgradeLocationV3(asset.V3.id.Concrete),
-          fun: asset.V3.fun
+        v4: {
+          id: upgradeLocationV3(asset.v3.id.concrete),
+          fun: asset.v3.fun
         }
       };
     } else {
       throw new Error('Abstract AssetId cannot be upgraded to V4');
     }
-  } else if ('V4' in asset) {
-    throw new Error('AssetV4 cannot be downgraded');
+  } else if ('v4' in asset) {
+    throw new Error('AssetV4 cannot be upgraded');
   } else {
     throw new Error('upgradeAsset: unknown XCM version');
   }
@@ -358,12 +359,12 @@ export function upgradeAsset(asset: VersionedAsset): VersionedAsset {
 export function downgradeLocation(
   location: VersionedLocation
 ): VersionedLocation {
-  if ('V2' in location) {
+  if ('v2' in location) {
     throw new Error('LocationV2 cannot be downgraded');
-  } else if ('V3' in location) {
-    return { V2: downgradeLocationV3(location.V3) };
-  } else if ('V4' in location) {
-    return { V3: downgradeLocationV4(location.V4) };
+  } else if ('v3' in location) {
+    return { v2: downgradeLocationV3(location.v3) };
+  } else if ('v4' in location) {
+    return { v3: downgradeLocationV4(location.v4) };
   } else {
     throw new Error('downgradeLocation: unknown XCM version');
   }
@@ -372,12 +373,12 @@ export function downgradeLocation(
 export function upgradeLocation(
   location: VersionedLocation
 ): VersionedLocation {
-  if ('V2' in location) {
-    return { V3: upgradeLocationV2(location.V2) };
-  } else if ('V3' in location) {
-    return { V4: upgradeLocationV3(location.V3) };
-  } else if ('V4' in location) {
-    throw new Error('LocationV4 cannot be downgraded');
+  if ('v2' in location) {
+    return { v3: upgradeLocationV2(location.v2) };
+  } else if ('v3' in location) {
+    return { v4: upgradeLocationV3(location.v3) };
+  } else if ('v4' in location) {
+    throw new Error('LocationV4 cannot be upgraded');
   } else {
     throw new Error('upgradeLocation: unknown XCM version');
   }
@@ -412,9 +413,9 @@ export function upgradeLocationV2(location: LocationV2): LocationV3 {
 }
 
 export function downgradeInteriorV4(interior: InteriorV4): InteriorV3 {
-  if (typeof interior == 'object' && 'X1' in interior) {
+  if (typeof interior == 'object' && 'x1' in interior) {
     return {
-      X1: interior.X1[0]
+      x1: interior.x1[0]
     };
   } else {
     return interior;
@@ -422,9 +423,9 @@ export function downgradeInteriorV4(interior: InteriorV4): InteriorV3 {
 }
 
 export function upgradeInteriorV3(interior: InteriorV3): InteriorV4 {
-  if (typeof interior == 'object' && 'X1' in interior) {
+  if (typeof interior == 'object' && 'x1' in interior) {
     return {
-      X1: [interior.X1]
+      x1: [interior.x1]
     };
   } else {
     return interior;
@@ -453,55 +454,62 @@ export function upgradeInteriorV2(interior: InteriorV2): InteriorV3 {
 
 function downgradeJunctionV3(junction: JunctionV3): JunctionV2 {
   if (
-    junction == 'OnlyChild' ||
-    'Parachain' in junction ||
-    'PalletInstance' in junction ||
-    'GeneralIndex' in junction
+    junction == 'onlyChild' ||
+    'parachain' in junction ||
+    'palletInstance' in junction ||
+    'generalIndex' in junction
   ) {
     return junction;
-  } else if ('AccountId32' in junction) {
+  } else if ('accountId32' in junction) {
     return {
-      AccountId32: {
-        network: downgradeNetworkIdV3(junction.AccountId32.network),
-        id: junction.AccountId32.id
+      accountId32: {
+        network: downgradeNetworkIdV3(junction.accountId32.network),
+        id: junction.accountId32.id
       }
     };
-  } else if ('AccountIndex64' in junction) {
+  } else if ('accountIndex64' in junction) {
     return {
-      AccountIndex64: {
-        network: downgradeNetworkIdV3(junction.AccountIndex64.network),
-        index: junction.AccountIndex64.index
+      accountIndex64: {
+        network: downgradeNetworkIdV3(junction.accountIndex64.network),
+        index: junction.accountIndex64.index
       }
     };
-  } else if ('AccountKey20' in junction) {
+  } else if ('accountKey20' in junction) {
     return {
-      AccountKey20: {
-        network: downgradeNetworkIdV3(junction.AccountKey20.network),
-        key: junction.AccountKey20.key
+      accountKey20: {
+        network: downgradeNetworkIdV3(junction.accountKey20.network),
+        key: junction.accountKey20.key
       }
     };
-  } else if ('GeneralKey' in junction) {
+  } else if ('generalKey' in junction) {
     return {
-      GeneralKey: junction.GeneralKey.data
+      generalKey: junction.generalKey.data
     };
-  } else if ('Plurality' in junction) {
+  } else if ('plurality' in junction) {
     return {
-      Plurality: {
-        id: downgradeBodyIdV3(junction.Plurality.id),
-        part: junction.Plurality.part
+      plurality: {
+        id: downgradeBodyIdV3(junction.plurality.id),
+        part: junction.plurality.part
       }
     };
   } else {
-    const junctionStr = JSON.stringify(junction);
+    const junctionStr = stringify(junction);
     throw new Error(`V2 junctions don't include '${junctionStr}'`);
   }
 }
 
 function checkByteDataLength(
   junctionName: string,
-  expectedLength: number,
-  actualLength: number
+  expectedLength: bigint,
+  actualLength: bigint | null
 ) {
+  if (actualLength === null) {
+    throw new JunctionValidationError(
+      junctionName,
+      `${junctionName} must be hex string`
+    );
+  }
+
   if (expectedLength !== actualLength) {
     throw new JunctionValidationError(
       junctionName,
@@ -513,9 +521,9 @@ function checkByteDataLength(
 function checkNumberBitSize(
   junctionName: string,
   expectedBitSize: 8 | 32 | 64 | 128,
-  actualNumber: number | bigint
+  actualNumber: bigint
 ) {
-  let expectedMaxNumber: number | bigint;
+  let expectedMaxNumber: bigint;
   switch (expectedBitSize) {
     case 8:
       expectedMaxNumber = MAX_UINT8;
@@ -540,233 +548,229 @@ function checkNumberBitSize(
   }
 }
 
-function validateNetworkId(network: NetworkId, junctionName: string) {
-  if (typeof network !== 'string') {
-    if ('ByGenesis' in network) {
-      const byteLength = hexByteLength(network.ByGenesis);
-      if (byteLength === null) {
-        throw new JunctionValidationError(
-          junctionName,
-          `${junctionName}.network.ByGenesis must be hex string!`
-        );
-      }
-      checkByteDataLength(`${junctionName}.network.ByGenesis`, 32, byteLength);
-    }
+function invalidJunctionObj(objName: string, obj: unknown) {
+  throw new JunctionValidationError(
+    `not a V${CURRENT_XCM_VERSION} ${objName}`,
+    `invalid object: ${stringify(obj)}`
+  );
+}
 
-    if ('ByFork' in network) {
+function checkUnitJunctionObj<T>(
+  objName: string,
+  obj: T,
+  validUnitVariants: string[]
+) {
+  const isValid = validUnitVariants.find(variant => variant === obj);
+  if (isValid === undefined) {
+    invalidJunctionObj(objName, obj);
+  }
+}
+
+function validateNetworkId(
+  network: NetworkId | null | undefined,
+  junctionName: string
+) {
+  if (typeof network === 'object' && network !== null) {
+    if ('byGenesis' in network) {
+      const byteLength = hexByteLength(network.byGenesis);
+      checkByteDataLength(`${junctionName}.network.byGenesis`, 32n, byteLength);
+    } else if ('byFork' in network) {
       checkNumberBitSize(
-        `${junctionName}.network.ByFork.blockNumber`,
+        `${junctionName}.network.byFork.blockNumber`,
         64,
-        network.ByFork.blockNumber
+        network.byFork.blockNumber
       );
-      const byteLength = hexByteLength(network.ByFork.blockHash);
-      if (byteLength === null) {
-        throw new JunctionValidationError(
-          junctionName,
-          `${junctionName}.network.ByFork.blockHash must be hex string!`
-        );
-      }
+      const byteLength = hexByteLength(network.byFork.blockHash);
       checkByteDataLength(
-        `${junctionName}.network.ByFork.blockHash`,
-        32,
+        `${junctionName}.network.byFork.blockHash`,
+        32n,
         byteLength
       );
-    }
-
-    if ('Ethereum' in network) {
+    } else if ('ethereum' in network) {
       checkNumberBitSize(
-        `${junctionName}.network.Ethereum.chainId`,
+        `${junctionName}.network.ethereum.chainId`,
         64,
-        network.Ethereum.chainId
+        network.ethereum.chainId
       );
+    } else {
+      invalidJunctionObj(`${junctionName}.network`, network);
+    }
+  } else {
+    if (network != null ) {
+      checkUnitJunctionObj(`${junctionName}.network`, network, [
+        'polkadot',
+        'kusama',
+        'westend',
+        'rococo',
+        'wococo',
+        'bitcoinCore',
+        'bitcoinCash',
+        'polkadotBulletin',
+      ]);
     }
   }
 }
 
-function validateFraction(fraction: Fraction, junctionName: string) {
+function sanitizeFraction(fraction: Fraction, junctionName: string) {
   checkNumberBitSize(`${junctionName}.nom`, 32, fraction.nom);
   checkNumberBitSize(`${junctionName}.denom`, 32, fraction.denom);
 }
 
-function validateBodyPart(bodyPart: BodyPart, junctionName: string) {
-  if (typeof bodyPart !== 'string') {
-    if ('Members' in bodyPart) {
+function sanitizeBodyId(bodyId: BodyId) {
+  if (typeof bodyId === 'object') {
+    if ('moniker' in bodyId) {
+      const byteLength = hexByteLength(bodyId.moniker);
+      checkByteDataLength('plurality.id.moniker', 4n, byteLength);
+    } else if ('index' in bodyId) {
       checkNumberBitSize(
-        `${junctionName}.bodyPart.Members`,
+        'junction.plurality.id.index',
         32,
-        bodyPart.Members
+        bodyId.index
       );
+    } else {
+      invalidJunctionObj('plurality.id', bodyId);
     }
-
-    if ('Fraction' in bodyPart) {
-      validateFraction(bodyPart.Fraction, `${junctionName}.bodyPart.Fraction`);
-    }
-
-    if ('AtLeastProportion' in bodyPart) {
-      validateFraction(
-        bodyPart.AtLeastProportion,
-        `${junctionName}.bodyPart.AtLeastProportion`
-      );
-    }
-
-    if ('MoreThanProportion' in bodyPart) {
-      validateFraction(
-        bodyPart.MoreThanProportion,
-        `${junctionName}.bodyPart.MoreThanProportion`
-      );
-    }
+  } else {
+    checkUnitJunctionObj('plurality.id', bodyId, [
+      'unit',
+      'executive',
+      'technical',
+      'legislative',
+      'judicial',
+      'defense',
+      'administration',
+      'treasury',
+    ]);
   }
 }
 
-export function validateJunction(junction: Junction) {
-  if (junction !== 'OnlyChild') {
-    if ('Parachain' in junction) {
-      checkNumberBitSize('Parachain', 32, junction.Parachain);
+function sanitizeBodyPart(bodyPart: BodyPart) {
+  if (typeof bodyPart === 'object') {
+    if ('members' in bodyPart) {
+      checkNumberBitSize(
+        'plurality.bodyPart.members',
+        32,
+        bodyPart.members
+      );
+    } else if ('fraction' in bodyPart) {
+      sanitizeFraction(bodyPart.fraction, 'plurality.bodyPart.fraction');
+    } else if ('atLeastProportion' in bodyPart) {
+      sanitizeFraction(
+        bodyPart.atLeastProportion,
+        'plurality.bodyPart.atLeastProportion'
+      );
+    } else if ('moreThanProportion' in bodyPart) {
+      sanitizeFraction(
+        bodyPart.moreThanProportion,
+        'plurality.bodyPart.moreThanProportion'
+      );
+    } else {
+      invalidJunctionObj('plurality.bodyPart', bodyPart);
     }
+  } else if (bodyPart !== 'voice') {
+    invalidJunctionObj('plurality.bodyPart', bodyPart);
+  }
+}
 
-    if ('AccountId32' in junction) {
-      const byteLength = hexByteLength(junction.AccountId32.id);
+export function sanitizeJunction(junction: Junction) {
+  if (typeof junction === 'object') {
+    if ('parachain' in junction) {
+      checkNumberBitSize('parachain', 32, junction.parachain);
+    } else if ('accountId32' in junction) {
+      const byteLength = hexByteLength(junction.accountId32.id);
       if (byteLength !== null) {
-        checkByteDataLength('AccountId32', 32, byteLength);
+        checkByteDataLength('accountId32.id', 32n, byteLength);
       }
 
       try {
-        decodeAddress(junction.AccountId32.id);
+        junction.accountId32.id = u8aToHex(decodeAddress(junction.accountId32.id));
       } catch (error) {
         throw new JunctionValidationError(
-          'AccountId32',
-          `Invalid AccountId format! Account: ${junction.AccountId32.id}.`,
+          'accountId32',
+          `failed to decode AccountId32: ${junction.accountId32.id}.`,
           error as Error
         );
       }
 
-      if (junction.AccountId32.network) {
-        validateNetworkId(junction.AccountId32.network, 'AccountId32');
-      }
-    }
-
-    if ('AccountIndex64' in junction) {
+      validateNetworkId(junction.accountId32.network, 'accountId32');
+    } else if ('accountIndex64' in junction) {
       checkNumberBitSize(
-        'AccountIndex64.index',
-        32,
-        junction.AccountIndex64.index
+        'accountIndex64.index',
+        64,
+        junction.accountIndex64.index
       );
-      if (junction.AccountIndex64.network) {
-        validateNetworkId(junction.AccountIndex64.network, 'AccountIndex64');
-      }
+      validateNetworkId(junction.accountIndex64.network, 'accountIndex64');
+    } else if ('accountKey20' in junction) {
+      const byteLength = hexByteLength(junction.accountKey20.key);
+      checkByteDataLength('accountKey20.id', 20n, byteLength);
+      validateNetworkId(junction.accountKey20.network, 'accountKey20');
+    } else if ('palletInstance' in junction) {
+      checkNumberBitSize('palletInstance', 8, junction.palletInstance);
+    } else if ('generalIndex' in junction) {
+      checkNumberBitSize('generalIndex', 128, junction.generalIndex)
+    } else if ('generalKey' in junction) {
+      checkNumberBitSize('generalKey.length', 8, junction.generalKey.length);
+
+      const byteLength = hexByteLength(junction.generalKey.data);
+      checkByteDataLength('generalKey.data', 32n, byteLength);
+    } else if ('plurality' in junction) {
+      sanitizeBodyId(junction.plurality.id);
+      sanitizeBodyPart(junction.plurality.part);
+    } else if ('globalConsensus' in junction) {
+      validateNetworkId(junction.globalConsensus, 'globalConsensus');
+    } else {
+      invalidJunctionObj('junction', junction);
     }
-
-    if ('AccountKey20' in junction) {
-      const byteLength = hexByteLength(junction.AccountKey20.key);
-      if (byteLength === null) {
-        throw new JunctionValidationError(
-          'AccountKey20',
-          'AccountKey must be hex string!'
-        );
-      }
-      checkByteDataLength('AccountKey20', 20, byteLength);
-      if (junction.AccountKey20.network) {
-        validateNetworkId(junction.AccountKey20.network, 'AccountKey20');
-      }
-    }
-
-    if ('PalletInstance' in junction) {
-      checkNumberBitSize('PalletInstance', 8, junction.PalletInstance);
-    }
-
-    if ('GeneralIndex' in junction) {
-      checkNumberBitSize('GeneralIndex', 128, junction.GeneralIndex)
-    }
-
-    if ('GeneralKey' in junction) {
-      const byteLength = hexByteLength(junction.GeneralKey.data);
-      if (byteLength === null) {
-        throw new JunctionValidationError(
-          'GeneralKey',
-          'GeneralKey must be hex string!'
-        );
-      }
-
-      checkByteDataLength('GeneralKey', 32, byteLength);
-      checkNumberBitSize('GeneralKey.length', 8, junction.GeneralKey.length);
-    }
-
-    if ('Plurality' in junction) {
-      if (typeof junction.Plurality.id !== 'string') {
-        if ('Moniker' in junction.Plurality.id) {
-          const byteLength = hexByteLength(junction.Plurality.id.Moniker);
-          if (byteLength === null) {
-            throw new JunctionValidationError(
-              'Plurality',
-              'Plurality.id.Moniker must be hex string!'
-            );
-          }
-          checkByteDataLength('Plurality.id.Moniker', 4, byteLength);
-        }
-
-        if ('Index' in junction.Plurality.id) {
-          checkNumberBitSize(
-            'junction.Plurality.id.Index',
-            32,
-            junction.Plurality.id.Index
-          );
-        }
-      }
-
-      validateBodyPart(junction.Plurality.part, 'Plurality');
-    }
-
-    if ('GlobalConsensus' in junction) {
-      validateNetworkId(junction.GlobalConsensus, 'GlobalConsensus');
-    }
+  } else {
+    checkUnitJunctionObj('junction', junction, ['onlyChild']);
   }
 }
 
 function upgradeJunctionV2(junction: JunctionV2): JunctionV3 {
   if (
-    junction == 'OnlyChild' ||
-    'Parachain' in junction ||
-    'PalletInstance' in junction ||
-    'GeneralIndex' in junction
+    junction == 'onlyChild' ||
+    'parachain' in junction ||
+    'palletInstance' in junction ||
+    'generalIndex' in junction
   ) {
     return junction;
-  } else if ('AccountId32' in junction) {
+  } else if ('accountId32' in junction) {
     return {
-      AccountId32: {
-        network: upgradeNetworkIdV2(junction.AccountId32.network),
-        id: junction.AccountId32.id
+      accountId32: {
+        network: upgradeNetworkIdV2(junction.accountId32.network),
+        id: junction.accountId32.id
       }
     };
-  } else if ('AccountIndex64' in junction) {
+  } else if ('accountIndex64' in junction) {
     return {
-      AccountIndex64: {
-        network: upgradeNetworkIdV2(junction.AccountIndex64.network),
-        index: junction.AccountIndex64.index
+      accountIndex64: {
+        network: upgradeNetworkIdV2(junction.accountIndex64.network),
+        index: junction.accountIndex64.index
       }
     };
-  } else if ('AccountKey20' in junction) {
+  } else if ('accountKey20' in junction) {
     return {
-      AccountKey20: {
-        network: upgradeNetworkIdV2(junction.AccountKey20.network),
-        key: junction.AccountKey20.key
+      accountKey20: {
+        network: upgradeNetworkIdV2(junction.accountKey20.network),
+        key: junction.accountKey20.key
       }
     };
-  } else if ('GeneralKey' in junction) {
+  } else if ('generalKey' in junction) {
     return {
-      GeneralKey: {
-        length: textByteLength(junction.GeneralKey),
-        data: junction.GeneralKey
+      generalKey: {
+        length: textByteLength(junction.generalKey),
+        data: junction.generalKey
       }
     };
-  } else if ('Plurality' in junction) {
+  } else if ('plurality' in junction) {
     return {
-      Plurality: {
-        id: upgradeBodyIdV2(junction.Plurality.id),
-        part: junction.Plurality.part
+      plurality: {
+        id: upgradeBodyIdV2(junction.plurality.id),
+        part: junction.plurality.part
       }
     };
   } else {
-    const junctionStr = JSON.stringify(junction);
+    const junctionStr = stringify(junction);
     throw new Error(`${junctionStr}: unknown V2 junction`);
   }
 }
@@ -775,22 +779,22 @@ function downgradeNetworkIdV3(
   networkId: NetworkIdV3 | undefined | null
 ): NetworkIdV2 {
   if (!networkId) {
-    return 'Any';
-  } else if (networkId == 'Polkadot' || networkId == 'Kusama') {
+    return 'any';
+  } else if (networkId == 'polkadot' || networkId == 'kusama') {
     return networkId;
   } else {
-    const networkStr = JSON.stringify(networkId);
+    const networkStr = stringify(networkId);
     throw new Error(`V2 network ID doesn't include '${networkStr}'`);
   }
 }
 
 function upgradeNetworkIdV2(networkId: NetworkIdV2): NetworkIdV3 | null {
   switch (networkId) {
-    case 'Any':
+    case 'any':
       return null;
 
-    case 'Polkadot':
-    case 'Kusama':
+    case 'polkadot':
+    case 'kusama':
       return networkId;
 
     default:
@@ -799,9 +803,9 @@ function upgradeNetworkIdV2(networkId: NetworkIdV2): NetworkIdV3 | null {
 }
 
 function downgradeBodyIdV3(bodyId: BodyIdV3): BodyIdV2 {
-  if (typeof bodyId == 'object' && 'Moniker' in bodyId) {
+  if (typeof bodyId == 'object' && 'moniker' in bodyId) {
     return {
-      Named: bodyId.Moniker
+      named: bodyId.moniker
     };
   } else {
     return bodyId;
@@ -809,9 +813,9 @@ function downgradeBodyIdV3(bodyId: BodyIdV3): BodyIdV2 {
 }
 
 function upgradeBodyIdV2(bodyId: BodyIdV2): BodyIdV3 {
-  if (typeof bodyId == 'object' && 'Named' in bodyId) {
+  if (typeof bodyId == 'object' && 'named' in bodyId) {
     return {
-      Moniker: bodyId.Named
+      moniker: bodyId.named
     };
   } else {
     return bodyId;
@@ -830,7 +834,7 @@ export function isChainUniversalLocation(location: InteriorLocation): boolean {
 
   const firstJunction = locationArray[0];
   const startsWithGlobalConsensus =
-    typeof firstJunction == 'object' && 'GlobalConsensus' in firstJunction;
+    typeof firstJunction == 'object' && 'globalConsensus' in firstJunction;
 
   if (!startsWithGlobalConsensus) {
     return false;
@@ -843,7 +847,7 @@ export function isChainUniversalLocation(location: InteriorLocation): boolean {
     case 2: {
       const secondJunction = locationArray[1];
       const parachainJunctionIsSecond =
-        typeof secondJunction == 'object' && 'Parachain' in secondJunction;
+        typeof secondJunction == 'object' && 'parachain' in secondJunction;
 
       return parachainJunctionIsSecond;
     }
@@ -857,66 +861,68 @@ export function relaychainUniversalLocation(
   networkId: NetworkId
 ): InteriorLocation {
   return {
-    X1: [{ GlobalConsensus: networkId }]
+    x1: [{ globalConsensus: networkId }]
   };
 }
 
 export function parachainUniveralLocation(
   networkId: NetworkId,
-  paraId: number
+  paraId: bigint
 ): InteriorLocation {
   return {
-    X2: [{ GlobalConsensus: networkId }, { Parachain: paraId }]
+    x2: [{ globalConsensus: networkId }, { parachain: paraId }]
   };
 }
 
-export function fungible(amount: number | bigint) {
+export function fungible(amount: bigint) {
   return {
-    Fungible: amount
+    fungible: amount
   };
 }
 
-function hexByteLength(text: string): number | null {
+function hexByteLength(text: string): bigint | null {
   const hexMatch = text.match(/^0x(?<numberPart>[0-9a-fA-F]*)$/i);
-  return hexMatch ? Math.ceil(hexMatch.groups!.numberPart.length / 2) : null;
+  return hexMatch
+    ? BigInt(Math.ceil(hexMatch.groups!.numberPart.length / 2))
+    : null;
 }
 
-function textByteLength(text: string) {
+function textByteLength(text: string): bigint {
   const byteLength = hexByteLength(text);
-  return byteLength !== null ? byteLength : text.length;
+  return byteLength !== null ? byteLength : BigInt(text.length);
 }
 
-export function nonfungible(id: number | bigint | string) {
+export function nonfungible(id: bigint | string) {
   let assetInstance;
-  if (typeof id == 'number' || typeof id == 'bigint') {
+  if (typeof id == 'bigint') {
     assetInstance = {
-      Index: id
+      index: id
     };
   } else {
     const byteLength = textByteLength(id);
 
     switch (byteLength) {
-      case 4:
+      case 4n:
         assetInstance = {
-          Array4: id
+          array4: id
         };
         break;
 
-      case 8:
+      case 8n:
         assetInstance = {
-          Array8: id
+          array8: id
         };
         break;
 
-      case 16:
+      case 16n:
         assetInstance = {
-          Array16: id
+          array16: id
         };
         break;
 
-      case 32:
+      case 32n:
         assetInstance = {
-          Array32: id
+          array32: id
         };
         break;
 
@@ -928,6 +934,6 @@ export function nonfungible(id: number | bigint | string) {
   }
 
   return {
-    NonFungible: assetInstance
+    nonFungible: assetInstance
   };
 }

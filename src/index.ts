@@ -8,9 +8,9 @@ import { Asset, AssetLookup } from './xcmtypes';
     .addEcosystemChains('Kusama')
     .addRelativeLocation(
       'Test Account',
-      location(0, [
+      location(0n, [
         {
-          AccountId32: {
+          accountId32: {
             id: '0x006ddf51db56437ce5c886ab28cd767fc85ad5cc5d4a679376a1f7e71328b501'
           }
         }
@@ -31,22 +31,24 @@ import { Asset, AssetLookup } from './xcmtypes';
   // TODO conversion for account id text reprs
   const transferTx = await xcm.composeTransfer({
     assets: [
-      asset(location(0, 'Here'), fungible(100)),
+      asset(location(0n, 'here'), fungible(100n)),
 
-      asset('DOT', fungible(5)),
+      asset('DOT', fungible(5n)),
+
+      xcm.adjustedFungible('DOT', 300),
 
       <AssetLookup>{
         id: 'DOT',
-        fun: fungible(42)
+        fun: fungible(42n)
       },
 
       <Asset>{
-        id: { parents: 0, interior: 'Here' },
-        fun: { Fungible: 88 }
+        id: { parents: 0n, interior: 'here' },
+        fun: { fungible: 88n }
       },
 
-      asset('QTZ', fungible(77))
-    ].map(asset => xcm.adjustToCurrencyUnit(asset)),
+      asset('QTZ', fungible(77n))
+    ],
     feeAssetId: 'DOT',
     destination: 'Acala',
     beneficiary: 'Test Account'

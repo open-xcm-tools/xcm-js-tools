@@ -17,6 +17,7 @@ import {
 } from '@polkadot/apps-config';
 import _ from 'lodash';
 import { ApiPromise, WsProvider } from '@polkadot/api';
+import { stringify } from '@polkadot/util';
 
 export type Ecosystem = 'Polkadot' | 'Kusama';
 
@@ -62,7 +63,7 @@ export class Registry {
 
     info.endpoints = [...new Set(info.endpoints)];
 
-    this.chainInfos.set(locationToStringKey(info.universalLocation), info);
+    this.chainInfos.set(stringify(info.universalLocation), info);
     this.addUniveralLocation(info.chainId, info.universalLocation);
 
     return this;
@@ -72,14 +73,14 @@ export class Registry {
     switch (ecosystem) {
       case 'Polkadot':
         return this.#addRelayAndParachains(
-          relaychainUniversalLocation('Polkadot'),
+          relaychainUniversalLocation('polkadot'),
           prodRelayPolkadot,
           [...prodParasPolkadotCommon, ...prodParasPolkadot]
         );
 
       case 'Kusama':
         return this.#addRelayAndParachains(
-          relaychainUniversalLocation('Kusama'),
+          relaychainUniversalLocation('kusama'),
           prodRelayKusama,
           [...prodParasKusamaCommon, ...prodParasKusama]
         );
@@ -90,7 +91,7 @@ export class Registry {
   }
 
   addCurrency(info: CurrencyInfo) {
-    this.currencyInfos.set(locationToStringKey(info.universalLocation), info);
+    this.currencyInfos.set(stringify(info.universalLocation), info);
 
     this.addUniveralLocation(info.symbol, info.universalLocation);
 
@@ -163,10 +164,10 @@ export class Registry {
   }
 
   chainInfoByLocation(location: InteriorLocation) {
-    const chainInfo = this.chainInfos.get(locationToStringKey(location));
+    const chainInfo = this.chainInfos.get(stringify(location));
 
     if (!chainInfo) {
-      const locationStr = JSON.stringify(location);
+      const locationStr = stringify(location);
       throw new Error(`${locationStr}: no chain info found`);
     }
 
@@ -184,10 +185,10 @@ export class Registry {
   }
 
   currencyInfoByLocation(location: InteriorLocation) {
-    const currencyInfo = this.currencyInfos.get(locationToStringKey(location));
+    const currencyInfo = this.currencyInfos.get(stringify(location));
 
     if (!currencyInfo) {
-      const locationStr = JSON.stringify(location);
+      const locationStr = stringify(location);
       throw new Error(`${locationStr}: no currency info found`);
     }
 
@@ -215,7 +216,7 @@ export class Registry {
       }
 
       const paraUniversalLocation = concatInterior(relayUniversalLocation, {
-        X1: [{ Parachain: para.paraId }]
+        x1: [{ parachain: BigInt(para.paraId) }]
       });
 
       const paraEndpoints = providersToWssEndpoints(para.providers);
@@ -244,15 +245,15 @@ function providersToWssEndpoints(providers: Record<string, string>): string[] {
 function chainLocationToNativeCurrencyLocation(
   chainLocation: InteriorLocation
 ) {
-  const acalaLocation = parachainUniveralLocation('Polkadot', 2000);
-  const karuraLocation = parachainUniveralLocation('Kusama', 2000);
+  const acalaLocation = parachainUniveralLocation('polkadot', 2000n);
+  const karuraLocation = parachainUniveralLocation('kusama', 2000n);
 
   if (_.isEqual(chainLocation, acalaLocation)) {
     return concatInterior(acalaLocation, {
-      X1: [
+      x1: [
         {
-          GeneralKey: {
-            length: 2,
+          generalKey: {
+            length: 2n,
             data: '0x0000'
           }
         }
@@ -260,10 +261,10 @@ function chainLocationToNativeCurrencyLocation(
     });
   } else if (_.isEqual(chainLocation, karuraLocation)) {
     return concatInterior(karuraLocation, {
-      X1: [
+      x1: [
         {
-          GeneralKey: {
-            length: 2,
+          generalKey: {
+            length: 2n,
             data: '0x0080'
           }
         }
@@ -272,8 +273,4 @@ function chainLocationToNativeCurrencyLocation(
   } else {
     return chainLocation;
   }
-}
-
-function locationToStringKey(location: InteriorLocation) {
-  return JSON.stringify(location);
 }

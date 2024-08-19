@@ -1,5 +1,7 @@
-import { ApiPromise, WsProvider } from '@polkadot/api';
-import { SubmittableExtrinsic } from '@polkadot/api/types';
+import {ApiPromise, WsProvider} from '@polkadot/api';
+import {SubmittableExtrinsic} from '@polkadot/api/types';
+import {Bytes, Result} from '@polkadot/types-codec';
+import {Codec} from '@polkadot/types-codec/types';
 import {
   XcmVersion,
   Location,
@@ -8,22 +10,32 @@ import {
   MIN_XCM_VERSION,
   AssetLookup,
   LocationLookup,
-  AssetIdLookup
+  AssetIdLookup,
+  RegistryLookup,
+  VersionedLocation,
+  FungibleAsset,
+  InteriorLocationLookup,
+  InteriorLocation,
 } from './xcmtypes';
-import { ChainInfo, Registry } from './registry';
+import {ChainInfo, Registry} from './registry';
 import {
   convertAssetsVersion,
   convertLocationVersion,
+  findFeeAssetById,
   fungible,
   location,
   locationRelativeToPrefix,
   relativeLocaionToUniversal,
-  toJunctions
+  toJunctions,
 } from './util';
+import {Origin} from './origin';
+import {stringify} from '@polkadot/util';
+import {xcm} from './interfaces/definitions';
 
 export type PalletXcmName = 'polkadotXcm' | 'xcmPallet';
 
 export type TransferParams = {
+  origin: Origin | RegistryLookup;
   assets: AssetLookup[];
   feeAssetId: AssetIdLookup;
   destination: LocationLookup;
@@ -31,8 +43,10 @@ export type TransferParams = {
 };
 
 type PreparedTransferParams = {
+  origin: Origin;
   assets: Asset[];
   feeAssetIndex: number;
+  feeAsset: FungibleAsset;
   destination: Location;
   beneficiary: Location;
 };
@@ -51,19 +65,13 @@ export class SimpleXcm {
   maxXcmVersion: XcmVersion;
   xcmVersion: XcmVersion;
 
-  async composeTransfer(
-    transferParams: TransferParams
-  ): Promise<SubmittableExtrinsic<'promise'>> {
-    return this.#transferBackend().then((backend) =>
-      backend.composeTransfer(transferParams)
-    );
+  composeTransfer(transferParams: TransferParams): Promise<SubmittableExtrinsic<'promise'>> {
+    return this.#transferBackend().composeTransfer(transferParams);
   }
 
   enforceXcmVersion(version: XcmVersion) {
     if (version > this.maxXcmVersion) {
-      throw new Error(
-        `The requested XCM version ${version} is greater than the chain supports (= ${this.maxXcmVersion})`
-      );
+      throw new Error(`The requested XCM version ${version} is greater than the chain supports (= ${this.maxXcmVersion})`);
     }
 
     this.xcmVersion = version;
@@ -72,17 +80,15 @@ export class SimpleXcm {
   adjustedFungible(assetId: AssetIdLookup, amount: number): AssetLookup {
     let decimals: number;
 
-    if (typeof assetId == 'string') {
+    if (typeof assetId === 'string') {
       decimals = this.registry.currencyInfoBySymbol(assetId).decimals;
     } else {
       const currencyUniversalLocation = relativeLocaionToUniversal({
         relativeLocation: assetId,
-        context: this.chainInfo.universalLocation
+        context: this.chainInfo.universalLocation,
       });
 
-      decimals = this.registry.currencyInfoByLocation(
-        currencyUniversalLocation
-      ).decimals;
+      decimals = this.registry.currencyInfoByLocation(currencyUniversalLocation).decimals;
     }
 
     // FIXME
@@ -90,12 +96,12 @@ export class SimpleXcm {
 
     return {
       id: assetId,
-      fun: { fungible: value }
+      fun: {fungible: value},
     };
   }
 
-  disconnect() {
-    this.api.disconnect();
+  async disconnect() {
+    await this.api.disconnect();
   }
 
   private constructor(
@@ -103,7 +109,7 @@ export class SimpleXcm {
     registry: Registry,
     chainInfo: ChainInfo,
     palletXcm: PalletXcmName,
-    maxXcmVersion: XcmVersion
+    maxXcmVersion: XcmVersion,
   ) {
     this.api = apiPromise;
     this.registry = registry;
@@ -119,87 +125,24 @@ export class SimpleXcm {
     const provider = new WsProvider(chainInfo.endpoints);
     const api = await ApiPromise.create({
       provider,
-      runtime: {
-        DryRunApi: [
-          {
-            version: 1,
-
-            methods: {
-              dry_run_call: {
-                description: 'XCM dry-run call',
-                params: [
-                  {
-                    name: 'origin',
-                    type: 'OriginCaller',
-                  },
-                  
-                  {
-                    name: 'call',
-                    type: 'Call',
-                  }
-                ],
-                type: 'Result<DryRunCallEffects, DryRunError>',
-              },
-
-              dry_run_xcm: {
-                description: 'XCM dry-run xcm',
-                params: [
-                  {
-                    name: 'origin_location',
-                    type: 'XcmVersionedLocation',
-                  },
-
-                  {
-                    name: 'xcm',
-                    type: 'VersionedXcm',
-                  }
-                ],
-                type: 'Result<DryRunXcmEffects, DryRunError>',
-              }
-            }
-          }
-        ]
-      },
-      types: {
-        DryRunCallEffects: {
-          execution_result: 'Result<FrameSupportDispatchPostDispatchInfo, SpRuntimeDispatchErrorWithPostInfo>',
-          emitted_events: 'Vec<Event>',
-          local_xcm: 'Option<XcmVersionedXcm>',
-          forwarded_xcms: 'Vec<(XcmVersionedLocation, Vec<XcmVersionedXcm>)>',
-        },
-
-        DryRunXcmEffects: {
-          execution_result: 'StagingXcmV4TraitsOutcome',
-          emitted_events: 'Vec<Event>',
-          forwarded_xcms: 'Vec<(XcmVersionedLocation, Vec<XcmVersionedXcm>)>',
-        },
-
-        DryRunError: {
-          _enum: {
-            Unimplemented: 'Null',
-            VersionedConversionFailed: 'Null',
-          },
-        },
-      },
+      ...xcm,
     });
 
-    const palletXcm = await SimpleXcm.#findPalletXcm(api);
+    const palletXcm = SimpleXcm.#findPalletXcm(api);
     if (!palletXcm) {
       throw new Error(`${chainId}: no pallet-xcm found in the runtime`);
     }
 
     const maxXcmVersion = await SimpleXcm.#discoverMaxXcmVersion(
+      chainId,
       api,
-      palletXcm
+      palletXcm,
     );
-    if (!maxXcmVersion) {
-      throw new Error(`${chainId}: no supported XCM versions found`);
-    }
 
     return new SimpleXcm(api, registry, chainInfo, palletXcm, maxXcmVersion);
   }
 
-  static async #findPalletXcm(api: ApiPromise) {
+  static #findPalletXcm(api: ApiPromise) {
     const pallets = api.registry.metadata.pallets;
     for (const pallet of pallets) {
       const palletRuntimeName = pallet.name.toPrimitive();
@@ -215,8 +158,9 @@ export class SimpleXcm {
   }
 
   static async #discoverMaxXcmVersion(
+    chainId: string,
     api: ApiPromise,
-    palletXcm: PalletXcmName
+    palletXcm: PalletXcmName,
   ) {
     for (
       let version = CURRENT_XCM_VERSION;
@@ -230,17 +174,29 @@ export class SimpleXcm {
         return version;
       }
     }
+
+    console.warn(`${chainId}: ${palletXcm} doesn't know about supported XCM versions yet. Fallbacking to safeXcmVersion`);
+
+    const safeVersion = await api.query[palletXcm]
+      .safeXcmVersion()
+      .then((version) => version.toPrimitive() as number);
+
+    if (MIN_XCM_VERSION <= safeVersion && safeVersion <= CURRENT_XCM_VERSION) {
+      return safeVersion as XcmVersion;
+    } else {
+      throw new Error(`${chainId}: no supported XCM versions found`);
+    }
   }
 
-  async #transferBackend() {
+  #transferBackend() {
     if ('transferAssets' in this.api.tx[this.palletXcm]) {
       return new PalletXcmBackend(this);
     }
 
-    console.warn(
-      'pallet-xcm does not have the needed "transferAssets" extrinsic'
-    );
-    console.warn('looking for an alternative transfer backend...');
+    console.warn(`
+      ${this.chainInfo.chainId}: pallet-xcm does not have the needed "transferAssets" extrinsic.
+      Looking for an alternative transfer backend...
+    `);
 
     const pallets = this.api.registry.metadata.pallets;
 
@@ -260,26 +216,52 @@ export class SimpleXcm {
     }
 
     if (backend) {
-      console.warn(`using an alternative transfer backend: ${palletName!}`);
+      console.warn(`${this.chainInfo.chainId}: using an alternative transfer backend - ${palletName!}`);
       return backend;
     } else {
-      throw new Error('No known backend pallet is found');
+      throw new Error(`${this.chainInfo.chainId}: No known backend pallet is found`);
     }
   }
 
-  resolveRelativeLocation(lookup: LocationLookup) {
-    if (typeof lookup == 'string') {
+  resolveRelativeLocation(lookup: InteriorLocation | LocationLookup): Location {
+    if (typeof lookup === 'string') {
       const universalLocation = this.registry.universalLocation(lookup);
       if (universalLocation) {
         return locationRelativeToPrefix({
           location: universalLocation,
-          prefix: this.chainInfo.universalLocation
+          prefix: this.chainInfo.universalLocation,
         });
       }
 
       const relativeLocation = this.registry.relativeLocation(lookup);
       if (relativeLocation) {
         return relativeLocation;
+      }
+
+      throw new Error(`${lookup}: unknown named location`);
+    } else if ('parents' in lookup) {
+      return lookup;
+    } else {
+      return locationRelativeToPrefix({
+        location: lookup,
+        prefix: this.chainInfo.universalLocation,
+      });
+    }
+  }
+
+  resolveUniversalLocation(lookup: InteriorLocationLookup): InteriorLocation {
+    if (typeof lookup === 'string') {
+      const universalLocation = this.registry.universalLocation(lookup);
+      if (universalLocation) {
+        return universalLocation;
+      }
+
+      const relativeLocation = this.registry.relativeLocation(lookup);
+      if (relativeLocation) {
+        return relativeLocaionToUniversal({
+          relativeLocation,
+          context: this.chainInfo.universalLocation,
+        });
       }
 
       throw new Error(`${lookup}: unknown named location`);
@@ -291,8 +273,26 @@ export class SimpleXcm {
   resolveRelativeAsset(lookup: AssetLookup): Asset {
     return {
       id: this.resolveRelativeLocation(lookup.id),
-      fun: lookup.fun
+      fun: lookup.fun,
     };
+  }
+
+  async locationToAccountId(lookup: LocationLookup): Promise<string> {
+    // TODO throw a better error the needed Runtime API isn't available
+
+    if (typeof lookup === 'string') {
+      const accountLocation = this.resolveRelativeLocation(lookup);
+      return this.locationToAccountId(accountLocation);
+    }
+
+    const versionedLocation: VersionedLocation = {v4: lookup};
+    const result: Result<Bytes, Codec> = await this.api.call.locationToAccountApi.convertLocation(versionedLocation);
+
+    if (result.isErr) {
+      throw new Error(`${this.chainInfo.chainId}: can't convert location to an account ID - ${stringify(result.asErr.toHuman())}`);
+    }
+
+    return result.asOk.toHex();
   }
 }
 
@@ -303,12 +303,10 @@ export class PalletXcmBackend implements TransferBackend {
     this.simpleXcm = simpleXcm;
   }
 
-  async composeTransfer(
-    transferParams: TransferParams
-  ): Promise<SubmittableExtrinsic<'promise'>> {
-    const preparedParams = prepareTransferParams(
+  async composeTransfer(transferParams: TransferParams): Promise<SubmittableExtrinsic<'promise'>> {
+    const preparedParams = await prepareTransferParams(
       this.simpleXcm,
-      transferParams
+      transferParams,
     );
 
     const xcmVersion = this.simpleXcm.xcmVersion;
@@ -316,11 +314,11 @@ export class PalletXcmBackend implements TransferBackend {
     const assets = convertAssetsVersion(xcmVersion, preparedParams.assets);
     const destination = convertLocationVersion(
       xcmVersion,
-      preparedParams.destination
+      preparedParams.destination,
     );
     const beneficiary = convertLocationVersion(
       xcmVersion,
-      preparedParams.beneficiary
+      preparedParams.beneficiary,
     );
 
     const palletXcm = this.simpleXcm.api.tx[this.simpleXcm.palletXcm];
@@ -331,7 +329,7 @@ export class PalletXcmBackend implements TransferBackend {
       beneficiary,
       assets,
       preparedParams.feeAssetIndex,
-      noXcmWeightLimit
+      noXcmWeightLimit,
     );
 
     // TODO XcmDryRun the extrinsic
@@ -351,31 +349,25 @@ export class XTokensBackend implements TransferBackend {
     this.simpleXcm = simpleXcm;
   }
 
-  async composeTransfer(
-    transferParams: TransferParams
-  ): Promise<SubmittableExtrinsic<'promise'>> {
-    const preparedParams = prepareTransferParams(
+  async composeTransfer(transferParams: TransferParams): Promise<SubmittableExtrinsic<'promise'>> {
+    const preparedParams = await prepareTransferParams(
       this.simpleXcm,
-      transferParams
+      transferParams,
     );
 
-    if (preparedParams.beneficiary.parents != 0n) {
+    if (preparedParams.beneficiary.parents !== 0n) {
       throw new Error(`
         The beneficiary must be an interior location (parents = 0) when using the XTokens backend.
         The actual parents = ${preparedParams.beneficiary.parents}
       `);
     }
 
-    const beneficiaryJunctions = toJunctions(
-      preparedParams.beneficiary.interior
-    );
-    const destinationJunctions = toJunctions(
-      preparedParams.destination.interior
-    );
+    const beneficiaryJunctions = toJunctions(preparedParams.beneficiary.interior);
+    const destinationJunctions = toJunctions(preparedParams.destination.interior);
 
     const destinationBeneficiary = location(
       preparedParams.destination.parents,
-      [...destinationJunctions, ...beneficiaryJunctions]
+      [...destinationJunctions, ...beneficiaryJunctions],
     );
 
     const xcmVersion = this.simpleXcm.xcmVersion;
@@ -383,7 +375,7 @@ export class XTokensBackend implements TransferBackend {
     const assets = convertAssetsVersion(xcmVersion, preparedParams.assets);
     const destination = convertLocationVersion(
       xcmVersion,
-      destinationBeneficiary
+      destinationBeneficiary,
     );
 
     const xTokens = this.simpleXcm.api.tx['xTokens'];
@@ -393,7 +385,7 @@ export class XTokensBackend implements TransferBackend {
       assets,
       preparedParams.feeAssetIndex,
       destination,
-      noXcmWeightLimit
+      noXcmWeightLimit,
     );
 
     // FIXME
@@ -401,35 +393,54 @@ export class XTokensBackend implements TransferBackend {
   }
 }
 
-function prepareTransferParams(
+async function prepareTransferParams(
   simpleXcm: SimpleXcm,
-  transferParams: TransferParams
-): PreparedTransferParams {
-  const destination = simpleXcm.resolveRelativeLocation(
-    transferParams.destination
-  );
-  const beneficiary = simpleXcm.resolveRelativeLocation(
-    transferParams.beneficiary
-  );
-  const feeAssetId = simpleXcm.resolveRelativeLocation(
-    transferParams.feeAssetId
-  );
-  const assets = transferParams.assets.map((asset) =>
-    simpleXcm.resolveRelativeAsset(asset)
-  );
+  transferParams: TransferParams,
+): Promise<PreparedTransferParams> {
+  let origin: Origin;
+  if (typeof transferParams.origin === 'string') {
+    origin = {
+      System: {
+        Signed: await simpleXcm.locationToAccountId(transferParams.origin),
+      },
+    };
+  } else {
+    origin = transferParams.origin;
+  }
 
-  const dummyFeeAsset: Asset = {
-    id: feeAssetId,
-    fun: fungible(1n)
-  };
-  const feeAssetIndex = assets.length;
-  assets.push(dummyFeeAsset);
+  // TODO sanitize
+
+  const destination = simpleXcm.resolveRelativeLocation(transferParams.destination);
+  const beneficiary = simpleXcm.resolveRelativeLocation(transferParams.beneficiary);
+  const feeAssetId = simpleXcm.resolveRelativeLocation(transferParams.feeAssetId);
+  const assets = transferParams.assets.map((asset) =>
+    simpleXcm.resolveRelativeAsset(asset));
+
+  // TODO sort and deduplicate the `assets`
+
+  const feeAssetResult = findFeeAssetById(feeAssetId, assets);
+
+  let feeAsset: FungibleAsset;
+  let feeAssetIndex: number;
+
+  if (feeAssetResult === undefined) {
+    feeAsset = {
+      id: feeAssetId,
+      fun: fungible(1n),
+    };
+    feeAssetIndex = assets.length;
+    assets.push(feeAsset);
+  } else {
+    [feeAsset, feeAssetIndex] = feeAssetResult;
+  }
 
   return {
+    origin,
     assets,
     feeAssetIndex,
+    feeAsset,
     destination,
-    beneficiary
+    beneficiary,
   };
 }
 

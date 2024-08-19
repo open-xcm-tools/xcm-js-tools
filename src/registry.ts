@@ -1,23 +1,23 @@
-import { EndpointOption } from '@polkadot/apps-config/endpoints/types';
-import { SimpleXcm } from './simplexcm';
+import {EndpointOption} from '@polkadot/apps-config/endpoints/types';
+import {SimpleXcm} from './simplexcm';
 import {
   concatInterior,
   isChainUniversalLocation,
   parachainUniveralLocation,
-  relaychainUniversalLocation
+  relaychainUniversalLocation,
 } from './util';
-import { InteriorLocation, Location } from './xcmtypes';
+import {InteriorLocation, Location} from './xcmtypes';
 import {
   prodRelayPolkadot,
   prodParasPolkadotCommon,
   prodParasPolkadot,
   prodRelayKusama,
   prodParasKusamaCommon,
-  prodParasKusama
+  prodParasKusama,
 } from '@polkadot/apps-config';
 import _ from 'lodash';
-import { ApiPromise, WsProvider } from '@polkadot/api';
-import { stringify } from '@polkadot/util';
+import {ApiPromise, WsProvider} from '@polkadot/api';
+import {stringify} from '@polkadot/util';
 
 export type Ecosystem = 'Polkadot' | 'Kusama';
 
@@ -52,12 +52,10 @@ export class Registry {
 
   addChain(info: ChainInfo): Registry {
     if (!isChainUniversalLocation(info.universalLocation)) {
-      throw new Error(
-        `${info.chainId}: the provided location is not a chain universal location`
-      );
+      throw new Error(`${info.chainId}: the provided location is not a chain universal location`);
     }
 
-    if (info.endpoints.length == 0) {
+    if (info.endpoints.length === 0) {
       throw new Error(`${info.chainId}: no endpoints provided`);
     }
 
@@ -75,14 +73,14 @@ export class Registry {
         return this.#addRelayAndParachains(
           relaychainUniversalLocation('polkadot'),
           prodRelayPolkadot,
-          [...prodParasPolkadotCommon, ...prodParasPolkadot]
+          [...prodParasPolkadotCommon, ...prodParasPolkadot],
         );
 
       case 'Kusama':
         return this.#addRelayAndParachains(
           relaychainUniversalLocation('kusama'),
           prodRelayKusama,
-          [...prodParasKusamaCommon, ...prodParasKusama]
+          [...prodParasKusamaCommon, ...prodParasKusama],
         );
 
       default:
@@ -102,19 +100,23 @@ export class Registry {
     const chainInfo = this.chainInfoById(chainId);
 
     const provider = new WsProvider(chainInfo.endpoints);
-    const api = await ApiPromise.create({ provider });
+    const api = await ApiPromise.create({provider});
 
     if (api.registry.chainTokens.length > 0) {
       const symbol = api.registry.chainTokens[0];
       const decimals = api.registry.chainDecimals[0];
-      const universalLocation = chainLocationToNativeCurrencyLocation(
-        chainInfo.universalLocation
-      );
+      const universalLocation = chainLocationToNativeCurrencyLocation(chainInfo.universalLocation);
 
       this.addCurrency({
         symbol,
         decimals,
-        universalLocation
+        universalLocation,
+      });
+
+      this.addCurrency({
+        symbol: chainId,
+        decimals,
+        universalLocation,
       });
     } else {
       console.warn(`${chainId}: no chain tokens found, skip`);
@@ -125,9 +127,7 @@ export class Registry {
 
   addUniveralLocation(locationName: string, location: InteriorLocation) {
     if (this.relativeLocations.get(locationName)) {
-      throw new Error(
-        `${locationName}: can't be registered as a universal location because it's already a relative one`
-      );
+      throw new Error(`${locationName}: can't be registered as a universal location because it's already a relative one`);
     }
 
     this.universalLocations.set(locationName, location);
@@ -140,9 +140,7 @@ export class Registry {
 
   addRelativeLocation(locationName: string, location: Location) {
     if (this.universalLocations.get(locationName)) {
-      throw new Error(
-        `${locationName}: can't be registered as a relative location because it's already a universal one`
-      );
+      throw new Error(`${locationName}: can't be registered as a relative location because it's already a universal one`);
     }
 
     this.relativeLocations.set(locationName, location);
@@ -198,15 +196,13 @@ export class Registry {
   #addRelayAndParachains(
     relayUniversalLocation: InteriorLocation,
     relayEndpointOption: EndpointOption,
-    paraEndpointOptions: EndpointOption[]
+    paraEndpointOptions: EndpointOption[],
   ) {
-    const relayEndpoints = providersToWssEndpoints(
-      relayEndpointOption.providers
-    );
+    const relayEndpoints = providersToWssEndpoints(relayEndpointOption.providers);
     this.addChain({
       chainId: relayEndpointOption.text,
       universalLocation: relayUniversalLocation,
-      endpoints: relayEndpoints
+      endpoints: relayEndpoints,
     });
 
     for (const para of paraEndpointOptions) {
@@ -216,11 +212,11 @@ export class Registry {
       }
 
       const paraUniversalLocation = concatInterior(relayUniversalLocation, {
-        x1: [{ parachain: BigInt(para.paraId) }]
+        x1: [{parachain: BigInt(para.paraId)}],
       });
 
       const paraEndpoints = providersToWssEndpoints(para.providers);
-      if (paraEndpoints.length == 0) {
+      if (paraEndpoints.length === 0) {
         console.warn(`${para.text}: no wss:// endpoints found, skip`);
         continue;
       }
@@ -228,7 +224,7 @@ export class Registry {
       this.addChain({
         chainId: para.text,
         universalLocation: paraUniversalLocation,
-        endpoints: paraEndpoints
+        endpoints: paraEndpoints,
       });
     }
 
@@ -238,13 +234,10 @@ export class Registry {
 
 function providersToWssEndpoints(providers: Record<string, string>): string[] {
   return Object.values(providers).filter((endpoint) =>
-    endpoint.startsWith('wss://')
-  );
+    endpoint.startsWith('wss://'));
 }
 
-function chainLocationToNativeCurrencyLocation(
-  chainLocation: InteriorLocation
-) {
+function chainLocationToNativeCurrencyLocation(chainLocation: InteriorLocation) {
   const acalaLocation = parachainUniveralLocation('polkadot', 2000n);
   const karuraLocation = parachainUniveralLocation('kusama', 2000n);
 
@@ -254,10 +247,10 @@ function chainLocationToNativeCurrencyLocation(
         {
           generalKey: {
             length: 2n,
-            data: '0x0000'
-          }
-        }
-      ]
+            data: '0x0000',
+          },
+        },
+      ],
     });
   } else if (_.isEqual(chainLocation, karuraLocation)) {
     return concatInterior(karuraLocation, {
@@ -265,10 +258,10 @@ function chainLocationToNativeCurrencyLocation(
         {
           generalKey: {
             length: 2n,
-            data: '0x0080'
-          }
-        }
-      ]
+            data: '0x0080',
+          },
+        },
+      ],
     });
   } else {
     return chainLocation;

@@ -9,27 +9,29 @@
     "lint": "eslint .",
     "fix": "yarn lint --fix",
     "fmt": "yarn prettier --config .prettierrc './src/**/*.ts' --write",
-    "test": "vitest"
+    "test": "vitest",
+    "polkadot-types-from-defs": "node --no-warnings=ExperimentalWarning --loader ts-node/esm ./node_modules/.bin/polkadot-types-from-defs --input src/interfaces --package ."
   },
   "dependencies": {
     "@polkadot/api": "12.2.1",
     "@polkadot/apps-config": "^0.142.1",
     "@polkadot/keyring": "^13.0.2",
+    "@polkadot/typegen": "^12.3.1",
     "@polkadot/util": "^13.0.2",
+    "@polkadot/wasm-util": "*",
     "@types/lodash": "^4.17.7",
+    "@types/node": "*",
     "@typescript-eslint/eslint-plugin": "^7.17.0",
     "@typescript-eslint/parser": "^7.17.0",
-    "eslint": "^8.56.0",
+    "eslint": "^8.53.0",
     "lodash": "^4.17.21",
     "prettier": "^3.3.3",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3",
-    "vitest": "^2.0.4",
-    "@polkadot/wasm-util": "*",
     "react": "*",
     "react-dom": "*",
     "react-is": "*",
-    "@types/node": "*"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "vitest": "^2.0.4"
   },
   "resolutions": {
     "@polkadot/api": "^12.2.1",

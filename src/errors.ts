@@ -7,9 +7,9 @@ class ValidationError extends Error {
     method: string,
     reason: string,
     description: string | undefined,
-    cause?: Error
+    cause?: Error,
   ) {
-    super(reason, { cause: cause });
+    super(reason, {cause: cause});
     this.method = method;
     this.name = 'Validation error';
     this.reason = reason;

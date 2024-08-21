@@ -418,7 +418,7 @@ async function prepareTransferParams(
 
   // TODO sort and deduplicate the `assets`
 
-  const feeAssetResult = findFeeAssetById(feeAssetId, assets);
+  const feeAssetResult = findFeeAssetById(simpleXcm.xcmVersion, feeAssetId, assets);
 
   let feeAsset: FungibleAsset;
   let feeAssetIndex: number;

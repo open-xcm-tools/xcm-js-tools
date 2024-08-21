@@ -29,6 +29,7 @@ import {
   AssetLookup,
   Interior,
   MIN_XCM_VERSION,
+  AssetV4,
   BodyPart,
   Fraction,
   AssetIdLookup,
@@ -36,17 +37,120 @@ import {
   VersionedAssetId,
   AssetId,
   AnyAssetId,
-  AnyAsset,
   FungibleAsset,
+  AnyAsset,
+  AnyAssetInstance,
+  AnyNetworkId,
+  AnyBodyId,
+  AnyJunction,
+  AnyInterior,
+  AssetIdV4,
+  AssetIdV3,
+  AssetIdV2,
 } from './xcmtypes';
 import _ from 'lodash';
 import {JunctionValidationError} from './errors';
-import {stringify, u8aToHex} from '@polkadot/util';
+import {hexToU8a, stringify} from '@polkadot/util';
 
 const MAX_UINT8 = 2n ** 8n - 1n;
 const MAX_UINT32 = 2n ** 32n - 1n;
 const MAX_UINT64 = 2n ** 64n - 1n;
 const MAX_UINT128 = 2n ** 128n - 1n;
+
+const commonAssets = new Map<string, number>([
+  ['undefined', 0],
+  ['index', 1],
+  ['array4', 2],
+  ['array8', 3],
+  ['array16', 4],
+  ['array32', 5],
+]);
+
+const assetInstanceOrder = new Map<XcmVersion, Map<string, number>>([
+  [2, new Map<string, number>([...commonAssets, ['blob', 6]])],
+  [3, commonAssets],
+  [4, commonAssets],
+]);
+
+const commonNetworks = new Map<string, number>([
+  ['byGenesis', 0],
+  ['byFork', 1],
+  ['polkadot', 4],
+  ['kusama', 5],
+  ['westend', 6],
+  ['rococo', 7],
+  ['wococo', 8],
+  ['ethereum', 9],
+  ['bitcoinCore', 10],
+  ['bitcoinCash', 11],
+  ['polkadotBulletin', 12],
+]);
+
+const networkIdOrder = new Map<XcmVersion, Map<string, number>>([
+  [2, new Map<string, number>([['any', 2], ['named', 3], ...commonNetworks])],
+  [3, commonNetworks],
+  [4, commonNetworks],
+]);
+
+const commonBodyIds = new Map<string, number>([
+  ['unit', 0],
+  ['index', 3],
+  ['executive', 4],
+  ['technical', 5],
+  ['legislative', 6],
+  ['judicial', 7],
+  ['defense', 8],
+  ['administration', 9],
+  ['treasury', 10],
+]);
+
+const bodyIdOrder = new Map<XcmVersion, Map<string, number>>([
+  [2, new Map<string, number>([['named', 1], ...commonBodyIds])],
+  [3, new Map<string, number>([['moniker', 2], ...commonBodyIds])],
+  [4, new Map<string, number>([['moniker', 2], ...commonBodyIds])],
+]);
+
+const commonBodyParts = new Map<string, number>([
+  ['voice', 0],
+  ['members', 1],
+  ['fraction', 2],
+  ['atLeastProportion', 3],
+  ['moreThanProportion', 4],
+]);
+
+const bodyPartOrder = new Map<XcmVersion, Map<string, number>>([
+  [2, commonBodyParts],
+  [3, commonBodyParts],
+  [4, commonBodyParts],
+]);
+
+const commonJunctions = new Map<string, number>([
+  ['parachain', 0],
+  ['accountId32', 1],
+  ['accountIndex64', 2],
+  ['accountKey20', 3],
+  ['palletInstance', 4],
+  ['generalIndex', 5],
+  ['generalKey', 6],
+  ['onlyChild', 7],
+  ['plurality', 8],
+]);
+
+const junctionOrder = new Map<XcmVersion, Map<string, number>>([
+  [2, commonJunctions],
+  [3, new Map<string, number>([['globalConsensus', 9], ...commonJunctions])],
+  [4, new Map<string, number>([['globalConsensus', 9], ...commonJunctions])],
+]);
+
+const commonAssetIds = new Map<string, number>([
+  ['Concrete', 0],
+  ['Abstract', 1],
+]);
+
+const assetIdOrder = new Map<XcmVersion, Map<string, number>>([
+  [2, commonAssetIds],
+  [3, commonAssetIds],
+]);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function interiorToArray(interiorVersion: XcmVersion, interior: any): any[] {
@@ -102,26 +206,23 @@ function arrayToInterior(interiorVersion: XcmVersion, junctions: any[]): any {
   } else if (junctions.length === 8) {
     return {x8: [...junctions]};
   } else {
-    throw new Error(`arrayToInterior - ${junctions.length} invalid interior array length`);
+    throw new Error(`arrayToInterior: ${junctions.length} invalid interior array length`);
   }
 }
 
 function unwrapVersionedAssetsArray(assets: VersionedAssets): VersionedAsset[] {
   if ('v2' in assets) {
-    return assets.v2.map(assetV2 => ({v2: assetV2}));
+    return assets.v2.map((assetV2) => ({v2: assetV2}));
   } else if ('v3' in assets) {
-    return assets.v3.map(assetV3 => ({v3: assetV3}));
+    return assets.v3.map((assetV3) => ({v3: assetV3}));
   } else if ('v4' in assets) {
-    return assets.v4.map(assetV4 => ({v4: assetV4}));
+    return assets.v4.map((assetV4) => ({v4: assetV4}));
   } else {
     throw new Error('unwrapVersionedAssetsArray: unknown XCM version');
   }
 }
 
-export function asset(
-  id: AssetIdLookup,
-  fun: Fungibility,
-): AssetLookup {
+export function asset(id: AssetIdLookup, fun: Fungibility): AssetLookup {
   return {
     id,
     fun,
@@ -178,7 +279,7 @@ export function relativeLocaionToUniversal({
   const contextJunctions = toJunctions(context);
 
   if (relativeLocation.parents > contextJunctions.length) {
-    throw new Error('Not enough context to convert relative location to a universal one');
+    throw new Error('relativeLocaionToUniversal: not enough context to convert relative location to a universal one');
   }
 
   const universalPrefix = contextJunctions.slice(Number(relativeLocation.parents));
@@ -218,11 +319,21 @@ function convertXcmEntityVersion<T extends Record<string, unknown>>(
 ) {
   const assetVersion = extractVersion(entity);
   if (version < assetVersion) {
-    return convertXcmEntityVersion(version, downgrade(entity), downgrade, upgrade);
+    return convertXcmEntityVersion(
+      version,
+      downgrade(entity),
+      downgrade,
+      upgrade,
+    );
   } else if (version === assetVersion) {
     return entity;
   } else {
-    return convertXcmEntityVersion(version, upgrade(entity), downgrade, upgrade);
+    return convertXcmEntityVersion(
+      version,
+      upgrade(entity),
+      downgrade,
+      upgrade,
+    );
   }
 }
 
@@ -272,12 +383,7 @@ export function convertAssetVersion(
     });
   }
 
-  return convertXcmEntityVersion(
-    version,
-    asset,
-    downgradeAsset,
-    upgradeAsset,
-  );
+  return convertXcmEntityVersion(version, asset, downgradeAsset, upgradeAsset);
 }
 
 export function convertAssetsVersion(
@@ -325,12 +431,12 @@ export function extractVersion<T extends Record<string, unknown>>(versioned: T):
     }
   }
 
-  throw new Error('extractVersion - failed to extract XCM version');
+  throw new Error('extractVersion: failed to extract XCM version');
 }
 
 export function downgradeAssetId(assetId: VersionedAssetId): VersionedAssetId {
   if ('v2' in assetId) {
-    throw new Error('AssetIdV2 cannot be downgraded');
+    throw new Error('downgradeAssetId: assetIdV2 cannot be downgraded');
   }
   if ('v3' in assetId) {
     return 'concrete' in assetId.v3
@@ -358,12 +464,12 @@ export function upgradeAssetId(assetId: VersionedAssetId): VersionedAssetId {
     if ('concrete' in assetId.v3) {
       return {v4: upgradeLocationV3(assetId.v3.concrete)};
     } else {
-      throw new Error('Abstract AssetId cannot be upgraded to V4');
+      throw new Error('upgradeAssetId: abstract assetId cannot be upgraded to v4');
     }
   }
 
   if ('v4' in assetId) {
-    throw new Error('AssetV4 cannot be downgraded');
+    throw new Error('upgradeAssetId: assetV4 cannot be downgraded');
   }
 
   throw new Error('upgradeAsset: unknown XCM version');
@@ -371,7 +477,7 @@ export function upgradeAssetId(assetId: VersionedAssetId): VersionedAssetId {
 
 export function downgradeAsset(asset: VersionedAsset): VersionedAsset {
   if ('v2' in asset) {
-    throw new Error('AssetV2 cannot be downgraded');
+    throw new Error('downgradeAsset: assetV2 cannot be downgraded');
   }
 
   if ('v3' in asset) {
@@ -410,8 +516,11 @@ export function upgradeAsset(asset: VersionedAsset): VersionedAsset {
     let funV3: FungibilityV3;
 
     if ('nonFungible' in funV2) {
-      if (typeof funV2.nonFungible === 'object' && 'blob' in funV2.nonFungible) {
-        throw new Error('Blob AssetInstance cannot be upgraded to V3');
+      if (
+        typeof funV2.nonFungible === 'object' &&
+        'blob' in funV2.nonFungible
+      ) {
+        throw new Error('upgradeAsset: blob assetInstance cannot be upgraded to v3');
       }
 
       funV3 = {
@@ -446,12 +555,12 @@ export function upgradeAsset(asset: VersionedAsset): VersionedAsset {
         },
       };
     } else {
-      throw new Error('Abstract AssetId cannot be upgraded to V4');
+      throw new Error('upgradeAsset: abstract assetId cannot be upgraded to v4');
     }
   }
 
   if ('v4' in asset) {
-    throw new Error('AssetV4 cannot be upgraded');
+    throw new Error('upgradeAsset: assetV4 cannot be upgraded');
   }
 
   throw new Error('upgradeAsset: unknown XCM version');
@@ -459,7 +568,7 @@ export function upgradeAsset(asset: VersionedAsset): VersionedAsset {
 
 export function downgradeLocation(location: VersionedLocation): VersionedLocation {
   if ('v2' in location) {
-    throw new Error('LocationV2 cannot be downgraded');
+    throw new Error('downgradeLocation: locationV2 cannot be downgraded');
   }
 
   if ('v3' in location) {
@@ -483,7 +592,7 @@ export function upgradeLocation(location: VersionedLocation): VersionedLocation 
   }
 
   if ('v4' in location) {
-    throw new Error('LocationV4 cannot be upgraded');
+    throw new Error('downgradeLocation: locationV4 cannot be upgraded');
   }
 
   throw new Error('upgradeLocation: unknown XCM version');
@@ -614,8 +723,8 @@ function downgradeJunctionV3(junction: JunctionV3): JunctionV2 {
 
 function checkByteDataLength(
   junctionName: string,
-  expectedLength: bigint,
-  actualLength: bigint | null,
+  expectedLength: number,
+  actualLength: number | null,
 ) {
   if (actualLength === null) {
     throw new JunctionValidationError(
@@ -628,6 +737,18 @@ function checkByteDataLength(
     throw new JunctionValidationError(
       junctionName,
       `${junctionName} has incorrect length: expected ${expectedLength} bytes, got ${actualLength} bytes`,
+    );
+  }
+}
+
+function hexToUint8Array(junctionName: string, hex: string): Uint8Array {
+  try {
+    return hexToU8a(hex);
+  } catch (error) {
+    throw new JunctionValidationError(
+      junctionName,
+      `failed to decode ${junctionName} hex string to Uint8Array.`,
+      error as Error,
     );
   }
 }
@@ -652,7 +773,7 @@ function checkNumberBitSize(
       expectedMaxNumber = MAX_UINT128;
       break;
     default:
-      throw new Error('Unknown bit size for junction');
+      throw new Error(`Unknown bit size for ${junctionName}`);
   }
   if (actualNumber > expectedMaxNumber) {
     throw new JunctionValidationError(
@@ -674,31 +795,45 @@ function checkUnitJunctionObj<T>(
   obj: T,
   validUnitVariants: string[],
 ) {
-  const isValid = validUnitVariants.find(variant => variant === obj);
+  const isValid = validUnitVariants.find((variant) => variant === obj);
   if (isValid === undefined) {
     invalidJunctionObj(objName, obj);
   }
 }
 
-function validateNetworkId(
+function sanitizeNetworkId(
   network: NetworkId | null | undefined,
   junctionName: string,
 ) {
   if (typeof network === 'object' && network !== null) {
     if ('byGenesis' in network) {
-      const byteLength = hexByteLength(network.byGenesis);
-      checkByteDataLength(`${junctionName}.network.byGenesis`, 32n, byteLength);
+      if (typeof network.byGenesis === 'string') {
+        network.byGenesis = hexToUint8Array(
+          `${junctionName}.networkId.byGenesis`,
+          network.byGenesis,
+        );
+      }
+      checkByteDataLength(
+        `${junctionName}.network.byGenesis`,
+        32,
+        network.byGenesis.length,
+      );
     } else if ('byFork' in network) {
       checkNumberBitSize(
         `${junctionName}.network.byFork.blockNumber`,
         64,
         network.byFork.blockNumber,
       );
-      const byteLength = hexByteLength(network.byFork.blockHash);
+      if (typeof network.byFork.blockHash === 'string') {
+        network.byFork.blockHash = hexToUint8Array(
+          `${junctionName}.byFork.blockHash`,
+          network.byFork.blockHash,
+        );
+      }
       checkByteDataLength(
         `${junctionName}.network.byFork.blockHash`,
-        32n,
-        byteLength,
+        32,
+        network.byFork.blockHash.length,
       );
     } else if ('ethereum' in network) {
       checkNumberBitSize(
@@ -712,14 +847,7 @@ function validateNetworkId(
   } else {
     if (network != null) {
       checkUnitJunctionObj(`${junctionName}.network`, network, [
-        'polkadot',
-        'kusama',
-        'westend',
-        'rococo',
-        'wococo',
-        'bitcoinCore',
-        'bitcoinCash',
-        'polkadotBulletin',
+        ...networkIdOrder.get(CURRENT_XCM_VERSION)!.keys(),
       ]);
     }
   }
@@ -733,27 +861,18 @@ function sanitizeFraction(fraction: Fraction, junctionName: string) {
 function sanitizeBodyId(bodyId: BodyId) {
   if (typeof bodyId === 'object') {
     if ('moniker' in bodyId) {
-      const byteLength = hexByteLength(bodyId.moniker);
-      checkByteDataLength('plurality.id.moniker', 4n, byteLength);
+      if (typeof bodyId.moniker === 'string') {
+        bodyId.moniker = hexToUint8Array('bodyId.moniker', bodyId.moniker);
+      }
+      checkByteDataLength('plurality.id.moniker', 4, bodyId.moniker.length);
     } else if ('index' in bodyId) {
-      checkNumberBitSize(
-        'junction.plurality.id.index',
-        32,
-        bodyId.index,
-      );
+      checkNumberBitSize('junction.plurality.id.index', 32, bodyId.index);
     } else {
       invalidJunctionObj('plurality.id', bodyId);
     }
   } else {
     checkUnitJunctionObj('plurality.id', bodyId, [
-      'unit',
-      'executive',
-      'technical',
-      'legislative',
-      'judicial',
-      'defense',
-      'administration',
-      'treasury',
+      ...bodyIdOrder.get(CURRENT_XCM_VERSION)!.keys(),
     ]);
   }
 }
@@ -764,7 +883,7 @@ function sanitizeBodyPart(bodyPart: BodyPart) {
       checkNumberBitSize(
         'plurality.bodyPart.members',
         32,
-        bodyPart.members,
+        bodyPart.members.count,
       );
     } else if ('fraction' in bodyPart) {
       sanitizeFraction(bodyPart.fraction, 'plurality.bodyPart.fraction');
@@ -791,13 +910,8 @@ export function sanitizeJunction(junction: Junction) {
     if ('parachain' in junction) {
       checkNumberBitSize('parachain', 32, junction.parachain);
     } else if ('accountId32' in junction) {
-      const byteLength = hexByteLength(junction.accountId32.id);
-      if (byteLength !== null) {
-        checkByteDataLength('accountId32.id', 32n, byteLength);
-      }
-
       try {
-        junction.accountId32.id = u8aToHex(decodeAddress(junction.accountId32.id));
+        junction.accountId32.id = decodeAddress(junction.accountId32.id);
       } catch (error) {
         throw new JunctionValidationError(
           'accountId32',
@@ -805,33 +919,53 @@ export function sanitizeJunction(junction: Junction) {
           error as Error,
         );
       }
+      // A necessary check, because the decodeAddress function
+      // accepts a hex-string of any length without raising an error.
+      checkByteDataLength('accountId32.id', 32, junction.accountId32.id.length);
 
-      validateNetworkId(junction.accountId32.network, 'accountId32');
+      sanitizeNetworkId(junction.accountId32.network, 'accountId32');
     } else if ('accountIndex64' in junction) {
       checkNumberBitSize(
         'accountIndex64.index',
         64,
         junction.accountIndex64.index,
       );
-      validateNetworkId(junction.accountIndex64.network, 'accountIndex64');
+      sanitizeNetworkId(junction.accountIndex64.network, 'accountIndex64');
     } else if ('accountKey20' in junction) {
-      const byteLength = hexByteLength(junction.accountKey20.key);
-      checkByteDataLength('accountKey20.id', 20n, byteLength);
-      validateNetworkId(junction.accountKey20.network, 'accountKey20');
+      if (typeof junction.accountKey20.key === 'string') {
+        junction.accountKey20.key = hexToUint8Array(
+          'accountKey20.key',
+          junction.accountKey20.key,
+        );
+      }
+      checkByteDataLength(
+        'accountKey20.id',
+        20,
+        junction.accountKey20.key.length,
+      );
+      sanitizeNetworkId(junction.accountKey20.network, 'accountKey20');
     } else if ('palletInstance' in junction) {
       checkNumberBitSize('palletInstance', 8, junction.palletInstance);
     } else if ('generalIndex' in junction) {
       checkNumberBitSize('generalIndex', 128, junction.generalIndex);
     } else if ('generalKey' in junction) {
+      if (typeof junction.generalKey.data === 'string') {
+        junction.generalKey.data = hexToUint8Array(
+          'generalKey',
+          junction.generalKey.data,
+        );
+      }
       checkNumberBitSize('generalKey.length', 8, junction.generalKey.length);
-
-      const byteLength = hexByteLength(junction.generalKey.data);
-      checkByteDataLength('generalKey.data', 32n, byteLength);
+      checkByteDataLength(
+        'generalKey.data',
+        32,
+        junction.generalKey.data.length,
+      );
     } else if ('plurality' in junction) {
       sanitizeBodyId(junction.plurality.id);
       sanitizeBodyPart(junction.plurality.part);
     } else if ('globalConsensus' in junction) {
-      validateNetworkId(junction.globalConsensus, 'globalConsensus');
+      sanitizeNetworkId(junction.globalConsensus, 'globalConsensus');
     } else {
       invalidJunctionObj('junction', junction);
     }
@@ -872,7 +1006,7 @@ function upgradeJunctionV2(junction: JunctionV2): JunctionV3 {
   } else if ('generalKey' in junction) {
     return {
       generalKey: {
-        length: textByteLength(junction.generalKey),
+        length: BigInt(junction.generalKey.length),
         data: junction.generalKey,
       },
     };
@@ -910,7 +1044,7 @@ function upgradeNetworkIdV2(networkId: NetworkIdV2): NetworkIdV3 | null {
       return networkId;
 
     default:
-      throw new Error('\'Named\' NetworkIdV2 can\'t be upgraded to V3');
+      throw new Error("upgradeNetworkIdV2: 'named' NetworkIdV2 can't be upgraded to V3");
   }
 }
 
@@ -931,6 +1065,644 @@ function upgradeBodyIdV2(bodyId: BodyIdV2): BodyIdV3 {
     };
   } else {
     return bodyId;
+  }
+}
+
+function validateHexStringType(
+  fieldName: string,
+  ...fields: (string | Uint8Array)[]
+): Uint8Array[] {
+  fields.map((el) => {
+    if (typeof el === 'string') {
+      throw new Error(`Invalid ${fieldName} type, please use sanitizeAssets.`);
+    }
+  });
+  return fields as Uint8Array[];
+}
+
+function saturatingAdd(left: bigint, right: bigint, max: bigint): bigint {
+  const res = left + right;
+  return res > max ? max : res;
+}
+
+function checkBigIntDiff(diff: bigint) {
+  if (diff === 0n) {
+    return 0;
+  } else {
+    return diff > 0n ? 1 : -1;
+  }
+}
+
+function getObjectType<T extends Record<string, unknown>>(obj: T | string): string {
+  return typeof obj === 'string' ? obj : Object.keys(obj)[0];
+}
+
+function compareObjectTypes<T extends Record<string, unknown>>(
+  xcmVersion: XcmVersion,
+  obj1: T | string,
+  obj2: T | string,
+  order: Map<XcmVersion, Map<string, number>>,
+  objectName: string,
+) {
+  const [typeA, typeB] = [getObjectType(obj1), getObjectType(obj2)];
+  if (typeA !== typeB) {
+    const typeAName = order.get(xcmVersion)!.get(typeA),
+      typeBName = order.get(xcmVersion)!.get(typeB);
+    if (typeAName === undefined || typeBName === undefined) {
+      throw new Error(`compareObjectTypes: unknown ${objectName} type`);
+    }
+    return typeAName - typeBName;
+  }
+  return 0;
+}
+
+function compareNonFungibleInstance(
+  nft1: AnyAssetInstance,
+  nft2: AnyAssetInstance,
+  xcmVersion: XcmVersion,
+) {
+  const typeComparison = compareObjectTypes(
+    xcmVersion,
+    nft1,
+    nft2,
+    assetInstanceOrder,
+    'assetInstance',
+  );
+  if (typeComparison !== 0) {
+    return typeComparison;
+  }
+
+  if (typeof nft1 === 'object' && typeof nft2 === 'object') {
+    if ('index' in nft1 && 'index' in nft2) {
+      return checkBigIntDiff(nft1.index - nft2.index);
+    }
+
+    if ('array4' in nft1 && 'array4' in nft2) {
+      [nft1.array4, nft2.array4] = validateHexStringType(
+        'nonFungible.array4',
+        nft1.array4,
+        nft2.array4,
+      );
+      return compareUInt8Array(nft1.array4, nft2.array4);
+    }
+
+    if ('array8' in nft1 && 'array8' in nft2) {
+      [nft1.array8, nft2.array8] = validateHexStringType(
+        'nonFungible.array8',
+        nft1.array8,
+        nft2.array8,
+      );
+      return compareUInt8Array(nft1.array8, nft2.array8);
+    }
+
+    if ('array16' in nft1 && 'array16' in nft2) {
+      [nft1.array16, nft2.array16] = validateHexStringType(
+        'nonFungible.array16',
+        nft1.array16,
+        nft2.array16,
+      );
+      return compareUInt8Array(nft1.array16, nft2.array16);
+    }
+
+    if ('array32' in nft1 && 'array32' in nft2) {
+      [nft1.array32, nft2.array32] = validateHexStringType(
+        'nonFungible.array32',
+        nft1.array32,
+        nft2.array32,
+      );
+      return compareUInt8Array(nft1.array32, nft2.array32);
+    }
+
+    if ('blob' in nft1 && 'blob' in nft2) {
+      [nft1.blob, nft2.blob] = validateHexStringType(
+        'nonFungible.blob',
+        nft1.blob,
+        nft2.blob,
+      );
+      return compareUInt8Array(nft1.blob, nft2.blob);
+    }
+  }
+
+  throw new Error('compareNonFungibleInstance: cannot compare nonFungible instance, unknown content');
+}
+
+function compareNetwork(
+  network1: AnyNetworkId | undefined | null,
+  network2: AnyNetworkId | undefined | null,
+  xcmVersion: XcmVersion,
+) {
+  if (!network1) return network2 ? -1 : 0;
+  if (!network2) return 1;
+
+  return compareNetworkId(network1, network2, xcmVersion);
+}
+
+function compareNetworkId(
+  networkId1: AnyNetworkId,
+  networkId2: AnyNetworkId,
+  xcmVersion: XcmVersion,
+): number {
+  const typeComparison = compareObjectTypes(
+    xcmVersion,
+    networkId1,
+    networkId2,
+    networkIdOrder,
+    'networkId',
+  );
+  if (typeComparison !== 0) {
+    return typeComparison;
+  }
+
+  if (typeof networkId1 === 'object' && typeof networkId2 === 'object') {
+    if ('byGenesis' in networkId1 && 'byGenesis' in networkId2) {
+      [networkId1.byGenesis, networkId2.byGenesis] = validateHexStringType(
+        'networkId.byGenesis',
+        networkId1.byGenesis,
+        networkId2.byGenesis,
+      );
+      return compareUInt8Array(networkId1.byGenesis, networkId2.byGenesis);
+    }
+    if ('byFork' in networkId1 && 'byFork' in networkId2) {
+      [networkId1.byFork.blockHash, networkId2.byFork.blockHash] =
+        validateHexStringType(
+          'networkId.byFork.blockHash',
+          networkId1.byFork.blockHash,
+          networkId2.byFork.blockHash,
+        );
+      const blockNumberDiff = checkBigIntDiff(networkId1.byFork.blockNumber - networkId2.byFork.blockNumber);
+      return blockNumberDiff !== 0
+        ? blockNumberDiff
+        : compareUInt8Array(
+          networkId1.byFork.blockHash,
+          networkId2.byFork.blockHash,
+        );
+    }
+    if ('ethereum' in networkId1 && 'ethereum' in networkId2) {
+      return checkBigIntDiff(networkId1.ethereum.chainId - networkId2.ethereum.chainId);
+    }
+    if ('named' in networkId1 && 'named' in networkId2) {
+      [networkId1.named, networkId2.named] = validateHexStringType(
+        'networkId.named',
+        networkId1.named,
+        networkId2.named,
+      );
+      return compareUInt8Array(networkId1.named, networkId2.named);
+    }
+  }
+
+  throw new Error('compareNetworkId: cannot compare networkId object, unknown content');
+}
+
+function compareBodyId(
+  bodyId1: AnyBodyId,
+  bodyId2: AnyBodyId,
+  xcmVersion: XcmVersion,
+): number {
+  const typeComparison = compareObjectTypes(
+    xcmVersion,
+    bodyId1,
+    bodyId2,
+    bodyIdOrder,
+    'bodyId',
+  );
+  if (typeComparison !== 0) {
+    return typeComparison;
+  }
+
+  if (typeof bodyId1 === 'object' && typeof bodyId2 === 'object') {
+    if ('named' in bodyId1 && 'named' in bodyId2) {
+      [bodyId1.named, bodyId2.named] = validateHexStringType(
+        'bodyId1.named',
+        bodyId1.named,
+        bodyId2.named,
+      );
+      return compareUInt8Array(bodyId1.named, bodyId2.named);
+    }
+    if ('moniker' in bodyId1 && 'moniker' in bodyId2) {
+      [bodyId1.moniker, bodyId2.moniker] = validateHexStringType(
+        'bodyId1.moniker',
+        bodyId1.moniker,
+        bodyId2.moniker,
+      );
+      return compareUInt8Array(bodyId1.moniker, bodyId2.moniker);
+    }
+    if ('index' in bodyId1 && 'index' in bodyId2) {
+      return checkBigIntDiff(bodyId1.index - bodyId2.index);
+    }
+  }
+
+  throw new Error('compareBodyId: cannot compare bodyId object, unknown content');
+}
+
+function compareFraction(fraction1: Fraction, fraction2: Fraction) {
+  if (fraction1.nom !== fraction2.nom) {
+    return checkBigIntDiff(fraction1.nom - fraction2.nom);
+  }
+  return checkBigIntDiff(fraction1.denom - fraction2.denom);
+}
+
+function compareBodyPart(
+  bodyPart1: BodyPart,
+  bodyPart2: BodyPart,
+  xcmVersion: XcmVersion,
+): number {
+  const typeComparison = compareObjectTypes(
+    xcmVersion,
+    bodyPart1,
+    bodyPart2,
+    bodyPartOrder,
+    'bodyPart',
+  );
+  if (typeComparison !== 0) {
+    return typeComparison;
+  }
+
+  if (typeof bodyPart1 === 'object' && typeof bodyPart2 === 'object') {
+    if ('members' in bodyPart1 && 'members' in bodyPart2) {
+      return checkBigIntDiff(bodyPart1.members.count - bodyPart2.members.count);
+    }
+
+    if ('fraction' in bodyPart1 && 'fraction' in bodyPart2) {
+      return compareFraction(bodyPart1.fraction, bodyPart2.fraction);
+    }
+
+    if ('atLeastProportion' in bodyPart1 && 'atLeastProportion' in bodyPart2) {
+      return compareFraction(
+        bodyPart1.atLeastProportion,
+        bodyPart2.atLeastProportion,
+      );
+    }
+
+    if (
+      'moreThanProportion' in bodyPart1 &&
+      'moreThanProportion' in bodyPart2
+    ) {
+      return compareFraction(
+        bodyPart1.moreThanProportion,
+        bodyPart2.moreThanProportion,
+      );
+    }
+  }
+
+  throw new Error('compareBodyPart: cannot compare fraction object, unknown content');
+}
+
+function compareJunction(
+  xcmVersion: XcmVersion,
+  junction1: AnyJunction,
+  junction2: AnyJunction,
+): number {
+  const typeComparison = compareObjectTypes(
+    xcmVersion,
+    junction1,
+    junction2,
+    junctionOrder,
+    'junction',
+  );
+  if (typeComparison !== 0) {
+    return typeComparison;
+  }
+
+  if (typeof junction1 === 'object' && typeof junction2 === 'object') {
+    if ('parachain' in junction1 && 'parachain' in junction2) {
+      return checkBigIntDiff(junction1.parachain - junction2.parachain);
+    }
+    if ('accountId32' in junction1 && 'accountId32' in junction2) {
+      [junction1.accountId32.id, junction2.accountId32.id] =
+        validateHexStringType(
+          'accountId32.id',
+          junction1.accountId32.id,
+          junction2.accountId32.id,
+        );
+      const networkComparison = compareNetwork(
+        junction1.accountId32.network,
+        junction2.accountId32.network,
+        xcmVersion,
+      );
+
+      return networkComparison !== 0
+        ? networkComparison
+        : compareUInt8Array(junction1.accountId32.id, junction2.accountId32.id);
+    }
+
+    if ('accountIndex64' in junction1 && 'accountIndex64' in junction2) {
+      const networkComparison = compareNetwork(
+        junction1.accountIndex64.network,
+        junction2.accountIndex64.network,
+        xcmVersion,
+      );
+
+      return networkComparison !== 0
+        ? networkComparison
+        : checkBigIntDiff(junction1.accountIndex64.index - junction2.accountIndex64.index);
+    }
+
+    if ('accountKey20' in junction1 && 'accountKey20' in junction2) {
+      [junction1.accountKey20.key, junction2.accountKey20.key] =
+        validateHexStringType(
+          'accountKey20.key',
+          junction1.accountKey20.key,
+          junction2.accountKey20.key,
+        );
+      const networkComparison = compareNetwork(
+        junction1.accountKey20.network,
+        junction2.accountKey20.network,
+        xcmVersion,
+      );
+
+      return networkComparison !== 0
+        ? networkComparison
+        : compareUInt8Array(
+          junction1.accountKey20.key,
+          junction2.accountKey20.key,
+        );
+    }
+
+    if ('palletInstance' in junction1 && 'palletInstance' in junction2) {
+      return checkBigIntDiff(junction1.palletInstance - junction2.palletInstance);
+    }
+
+    if ('generalIndex' in junction1 && 'generalIndex' in junction2) {
+      return checkBigIntDiff(junction1.generalIndex - junction2.generalIndex);
+    }
+
+    if ('generalKey' in junction1 && 'generalKey' in junction2) {
+      let key1 = new Uint8Array(),
+        key2 = new Uint8Array();
+
+      if (
+        typeof junction1.generalKey === 'string' &&
+        typeof junction2.generalKey === 'string'
+      ) {
+        [junction1.generalKey, junction2.generalKey] = validateHexStringType(
+          'generalKey',
+          junction1.generalKey,
+          junction2.generalKey,
+        );
+        key1 = junction1.generalKey;
+        key2 = junction2.generalKey;
+      } else if (
+        typeof junction1.generalKey === 'object' &&
+        typeof junction2.generalKey === 'object'
+      ) {
+        if ('data' in junction1.generalKey && 'data' in junction2.generalKey) {
+          [junction1.generalKey.data, junction2.generalKey.data] =
+            validateHexStringType(
+              'generalKey',
+              junction1.generalKey.data,
+              junction2.generalKey.data,
+            );
+          key1 = junction1.generalKey.data;
+          key2 = junction2.generalKey.data;
+        }
+      }
+      return compareUInt8Array(key1, key2);
+    }
+
+    if ('plurality' in junction1 && 'plurality' in junction2) {
+      const bodyIdComparisonResult = compareBodyId(
+        junction1.plurality.id,
+        junction2.plurality.id,
+        xcmVersion,
+      );
+      return bodyIdComparisonResult !== 0
+        ? bodyIdComparisonResult
+        : compareBodyPart(
+          junction1.plurality.part,
+          junction2.plurality.part,
+          xcmVersion,
+        );
+    }
+
+    if ('globalConsensus' in junction1 && 'globalConsensus' in junction2) {
+      return compareNetwork(
+        junction1.globalConsensus,
+        junction2.globalConsensus,
+        xcmVersion,
+      );
+    }
+  }
+  throw new Error('compareJunction: cannot compare junction object, unknown content');
+}
+
+function compareInteriors(
+  xcmVersion: XcmVersion,
+  interior1: AnyInterior,
+  interior2: AnyInterior,
+): number {
+  if (typeof interior1 === 'object' && typeof interior2 === 'object') {
+    const junctions1 = interiorToArray(xcmVersion, interior1);
+    const junctions2 = interiorToArray(xcmVersion, interior2);
+
+    if (junctions1.length !== junctions2.length) {
+      return junctions1.length - junctions2.length;
+    }
+
+    for (let i = 0; i < junctions1.length; i++) {
+      const comparisonResult = compareJunction(
+        xcmVersion,
+        junctions1[i],
+        junctions2[i],
+      );
+      if (comparisonResult !== 0) {
+        return comparisonResult;
+      }
+    }
+  }
+
+  if (interior1 === 'here' && interior2 === 'here') {
+    return 0;
+  }
+
+  if (interior1 === 'here') {
+    return -1;
+  }
+
+  if (interior2 === 'here') {
+    return 1;
+  }
+  throw new Error('compareInteriors: cannot compare interior object, unknown content');
+
+}
+
+function compareAssetId(
+  assetId1: AnyAssetId,
+  assetId2: AnyAssetId,
+  xcmVersion: XcmVersion,
+) {
+  if (xcmVersion === 4) {
+    return compareAssetIdV4(
+      xcmVersion,
+      assetId1 as AssetIdV4,
+      assetId2 as AssetIdV4,
+    );
+  }
+  if (xcmVersion < 4) {
+    return compareAssetIdV3V2(
+      xcmVersion,
+      assetId1 as AssetIdV3 | AssetIdV2,
+      assetId2 as AssetIdV3 | AssetIdV2,
+    );
+  }
+
+  throw new Error('compareAssetId: unknown XCM version');
+}
+
+function compareAssetIdV4(
+  xcmVersion: XcmVersion,
+  assetId1: AssetIdV4,
+  assetId2: AssetIdV4,
+): number {
+  const parentsCompareResult = checkBigIntDiff(assetId1.parents - assetId2.parents);
+  return parentsCompareResult !== 0
+    ? parentsCompareResult
+    : compareInteriors(xcmVersion, assetId1.interior, assetId2.interior);
+}
+
+function compareAssetIdV3V2(
+  xcmVersion: XcmVersion,
+  assetId1: AssetIdV3 | AssetIdV2,
+  assetId2: AssetIdV3 | AssetIdV2,
+): number {
+  const typeComparison = compareObjectTypes(
+    xcmVersion,
+    assetId1,
+    assetId2,
+    assetIdOrder,
+    'assetId',
+  );
+  if (typeComparison !== 0) {
+    return typeComparison;
+  }
+
+  if ('abstract' in assetId1 && 'abstract' in assetId2) {
+    return compareUInt8Array(assetId1.abstract, assetId2.abstract);
+  }
+
+  if ('concrete' in assetId1 && 'concrete' in assetId2) {
+    const parentsCompareResult = checkBigIntDiff(assetId1.concrete.parents - assetId2.concrete.parents);
+    return parentsCompareResult !== 0
+      ? parentsCompareResult
+      : compareInteriors(
+        xcmVersion,
+        assetId1.concrete.interior,
+        assetId2.concrete.interior,
+      );
+  }
+
+  throw new Error('compareAssetIdV3V2: cannot compare assetId object, unknown content');
+}
+
+function sortAssets(xcmVersion: XcmVersion, assets: VersionedAssets) {
+  const sortFunction = (a: AnyAsset, b: AnyAsset) => {
+    const assetIdCompareResult = compareAssetId(a.id, b.id, xcmVersion);
+    return assetIdCompareResult === 0
+      ? compareFungibility(a, b, xcmVersion)
+      : assetIdCompareResult;
+  };
+
+  if ('v4' in assets) {
+    assets.v4.sort(sortFunction);
+  } else if ('v3' in assets) {
+    assets.v3.sort(sortFunction);
+  } else if ('v2' in assets) {
+    assets.v2.sort(sortFunction);
+  } else {
+    throw new Error('sortAssets: unknown XCM version');
+  }
+}
+
+function compareFungibility(
+  asset1: AnyAsset,
+  asset2: AnyAsset,
+  xcmVersion: XcmVersion,
+) {
+  if ('fungible' in asset1.fun && 'fungible' in asset2.fun) {
+    return checkBigIntDiff(asset1.fun.fungible - asset2.fun.fungible);
+  }
+
+  if ('nonFungible' in asset1.fun && 'nonFungible' in asset2.fun) {
+    return compareNonFungibleInstance(
+      asset1.fun.nonFungible,
+      asset2.fun.nonFungible,
+      xcmVersion,
+    );
+  }
+  if ('fungible' in asset1.fun && 'nonFungible' in asset2.fun) {
+    return -1;
+  }
+  if ('nonFungible' in asset1.fun && 'fungible' in asset2.fun) {
+    return 1;
+  }
+
+  throw new Error('compareFungibility: cannot compare fungibility, unknown content');
+}
+
+function deduplicateSortedAssets(
+  versionedAssets: Array<AnyAsset>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  compareFn: (a: any, b: any, version: XcmVersion) => number,
+  xcmVersion: XcmVersion,
+): Array<AnyAsset> {
+  const res: Array<AnyAsset> = [];
+
+  if (versionedAssets.length === 0) {
+    return res;
+  }
+
+  const iter = versionedAssets.values();
+  let last: AnyAsset = iter.next().value!;
+
+  for (const current of iter) {
+    if (compareFn(last, current, xcmVersion) === 0) {
+      if ('fungible' in last.fun && 'fungible' in current.fun) {
+        last.fun = fungible(saturatingAdd(last.fun.fungible, current.fun.fungible, MAX_UINT64));
+        continue;
+      }
+      if ('nonFungible' in last.fun && 'nonFungible' in current.fun) {
+        if (
+          compareNonFungibleInstance(
+            last.fun.nonFungible,
+            current.fun.nonFungible,
+            xcmVersion,
+          ) === 0
+        ) {
+          continue;
+        }
+      }
+    }
+    res.push(last);
+    last = current;
+  }
+
+  res.push(last);
+  return res;
+}
+
+export function sortAndDeduplicateAssets(assets: VersionedAssets) {
+  const xcmVersion = extractVersion(assets);
+  sortAssets(xcmVersion, assets);
+
+  if ('v4' in assets) {
+    assets.v4 = deduplicateSortedAssets(
+      assets.v4,
+      compareAssetId,
+      xcmVersion,
+    ) as AssetV4[];
+  } else if ('v3' in assets) {
+    assets.v3 = deduplicateSortedAssets(
+      assets.v3,
+      compareAssetId,
+      xcmVersion,
+    ) as AssetV3[];
+  } else if ('v2' in assets) {
+    assets.v2 = deduplicateSortedAssets(
+      assets.v2,
+      compareAssetId,
+      xcmVersion,
+    ) as AssetV2[];
+  } else {
+    throw new Error('sortAndDeduplicateAssets: unknown XCM version');
   }
 }
 
@@ -1037,7 +1809,7 @@ export function nonfungible(id: bigint | string) {
         break;
 
       default:
-        throw new Error(`invalid nonfungible id byte length: ${byteLength} (the id: ${id})`);
+        throw new Error(`nonfungible: invalid nonfungible id byte length: ${byteLength} (the id: ${id})`);
     }
   }
 
@@ -1046,20 +1818,32 @@ export function nonfungible(id: bigint | string) {
   };
 }
 
-export function findAssetById<Id extends AnyAssetId, Asset extends AnyAsset>(assetId: Id, assets: Asset[]): [Asset, number] | undefined {
-  const assetIndex = findAssetIdIndex(assetId, assets.map(asset => asset.id));
+export function findAssetById<Id extends AnyAssetId, Asset extends AnyAsset>(
+  xcmVersion: XcmVersion,
+  assetId: Id,
+  assets: Asset[],
+): [Asset, number] | undefined {
+  const assetIndex = findAssetIdIndex(
+    xcmVersion,
+    assetId,
+    assets.map((asset) => asset.id),
+  );
   if (assetIndex !== undefined) {
     return [assets[assetIndex], assetIndex];
   }
 }
 
-export function findFeeAssetById(feeAssetId: AssetId, assets: Asset[]): [FungibleAsset, number] | undefined {
-  const result = findAssetById(feeAssetId, assets);
+export function findFeeAssetById(
+  xcmVersion: XcmVersion,
+  feeAssetId: AssetId,
+  assets: Asset[],
+): [FungibleAsset, number] | undefined {
+  const result = findAssetById(xcmVersion, feeAssetId, assets);
   if (result) {
     const [asset, assetIndex] = result;
 
     if ('nonFungible' in asset.fun) {
-      throw new Error('The fee asset is mentioned in the list of assets as a non-fungible. The fee asset can not be an NFT');
+      throw new Error('findFeeAssetById: the fee asset is mentioned in the list of assets as a non-fungible. The fee asset can not be an NFT');
     }
 
     const feeAsset = {
@@ -1071,9 +1855,23 @@ export function findFeeAssetById(feeAssetId: AssetId, assets: Asset[]): [Fungibl
   }
 }
 
-export function findAssetIdIndex<Id extends AnyAssetId>(feeAssetId: Id, assetIds: Id[]) {
-  const index = assetIds.findIndex(assetId => _.isEqual(assetId, feeAssetId));
+export function findAssetIdIndex<Id extends AnyAssetId>(
+  xcmVersion: XcmVersion,
+  feeAssetId: Id,
+  assetIds: Id[],
+) {
+  const index = assetIds.findIndex((assetId) => compareAssetId(assetId, feeAssetId, xcmVersion) === 0);
   if (index !== -1) {
     return index;
   }
+}
+
+function compareUInt8Array(array1: Uint8Array, array2: Uint8Array): number {
+  if (array1.length !== array2.length) return array1.length - array2.length;
+  for (let i = 0; i < array1.length; i++) {
+    if (array1[i] !== array2[i]) {
+      return array1[i] > array2[i] ? 1 : -1;
+    }
+  }
+  return 0;
 }

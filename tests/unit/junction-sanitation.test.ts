@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
-import {Junction} from '../src/xcmtypes';
-import {sanitizeJunction} from '../src/util';
-import {JunctionValidationError} from '../src/errors';
+import {Junction} from '../../src/xcmtypes';
+import {sanitizeJunction} from '../../src/util';
+import {JunctionValidationError} from '../../src/errors';
 
 describe('junction validation tests', () => {
   describe('raw bytes tests', () => {
@@ -377,7 +377,7 @@ describe('junction validation tests', () => {
       const junctionPluralityBodyPartMembersNumberValid: Junction = {
         plurality: {
           id: 'unit',
-          part: {members: 5n},
+          part: {members:{count: 5n}},
         },
       };
       expect(() =>
@@ -388,7 +388,7 @@ describe('junction validation tests', () => {
       const junctionPluralityBodyPartMembersNumberInvalid: Junction = {
         plurality: {
           id: 'unit',
-          part: {members: 2n ** 32n},
+          part: {members: {count: 2n ** 32n}},
         },
       };
       expect(() =>

@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
-import {convertAssetVersion, convertLocationVersion} from '../src/util.ts';
-import {VersionedAsset, VersionedLocation} from '../src/xcmtypes.ts';
+import {convertAssetVersion, convertLocationVersion} from '../../src/util';
+import {VersionedAsset, VersionedLocation} from '../../src/xcmtypes';
 
 describe('xcm location tests', () => {
   const locationX1V4: VersionedLocation = {
@@ -665,7 +665,7 @@ describe('asset xcm tests', () => {
     });
 
     it('v2->v3: non-fungible asset x2', () => {
-      expect(() => convertAssetVersion(3, nftBlobAssetX2V2)).toThrowError('cannot be upgraded to V3');
+      expect(() => convertAssetVersion(3, nftBlobAssetX2V2)).toThrowError('cannot be upgraded to v3');
     });
   });
 });

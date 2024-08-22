@@ -77,8 +77,32 @@ export class SimpleXcm {
     this.xcmVersion = version;
   }
 
-  adjustedFungible(assetId: AssetIdLookup, amount: number): AssetLookup {
-    let decimals: number;
+  private convertFungibleAmount(amount: string, decimals: bigint): bigint {
+    // RegEx for number validation
+    // Example:
+    // 0.23, 123, 12.232 - OK
+    // 023, 023.23, text, 2.text - Invalid
+    const numberRegEx = /^(0(\.\d+)?|[1-9]\d*(\.\d+)?)$/;
+
+    const isValidNumber = numberRegEx.test(amount);
+    if (!isValidNumber) {
+      throw new Error('convertFungibleAmount: invalid amount format. Must be an integer or decimal number.');
+    }
+    const [integerPart, decimalPart = ''] = amount.split('.');
+
+    if (!Number.isSafeInteger(decimals)) {
+      throw new Error('convertFungibleAmount: decimals value is too large. Expected safe integer');
+    }
+    const paddedDecimalPart = decimalPart.padEnd(Number(decimals), '0');
+
+    if (paddedDecimalPart.length > decimals) {
+      throw new Error(`convertFungibleAmount: the fungible amount's decimal part length (${paddedDecimalPart.length}) is greater than the currency decimals (${decimals})`);
+    }
+    return BigInt(integerPart + paddedDecimalPart);
+  }
+
+  adjustedFungible(assetId: AssetIdLookup, amount: string): AssetLookup {
+    let decimals: bigint;
 
     if (typeof assetId === 'string') {
       decimals = this.registry.currencyInfoBySymbol(assetId).decimals;
@@ -91,8 +115,7 @@ export class SimpleXcm {
       decimals = this.registry.currencyInfoByLocation(currencyUniversalLocation).decimals;
     }
 
-    // FIXME
-    const value = BigInt(amount) * BigInt(10) ** BigInt(decimals);
+    const value = this.convertFungibleAmount(amount, decimals);
 
     return {
       id: assetId,

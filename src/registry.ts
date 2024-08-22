@@ -29,7 +29,7 @@ export interface ChainInfo {
 
 export interface CurrencyInfo {
   symbol: string;
-  decimals: number;
+  decimals: bigint;
   universalLocation: InteriorLocation;
 }
 

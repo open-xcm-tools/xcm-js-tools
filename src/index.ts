@@ -36,7 +36,8 @@ void (async () => {
 
       asset('DOT', fungible(5n)),
 
-      xcm.adjustedFungible('DOT', 300),
+      xcm.adjustedFungible('DOT', '300'),
+      xcm.adjustedFungible('DOT', '2.5'),
 
       <AssetLookup>{
         id: 'DOT',

@@ -758,6 +758,12 @@ function checkNumberBitSize(
   expectedBitSize: 8 | 32 | 64 | 128,
   actualNumber: bigint,
 ) {
+  if (actualNumber < 0) {
+    throw new JunctionValidationError(
+      junctionName,
+      `${junctionName} is less than 0, expected positive integer.`,
+    );
+  }
   let expectedMaxNumber: bigint;
   switch (expectedBitSize) {
     case 8:

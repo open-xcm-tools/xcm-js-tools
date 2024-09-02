@@ -12,11 +12,11 @@ export default {
                 name: 'origin',
                 type: 'OriginCaller',
               },
-              
+
               {
                 name: 'call',
                 type: 'Call',
-              }
+              },
             ],
             type: 'Result<DryRunCallEffects, DryRunError>',
           },
@@ -32,17 +32,18 @@ export default {
               {
                 name: 'xcm',
                 type: 'XcmVersionedXcm',
-              }
+              },
             ],
             type: 'Result<DryRunXcmEffects, DryRunError>',
-          }
-        }
-      }
-    ]
+          },
+        },
+      },
+    ],
   },
   types: {
     DryRunCallEffects: {
-      execution_result: 'Result<FrameSupportDispatchPostDispatchInfo, SpRuntimeDispatchErrorWithPostInfo>',
+      execution_result:
+        'Result<FrameSupportDispatchPostDispatchInfo, SpRuntimeDispatchErrorWithPostInfo>',
       emitted_events: 'Vec<Event>',
       local_xcm: 'Option<XcmVersionedXcm>',
       forwarded_xcms: 'Vec<(XcmVersionedLocation, Vec<XcmVersionedXcm>)>',
@@ -60,5 +61,5 @@ export default {
         VersionedConversionFailed: 'Null',
       },
     },
-  }
+  },
 };

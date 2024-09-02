@@ -1,4 +1,4 @@
-name: lint
+name: format
 
 on:
   workflow_call:
@@ -22,4 +22,4 @@ jobs:
 
       - name: Run linting
         run: |
-          yarn lint
+          yarn fmt:check

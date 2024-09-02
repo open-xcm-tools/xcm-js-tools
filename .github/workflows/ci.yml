@@ -12,6 +12,9 @@ jobs:
   build-lib:
     uses: ./.github/workflows/build.yml
 
+  format-check-lib:
+    uses: ./.github/workflows/format.yml
+
   lint-lib:
     uses: ./.github/workflows/lint.yml
 

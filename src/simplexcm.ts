@@ -53,7 +53,7 @@ type PreparedTransferParams = {
 
 interface TransferBackend {
   composeTransfer(
-    transferParams: TransferParams
+    transferParams: TransferParams,
   ): Promise<SubmittableExtrinsic<'promise'>>;
 }
 
@@ -65,13 +65,17 @@ export class SimpleXcm {
   maxXcmVersion: XcmVersion;
   xcmVersion: XcmVersion;
 
-  composeTransfer(transferParams: TransferParams): Promise<SubmittableExtrinsic<'promise'>> {
+  composeTransfer(
+    transferParams: TransferParams,
+  ): Promise<SubmittableExtrinsic<'promise'>> {
     return this.#transferBackend().composeTransfer(transferParams);
   }
 
   enforceXcmVersion(version: XcmVersion) {
     if (version > this.maxXcmVersion) {
-      throw new Error(`The requested XCM version ${version} is greater than the chain supports (= ${this.maxXcmVersion})`);
+      throw new Error(
+        `The requested XCM version ${version} is greater than the chain supports (= ${this.maxXcmVersion})`,
+      );
     }
 
     this.xcmVersion = version;
@@ -86,17 +90,23 @@ export class SimpleXcm {
 
     const isValidNumber = numberRegEx.test(amount);
     if (!isValidNumber) {
-      throw new Error('convertFungibleAmount: invalid amount format. Must be an integer or decimal number.');
+      throw new Error(
+        'convertFungibleAmount: invalid amount format. Must be an integer or decimal number.',
+      );
     }
     const [integerPart, decimalPart = ''] = amount.split('.');
 
     if (!Number.isSafeInteger(decimals) || decimals < 0 || decimals > 38) {
-      throw new Error('convertFungibleAmount: decimals value is incorrect. Expected an integer between 1 and 38');
+      throw new Error(
+        'convertFungibleAmount: decimals value is incorrect. Expected an integer between 1 and 38',
+      );
     }
     const paddedDecimalPart = decimalPart.padEnd(decimals, '0');
 
     if (paddedDecimalPart.length > decimals) {
-      throw new Error(`convertFungibleAmount: the fungible amount's decimal part length (${paddedDecimalPart.length}) is greater than the currency decimals (${decimals})`);
+      throw new Error(
+        `convertFungibleAmount: the fungible amount's decimal part length (${paddedDecimalPart.length}) is greater than the currency decimals (${decimals})`,
+      );
     }
     return BigInt(integerPart + paddedDecimalPart);
   }
@@ -112,7 +122,9 @@ export class SimpleXcm {
         context: this.chainInfo.universalLocation,
       });
 
-      decimals = this.registry.currencyInfoByLocation(currencyUniversalLocation).decimals;
+      decimals = this.registry.currencyInfoByLocation(
+        currencyUniversalLocation,
+      ).decimals;
     }
 
     const value = this.convertFungibleAmount(amount, decimals);
@@ -198,11 +210,13 @@ export class SimpleXcm {
       }
     }
 
-    console.warn(`${chainId}: ${palletXcm} doesn't know about supported XCM versions yet. Fallbacking to safeXcmVersion`);
+    console.warn(
+      `${chainId}: ${palletXcm} doesn't know about supported XCM versions yet. Fallbacking to safeXcmVersion`,
+    );
 
     const safeVersion = await api.query[palletXcm]
       .safeXcmVersion()
-      .then((version) => version.toPrimitive() as number);
+      .then(version => version.toPrimitive() as number);
 
     if (MIN_XCM_VERSION <= safeVersion && safeVersion <= CURRENT_XCM_VERSION) {
       return safeVersion as XcmVersion;
@@ -239,10 +253,14 @@ export class SimpleXcm {
     }
 
     if (backend) {
-      console.warn(`${this.chainInfo.chainId}: using an alternative transfer backend - ${palletName!}`);
+      console.warn(
+        `${this.chainInfo.chainId}: using an alternative transfer backend - ${palletName!}`,
+      );
       return backend;
     } else {
-      throw new Error(`${this.chainInfo.chainId}: No known backend pallet is found`);
+      throw new Error(
+        `${this.chainInfo.chainId}: No known backend pallet is found`,
+      );
     }
   }
 
@@ -309,10 +327,15 @@ export class SimpleXcm {
     }
 
     const versionedLocation: VersionedLocation = {v4: lookup};
-    const result: Result<Bytes, Codec> = await this.api.call.locationToAccountApi.convertLocation(versionedLocation);
+    const result: Result<Bytes, Codec> =
+      await this.api.call.locationToAccountApi.convertLocation(
+        versionedLocation,
+      );
 
     if (result.isErr) {
-      throw new Error(`${this.chainInfo.chainId}: can't convert location to an account ID - ${stringify(result.asErr.toHuman())}`);
+      throw new Error(
+        `${this.chainInfo.chainId}: can't convert location to an account ID - ${stringify(result.asErr.toHuman())}`,
+      );
     }
 
     return result.asOk.toHex();
@@ -326,7 +349,9 @@ export class PalletXcmBackend implements TransferBackend {
     this.simpleXcm = simpleXcm;
   }
 
-  async composeTransfer(transferParams: TransferParams): Promise<SubmittableExtrinsic<'promise'>> {
+  async composeTransfer(
+    transferParams: TransferParams,
+  ): Promise<SubmittableExtrinsic<'promise'>> {
     const preparedParams = await prepareTransferParams(
       this.simpleXcm,
       transferParams,
@@ -372,7 +397,9 @@ export class XTokensBackend implements TransferBackend {
     this.simpleXcm = simpleXcm;
   }
 
-  async composeTransfer(transferParams: TransferParams): Promise<SubmittableExtrinsic<'promise'>> {
+  async composeTransfer(
+    transferParams: TransferParams,
+  ): Promise<SubmittableExtrinsic<'promise'>> {
     const preparedParams = await prepareTransferParams(
       this.simpleXcm,
       transferParams,
@@ -385,8 +412,12 @@ export class XTokensBackend implements TransferBackend {
       `);
     }
 
-    const beneficiaryJunctions = toJunctions(preparedParams.beneficiary.interior);
-    const destinationJunctions = toJunctions(preparedParams.destination.interior);
+    const beneficiaryJunctions = toJunctions(
+      preparedParams.beneficiary.interior,
+    );
+    const destinationJunctions = toJunctions(
+      preparedParams.destination.interior,
+    );
 
     const destinationBeneficiary = location(
       preparedParams.destination.parents,
@@ -433,15 +464,26 @@ async function prepareTransferParams(
 
   // TODO sanitize
 
-  const destination = simpleXcm.resolveRelativeLocation(transferParams.destination);
-  const beneficiary = simpleXcm.resolveRelativeLocation(transferParams.beneficiary);
-  const feeAssetId = simpleXcm.resolveRelativeLocation(transferParams.feeAssetId);
-  const assets = transferParams.assets.map((asset) =>
-    simpleXcm.resolveRelativeAsset(asset));
+  const destination = simpleXcm.resolveRelativeLocation(
+    transferParams.destination,
+  );
+  const beneficiary = simpleXcm.resolveRelativeLocation(
+    transferParams.beneficiary,
+  );
+  const feeAssetId = simpleXcm.resolveRelativeLocation(
+    transferParams.feeAssetId,
+  );
+  const assets = transferParams.assets.map(asset =>
+    simpleXcm.resolveRelativeAsset(asset),
+  );
 
   // TODO sort and deduplicate the `assets`
 
-  const feeAssetResult = findFeeAssetById(simpleXcm.xcmVersion, feeAssetId, assets);
+  const feeAssetResult = findFeeAssetById(
+    simpleXcm.xcmVersion,
+    feeAssetId,
+    assets,
+  );
 
   let feeAsset: FungibleAsset;
   let feeAssetIndex: number;

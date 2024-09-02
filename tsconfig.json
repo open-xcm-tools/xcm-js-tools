@@ -10,17 +10,10 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "exclude": [
-    "node_modules"
-  ],
-  "include": [
-    "./src/*.ts",
-    "./src/**/*.ts",
-    "./tests/*.ts",
-    "./tests/**/*.ts"
-  ],
+  "exclude": ["node_modules"],
+  "include": ["./src/*.ts", "./src/**/*.ts", "./tests/*.ts", "./tests/**/*.ts"],
   "ts-node": {
     "esm": true,
-    "experimentalSpecifierResolution": "node",
-  },
+    "experimentalSpecifierResolution": "node"
+  }
 }

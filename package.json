@@ -6,9 +6,10 @@
   "type": "module",
   "scripts": {
     "start": "node --loader ts-node/esm ./src/index.ts",
-    "lint": "eslint .",
-    "fix": "yarn lint --fix",
-    "fmt": "yarn prettier --config .prettierrc './src/**/*.ts' --write",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "yarn lint --fix",
+    "fmt": "prettier --write . && yarn lint:fix",
+    "fmt:check": "prettier --check .",
     "test": "vitest",
     "polkadot-types-from-defs": "node --no-warnings=ExperimentalWarning --loader ts-node/esm ./node_modules/.bin/polkadot-types-from-defs --input src/interfaces --package ."
   },
@@ -24,6 +25,9 @@
     "@typescript-eslint/eslint-plugin": "^7.17.0",
     "@typescript-eslint/parser": "^7.17.0",
     "eslint": "^8.53.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "json-canonicalize": "^1.0.6",
     "lodash": "^4.17.21",
     "prettier": "^3.3.3",
     "react": "*",

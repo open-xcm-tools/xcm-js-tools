@@ -12,7 +12,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionAccountId32HexValid)).not.toThrowError();
+        sanitizeJunction(junctionAccountId32HexValid),
+      ).not.toThrowError();
     });
 
     it('invalid: account id hex length less than 64', () => {
@@ -22,7 +23,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionAccountId32HexInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionAccountId32HexInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('invalid: account id incorrect ascii data', () => {
@@ -32,7 +34,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionAccountId32IncorrectData)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionAccountId32IncorrectData),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: account key hex', () => {
@@ -42,7 +45,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionAccountKeyHexValid)).not.toThrowError();
+        sanitizeJunction(junctionAccountKeyHexValid),
+      ).not.toThrowError();
     });
 
     it('invalid: account key hex length greater than 40', () => {
@@ -51,7 +55,9 @@ describe('junction validation tests', () => {
           key: '0x006ddf51db56437ce5c886ab28cd767fc85ad5cca21',
         },
       };
-      expect(() => sanitizeJunction(junctionAccountKeyHexInvalid)).toThrowError(JunctionValidationError);
+      expect(() => sanitizeJunction(junctionAccountKeyHexInvalid)).toThrowError(
+        JunctionValidationError,
+      );
     });
 
     it('invalid: account key incorrect ascii data', () => {
@@ -61,7 +67,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionAccountKeyIncorrectData)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionAccountKeyIncorrectData),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: general key hex', () => {
@@ -72,7 +79,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionGeneralKeyHexValid)).not.toThrowError();
+        sanitizeJunction(junctionGeneralKeyHexValid),
+      ).not.toThrowError();
     });
 
     it('invalid: general key hex length less than 64', () => {
@@ -82,7 +90,9 @@ describe('junction validation tests', () => {
           length: 32n,
         },
       };
-      expect(() => sanitizeJunction(junctionGeneralKeyHexInvalid)).toThrowError(JunctionValidationError);
+      expect(() => sanitizeJunction(junctionGeneralKeyHexInvalid)).toThrowError(
+        JunctionValidationError,
+      );
     });
 
     it('invalid: general key incorrect ascii data', () => {
@@ -93,7 +103,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionGeneralKeyIncorrectData)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionGeneralKeyIncorrectData),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: network id by genesis hex', () => {
@@ -107,7 +118,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionNetworkIdByGenesisHexValid)).not.toThrowError();
+        sanitizeJunction(junctionNetworkIdByGenesisHexValid),
+      ).not.toThrowError();
     });
 
     it('invalid: network id by genesis hex length less than 64', () => {
@@ -120,7 +132,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionNetworkIdByGenesisHexInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionNetworkIdByGenesisHexInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('invalid: network id by genesis incorrect ascii data', () => {
@@ -133,7 +146,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionNetworkIdByGenesisIncorrectDataInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionNetworkIdByGenesisIncorrectDataInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: network id by fork hex', () => {
@@ -150,7 +164,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionNetworkIdByForkHexValid)).not.toThrowError();
+        sanitizeJunction(junctionNetworkIdByForkHexValid),
+      ).not.toThrowError();
     });
 
     it('invalid: network id by fork hex length less than 64', () => {
@@ -166,7 +181,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionNetworkIdByForkHexInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionNetworkIdByForkHexInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('invalid: network id by fork incorrect ascii data', () => {
@@ -179,7 +195,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionNetworkIdByForkIncorrectDataInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionNetworkIdByForkIncorrectDataInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: body id moniker hex', () => {
@@ -192,7 +209,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionBodyIdMonikerHexValid)).not.toThrowError();
+        sanitizeJunction(junctionBodyIdMonikerHexValid),
+      ).not.toThrowError();
     });
 
     it('invalid: body id moniker hex length less than 8', () => {
@@ -205,7 +223,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionBodyIdMonikerHexInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionBodyIdMonikerHexInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('invalid: body id moniker incorrect ascii data', () => {
@@ -218,7 +237,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionBodyIdMonikerIncorrectDataInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionBodyIdMonikerIncorrectDataInvalid),
+      ).toThrowError(JunctionValidationError);
     });
   });
 
@@ -230,7 +250,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionAccountId32TextValid)).not.toThrowError();
+        sanitizeJunction(junctionAccountId32TextValid),
+      ).not.toThrowError();
     });
 
     it('invalid: account id ascii', () => {
@@ -240,7 +261,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionAccountId32TextInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionAccountId32TextInvalid),
+      ).toThrowError(JunctionValidationError);
     });
   });
 
@@ -250,7 +272,8 @@ describe('junction validation tests', () => {
         parachain: 2001n,
       };
       expect(() =>
-        sanitizeJunction(junctionParachainNumberValid)).not.toThrowError();
+        sanitizeJunction(junctionParachainNumberValid),
+      ).not.toThrowError();
     });
 
     it('invalid: parachain number', () => {
@@ -258,7 +281,8 @@ describe('junction validation tests', () => {
         parachain: 2n ** 50n,
       };
       expect(() =>
-        sanitizeJunction(junctionParachainNumberInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionParachainNumberInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: account index 64 number', () => {
@@ -266,7 +290,8 @@ describe('junction validation tests', () => {
         accountIndex64: {index: 10002n},
       };
       expect(() =>
-        sanitizeJunction(junctionAccountIndex64NumberValid)).not.toThrowError();
+        sanitizeJunction(junctionAccountIndex64NumberValid),
+      ).not.toThrowError();
     });
 
     it('invalid: account index 64 number', () => {
@@ -274,7 +299,8 @@ describe('junction validation tests', () => {
         accountIndex64: {index: 2n ** 128n + 1n},
       };
       expect(() =>
-        sanitizeJunction(junctionAccountIndex64NumberInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionAccountIndex64NumberInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: pallet instance number', () => {
@@ -282,7 +308,8 @@ describe('junction validation tests', () => {
         palletInstance: 2n ** 7n,
       };
       expect(() =>
-        sanitizeJunction(junctionPalletInstanceNumberValid)).not.toThrowError();
+        sanitizeJunction(junctionPalletInstanceNumberValid),
+      ).not.toThrowError();
     });
 
     it('invalid: pallet instance number', () => {
@@ -290,7 +317,8 @@ describe('junction validation tests', () => {
         palletInstance: 2n ** 10n,
       };
       expect(() =>
-        sanitizeJunction(junctionPalletInstanceNumberInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionPalletInstanceNumberInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: general index number', () => {
@@ -298,7 +326,8 @@ describe('junction validation tests', () => {
         generalIndex: 2n ** 127n + 1n,
       };
       expect(() =>
-        sanitizeJunction(junctionGeneralIndexNumberValid)).not.toThrowError();
+        sanitizeJunction(junctionGeneralIndexNumberValid),
+      ).not.toThrowError();
     });
 
     it('invalid: general index number', () => {
@@ -306,7 +335,8 @@ describe('junction validation tests', () => {
         generalIndex: 2n ** 128n + 1n,
       };
       expect(() =>
-        sanitizeJunction(junctionGeneralIndexNumberInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionGeneralIndexNumberInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: network id by fork block number', () => {
@@ -323,7 +353,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionNetworkIdByForkNumberValid)).not.toThrowError();
+        sanitizeJunction(junctionNetworkIdByForkNumberValid),
+      ).not.toThrowError();
     });
 
     it('invalid: network id by fork block number', () => {
@@ -340,7 +371,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionNetworkIdByForkNumberInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionNetworkIdByForkNumberInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: network id ethereum chain id number', () => {
@@ -355,7 +387,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionNetworkIdEthereumNumberValid)).not.toThrowError();
+        sanitizeJunction(junctionNetworkIdEthereumNumberValid),
+      ).not.toThrowError();
     });
 
     it('invalid: network id ethereum chain id number', () => {
@@ -370,18 +403,20 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionNetworkIdEthereumNumberValid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionNetworkIdEthereumNumberValid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: plurality body part members number', () => {
       const junctionPluralityBodyPartMembersNumberValid: Junction = {
         plurality: {
           id: 'unit',
-          part: {members:{count: 5n}},
+          part: {members: {count: 5n}},
         },
       };
       expect(() =>
-        sanitizeJunction(junctionPluralityBodyPartMembersNumberValid)).not.toThrowError();
+        sanitizeJunction(junctionPluralityBodyPartMembersNumberValid),
+      ).not.toThrowError();
     });
 
     it('invalid: plurality body part members number', () => {
@@ -392,7 +427,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionPluralityBodyPartMembersNumberInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionPluralityBodyPartMembersNumberInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('valid: plurality body part fraction nom & denom number', () => {
@@ -403,7 +439,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionPluralityBodyPartFractionNomNumberValid)).not.toThrowError();
+        sanitizeJunction(junctionPluralityBodyPartFractionNomNumberValid),
+      ).not.toThrowError();
     });
 
     it('invalid: plurality body part fraction nom number', () => {
@@ -414,7 +451,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionPluralityBodyPartFractionNomNumberInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionPluralityBodyPartFractionNomNumberInvalid),
+      ).toThrowError(JunctionValidationError);
     });
 
     it('invalid: plurality body part fraction denom number', () => {
@@ -425,7 +463,8 @@ describe('junction validation tests', () => {
         },
       };
       expect(() =>
-        sanitizeJunction(junctionPluralityBodyPartFractionNomNumberInvalid)).toThrowError(JunctionValidationError);
+        sanitizeJunction(junctionPluralityBodyPartFractionNomNumberInvalid),
+      ).toThrowError(JunctionValidationError);
     });
   });
 });

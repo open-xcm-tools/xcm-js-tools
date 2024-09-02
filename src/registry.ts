@@ -17,7 +17,7 @@ import {
 } from '@polkadot/apps-config';
 import _ from 'lodash';
 import {ApiPromise, WsProvider} from '@polkadot/api';
-import {stringify} from '@polkadot/util';
+import {canonicalize} from 'json-canonicalize';
 
 export type Ecosystem = 'Polkadot' | 'Kusama';
 
@@ -52,7 +52,9 @@ export class Registry {
 
   addChain(info: ChainInfo): Registry {
     if (!isChainUniversalLocation(info.universalLocation)) {
-      throw new Error(`${info.chainId}: the provided location is not a chain universal location`);
+      throw new Error(
+        `${info.chainId}: the provided location is not a chain universal location`,
+      );
     }
 
     if (info.endpoints.length === 0) {
@@ -61,7 +63,7 @@ export class Registry {
 
     info.endpoints = [...new Set(info.endpoints)];
 
-    this.chainInfos.set(stringify(info.universalLocation), info);
+    this.chainInfos.set(canonicalize(info.universalLocation), info);
     this.addUniveralLocation(info.chainId, info.universalLocation);
 
     return this;
@@ -89,8 +91,7 @@ export class Registry {
   }
 
   addCurrency(info: CurrencyInfo) {
-    this.currencyInfos.set(stringify(info.universalLocation), info);
-
+    this.currencyInfos.set(canonicalize(info.universalLocation), info);
     this.addUniveralLocation(info.symbol, info.universalLocation);
 
     return this;
@@ -105,7 +106,9 @@ export class Registry {
     if (api.registry.chainTokens.length > 0) {
       const symbol = api.registry.chainTokens[0];
       const decimals = api.registry.chainDecimals[0];
-      const universalLocation = chainLocationToNativeCurrencyLocation(chainInfo.universalLocation);
+      const universalLocation = chainLocationToNativeCurrencyLocation(
+        chainInfo.universalLocation,
+      );
 
       this.addCurrency({
         symbol,
@@ -127,7 +130,9 @@ export class Registry {
 
   addUniveralLocation(locationName: string, location: InteriorLocation) {
     if (this.relativeLocations.get(locationName)) {
-      throw new Error(`${locationName}: can't be registered as a universal location because it's already a relative one`);
+      throw new Error(
+        `${locationName}: can't be registered as a universal location because it's already a relative one`,
+      );
     }
 
     this.universalLocations.set(locationName, location);
@@ -140,7 +145,9 @@ export class Registry {
 
   addRelativeLocation(locationName: string, location: Location) {
     if (this.universalLocations.get(locationName)) {
-      throw new Error(`${locationName}: can't be registered as a relative location because it's already a universal one`);
+      throw new Error(
+        `${locationName}: can't be registered as a relative location because it's already a universal one`,
+      );
     }
 
     this.relativeLocations.set(locationName, location);
@@ -162,10 +169,10 @@ export class Registry {
   }
 
   chainInfoByLocation(location: InteriorLocation) {
-    const chainInfo = this.chainInfos.get(stringify(location));
+    const chainInfo = this.chainInfos.get(canonicalize(location));
 
     if (!chainInfo) {
-      const locationStr = stringify(location);
+      const locationStr = canonicalize(location);
       throw new Error(`${locationStr}: no chain info found`);
     }
 
@@ -183,10 +190,10 @@ export class Registry {
   }
 
   currencyInfoByLocation(location: InteriorLocation) {
-    const currencyInfo = this.currencyInfos.get(stringify(location));
+    const currencyInfo = this.currencyInfos.get(canonicalize(location));
 
     if (!currencyInfo) {
-      const locationStr = stringify(location);
+      const locationStr = canonicalize(location);
       throw new Error(`${locationStr}: no currency info found`);
     }
 
@@ -198,7 +205,9 @@ export class Registry {
     relayEndpointOption: EndpointOption,
     paraEndpointOptions: EndpointOption[],
   ) {
-    const relayEndpoints = providersToWssEndpoints(relayEndpointOption.providers);
+    const relayEndpoints = providersToWssEndpoints(
+      relayEndpointOption.providers,
+    );
     this.addChain({
       chainId: relayEndpointOption.text,
       universalLocation: relayUniversalLocation,
@@ -233,11 +242,14 @@ export class Registry {
 }
 
 function providersToWssEndpoints(providers: Record<string, string>): string[] {
-  return Object.values(providers).filter((endpoint) =>
-    endpoint.startsWith('wss://'));
+  return Object.values(providers).filter(endpoint =>
+    endpoint.startsWith('wss://'),
+  );
 }
 
-function chainLocationToNativeCurrencyLocation(chainLocation: InteriorLocation) {
+function chainLocationToNativeCurrencyLocation(
+  chainLocation: InteriorLocation,
+) {
   const acalaLocation = parachainUniveralLocation('polkadot', 2000n);
   const karuraLocation = parachainUniveralLocation('kusama', 2000n);
 

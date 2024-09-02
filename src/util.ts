@@ -206,17 +206,19 @@ function arrayToInterior(interiorVersion: XcmVersion, junctions: any[]): any {
   } else if (junctions.length === 8) {
     return {x8: [...junctions]};
   } else {
-    throw new Error(`arrayToInterior: ${junctions.length} invalid interior array length`);
+    throw new Error(
+      `arrayToInterior: ${junctions.length} invalid interior array length`,
+    );
   }
 }
 
 function unwrapVersionedAssetsArray(assets: VersionedAssets): VersionedAsset[] {
   if ('v2' in assets) {
-    return assets.v2.map((assetV2) => ({v2: assetV2}));
+    return assets.v2.map(assetV2 => ({v2: assetV2}));
   } else if ('v3' in assets) {
-    return assets.v3.map((assetV3) => ({v3: assetV3}));
+    return assets.v3.map(assetV3 => ({v3: assetV3}));
   } else if ('v4' in assets) {
-    return assets.v4.map((assetV4) => ({v4: assetV4}));
+    return assets.v4.map(assetV4 => ({v4: assetV4}));
   } else {
     throw new Error('unwrapVersionedAssetsArray: unknown XCM version');
   }
@@ -262,7 +264,9 @@ export function concatInterior(a: Interior, b: Interior): Interior {
 
   const resultLength = junctionsA.length + junctionsB.length;
   if (resultLength > 8) {
-    throw Error(`The concatenated interior length ${resultLength} is greater than the max length (= 8)`);
+    throw Error(
+      `The concatenated interior length ${resultLength} is greater than the max length (= 8)`,
+    );
   }
 
   return toInterior([...junctionsA, ...junctionsB]);
@@ -279,10 +283,14 @@ export function relativeLocaionToUniversal({
   const contextJunctions = toJunctions(context);
 
   if (relativeLocation.parents > contextJunctions.length) {
-    throw new Error('relativeLocaionToUniversal: not enough context to convert relative location to a universal one');
+    throw new Error(
+      'relativeLocaionToUniversal: not enough context to convert relative location to a universal one',
+    );
   }
 
-  const universalPrefix = contextJunctions.slice(Number(relativeLocation.parents));
+  const universalPrefix = contextJunctions.slice(
+    Number(relativeLocation.parents),
+  );
   return toInterior([...universalPrefix, ...locationJunctions]);
 }
 
@@ -391,7 +399,7 @@ export function convertAssetsVersion(
   assets: VersionedAssets | VersionedAsset[] | Asset[],
 ): VersionedAssets {
   if ('length' in assets) {
-    const assetsVx = assets.map((asset) => {
+    const assetsVx = assets.map(asset => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const assetVx = convertAssetVersion(version, asset) as any;
       return assetVx[`v${version}`];
@@ -405,7 +413,9 @@ export function convertAssetsVersion(
   return convertAssetsVersion(version, unwrapVersionedAssetsArray(assets));
 }
 
-export function locationIntoCurrentVersion(location: VersionedLocation): Location {
+export function locationIntoCurrentVersion(
+  location: VersionedLocation,
+): Location {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const vCurrent = convertLocationVersion(CURRENT_XCM_VERSION, location) as any;
   return vCurrent[`v${CURRENT_XCM_VERSION}`];
@@ -423,7 +433,9 @@ export function assetsIntoCurrentVersion(assets: VersionedAssets): Asset[] {
   return vCurrent[`v${CURRENT_XCM_VERSION}`];
 }
 
-export function extractVersion<T extends Record<string, unknown>>(versioned: T): XcmVersion {
+export function extractVersion<T extends Record<string, unknown>>(
+  versioned: T,
+): XcmVersion {
   let version: XcmVersion;
   for (version = MIN_XCM_VERSION; version <= CURRENT_XCM_VERSION; ++version) {
     if (`v${version}` in versioned) {
@@ -464,7 +476,9 @@ export function upgradeAssetId(assetId: VersionedAssetId): VersionedAssetId {
     if ('concrete' in assetId.v3) {
       return {v4: upgradeLocationV3(assetId.v3.concrete)};
     } else {
-      throw new Error('upgradeAssetId: abstract assetId cannot be upgraded to v4');
+      throw new Error(
+        'upgradeAssetId: abstract assetId cannot be upgraded to v4',
+      );
     }
   }
 
@@ -520,7 +534,9 @@ export function upgradeAsset(asset: VersionedAsset): VersionedAsset {
         typeof funV2.nonFungible === 'object' &&
         'blob' in funV2.nonFungible
       ) {
-        throw new Error('upgradeAsset: blob assetInstance cannot be upgraded to v3');
+        throw new Error(
+          'upgradeAsset: blob assetInstance cannot be upgraded to v3',
+        );
       }
 
       funV3 = {
@@ -555,7 +571,9 @@ export function upgradeAsset(asset: VersionedAsset): VersionedAsset {
         },
       };
     } else {
-      throw new Error('upgradeAsset: abstract assetId cannot be upgraded to v4');
+      throw new Error(
+        'upgradeAsset: abstract assetId cannot be upgraded to v4',
+      );
     }
   }
 
@@ -566,7 +584,9 @@ export function upgradeAsset(asset: VersionedAsset): VersionedAsset {
   throw new Error('upgradeAsset: unknown XCM version');
 }
 
-export function downgradeLocation(location: VersionedLocation): VersionedLocation {
+export function downgradeLocation(
+  location: VersionedLocation,
+): VersionedLocation {
   if ('v2' in location) {
     throw new Error('downgradeLocation: locationV2 cannot be downgraded');
   }
@@ -582,7 +602,9 @@ export function downgradeLocation(location: VersionedLocation): VersionedLocatio
   throw new Error('downgradeLocation: unknown XCM version');
 }
 
-export function upgradeLocation(location: VersionedLocation): VersionedLocation {
+export function upgradeLocation(
+  location: VersionedLocation,
+): VersionedLocation {
   if ('v2' in location) {
     return {v3: upgradeLocationV2(location.v2)};
   }
@@ -801,7 +823,7 @@ function checkUnitJunctionObj<T>(
   obj: T,
   validUnitVariants: string[],
 ) {
-  const isValid = validUnitVariants.find((variant) => variant === obj);
+  const isValid = validUnitVariants.find(variant => variant === obj);
   if (isValid === undefined) {
     invalidJunctionObj(objName, obj);
   }
@@ -1029,7 +1051,9 @@ function upgradeJunctionV2(junction: JunctionV2): JunctionV3 {
   }
 }
 
-function downgradeNetworkIdV3(networkId: NetworkIdV3 | undefined | null): NetworkIdV2 {
+function downgradeNetworkIdV3(
+  networkId: NetworkIdV3 | undefined | null,
+): NetworkIdV2 {
   if (!networkId) {
     return 'any';
   } else if (networkId === 'polkadot' || networkId === 'kusama') {
@@ -1050,7 +1074,9 @@ function upgradeNetworkIdV2(networkId: NetworkIdV2): NetworkIdV3 | null {
       return networkId;
 
     default:
-      throw new Error("upgradeNetworkIdV2: 'named' NetworkIdV2 can't be upgraded to V3");
+      throw new Error(
+        "upgradeNetworkIdV2: 'named' NetworkIdV2 can't be upgraded to V3",
+      );
   }
 }
 
@@ -1078,7 +1104,7 @@ function validateHexStringType(
   fieldName: string,
   ...fields: (string | Uint8Array)[]
 ): Uint8Array[] {
-  fields.map((el) => {
+  fields.map(el => {
     if (typeof el === 'string') {
       throw new Error(`Invalid ${fieldName} type, please use sanitizeAssets.`);
     }
@@ -1099,7 +1125,9 @@ function checkBigIntDiff(diff: bigint) {
   }
 }
 
-function getObjectType<T extends Record<string, unknown>>(obj: T | string): string {
+function getObjectType<T extends Record<string, unknown>>(
+  obj: T | string,
+): string {
   return typeof obj === 'string' ? obj : Object.keys(obj)[0];
 }
 
@@ -1189,7 +1217,9 @@ function compareNonFungibleInstance(
     }
   }
 
-  throw new Error('compareNonFungibleInstance: cannot compare nonFungible instance, unknown content');
+  throw new Error(
+    'compareNonFungibleInstance: cannot compare nonFungible instance, unknown content',
+  );
 }
 
 function compareNetwork(
@@ -1235,16 +1265,20 @@ function compareNetworkId(
           networkId1.byFork.blockHash,
           networkId2.byFork.blockHash,
         );
-      const blockNumberDiff = checkBigIntDiff(networkId1.byFork.blockNumber - networkId2.byFork.blockNumber);
+      const blockNumberDiff = checkBigIntDiff(
+        networkId1.byFork.blockNumber - networkId2.byFork.blockNumber,
+      );
       return blockNumberDiff !== 0
         ? blockNumberDiff
         : compareUInt8Array(
-          networkId1.byFork.blockHash,
-          networkId2.byFork.blockHash,
-        );
+            networkId1.byFork.blockHash,
+            networkId2.byFork.blockHash,
+          );
     }
     if ('ethereum' in networkId1 && 'ethereum' in networkId2) {
-      return checkBigIntDiff(networkId1.ethereum.chainId - networkId2.ethereum.chainId);
+      return checkBigIntDiff(
+        networkId1.ethereum.chainId - networkId2.ethereum.chainId,
+      );
     }
     if ('named' in networkId1 && 'named' in networkId2) {
       [networkId1.named, networkId2.named] = validateHexStringType(
@@ -1256,7 +1290,9 @@ function compareNetworkId(
     }
   }
 
-  throw new Error('compareNetworkId: cannot compare networkId object, unknown content');
+  throw new Error(
+    'compareNetworkId: cannot compare networkId object, unknown content',
+  );
 }
 
 function compareBodyId(
@@ -1297,7 +1333,9 @@ function compareBodyId(
     }
   }
 
-  throw new Error('compareBodyId: cannot compare bodyId object, unknown content');
+  throw new Error(
+    'compareBodyId: cannot compare bodyId object, unknown content',
+  );
 }
 
 function compareFraction(fraction1: Fraction, fraction2: Fraction) {
@@ -1350,7 +1388,9 @@ function compareBodyPart(
     }
   }
 
-  throw new Error('compareBodyPart: cannot compare fraction object, unknown content');
+  throw new Error(
+    'compareBodyPart: cannot compare fraction object, unknown content',
+  );
 }
 
 function compareJunction(
@@ -1400,7 +1440,9 @@ function compareJunction(
 
       return networkComparison !== 0
         ? networkComparison
-        : checkBigIntDiff(junction1.accountIndex64.index - junction2.accountIndex64.index);
+        : checkBigIntDiff(
+            junction1.accountIndex64.index - junction2.accountIndex64.index,
+          );
     }
 
     if ('accountKey20' in junction1 && 'accountKey20' in junction2) {
@@ -1419,13 +1461,15 @@ function compareJunction(
       return networkComparison !== 0
         ? networkComparison
         : compareUInt8Array(
-          junction1.accountKey20.key,
-          junction2.accountKey20.key,
-        );
+            junction1.accountKey20.key,
+            junction2.accountKey20.key,
+          );
     }
 
     if ('palletInstance' in junction1 && 'palletInstance' in junction2) {
-      return checkBigIntDiff(junction1.palletInstance - junction2.palletInstance);
+      return checkBigIntDiff(
+        junction1.palletInstance - junction2.palletInstance,
+      );
     }
 
     if ('generalIndex' in junction1 && 'generalIndex' in junction2) {
@@ -1474,10 +1518,10 @@ function compareJunction(
       return bodyIdComparisonResult !== 0
         ? bodyIdComparisonResult
         : compareBodyPart(
-          junction1.plurality.part,
-          junction2.plurality.part,
-          xcmVersion,
-        );
+            junction1.plurality.part,
+            junction2.plurality.part,
+            xcmVersion,
+          );
     }
 
     if ('globalConsensus' in junction1 && 'globalConsensus' in junction2) {
@@ -1488,7 +1532,9 @@ function compareJunction(
       );
     }
   }
-  throw new Error('compareJunction: cannot compare junction object, unknown content');
+  throw new Error(
+    'compareJunction: cannot compare junction object, unknown content',
+  );
 }
 
 function compareInteriors(
@@ -1527,8 +1573,9 @@ function compareInteriors(
   if (interior2 === 'here') {
     return 1;
   }
-  throw new Error('compareInteriors: cannot compare interior object, unknown content');
-
+  throw new Error(
+    'compareInteriors: cannot compare interior object, unknown content',
+  );
 }
 
 function compareAssetId(
@@ -1559,7 +1606,9 @@ function compareAssetIdV4(
   assetId1: AssetIdV4,
   assetId2: AssetIdV4,
 ): number {
-  const parentsCompareResult = checkBigIntDiff(assetId1.parents - assetId2.parents);
+  const parentsCompareResult = checkBigIntDiff(
+    assetId1.parents - assetId2.parents,
+  );
   return parentsCompareResult !== 0
     ? parentsCompareResult
     : compareInteriors(xcmVersion, assetId1.interior, assetId2.interior);
@@ -1586,17 +1635,21 @@ function compareAssetIdV3V2(
   }
 
   if ('concrete' in assetId1 && 'concrete' in assetId2) {
-    const parentsCompareResult = checkBigIntDiff(assetId1.concrete.parents - assetId2.concrete.parents);
+    const parentsCompareResult = checkBigIntDiff(
+      assetId1.concrete.parents - assetId2.concrete.parents,
+    );
     return parentsCompareResult !== 0
       ? parentsCompareResult
       : compareInteriors(
-        xcmVersion,
-        assetId1.concrete.interior,
-        assetId2.concrete.interior,
-      );
+          xcmVersion,
+          assetId1.concrete.interior,
+          assetId2.concrete.interior,
+        );
   }
 
-  throw new Error('compareAssetIdV3V2: cannot compare assetId object, unknown content');
+  throw new Error(
+    'compareAssetIdV3V2: cannot compare assetId object, unknown content',
+  );
 }
 
 function sortAssets(xcmVersion: XcmVersion, assets: VersionedAssets) {
@@ -1641,7 +1694,9 @@ function compareFungibility(
     return 1;
   }
 
-  throw new Error('compareFungibility: cannot compare fungibility, unknown content');
+  throw new Error(
+    'compareFungibility: cannot compare fungibility, unknown content',
+  );
 }
 
 function deduplicateSortedAssets(
@@ -1662,7 +1717,9 @@ function deduplicateSortedAssets(
   for (const current of iter) {
     if (compareFn(last, current, xcmVersion) === 0) {
       if ('fungible' in last.fun && 'fungible' in current.fun) {
-        last.fun = fungible(saturatingAdd(last.fun.fungible, current.fun.fungible, MAX_UINT64));
+        last.fun = fungible(
+          saturatingAdd(last.fun.fungible, current.fun.fungible, MAX_UINT64),
+        );
         continue;
       }
       if ('nonFungible' in last.fun && 'nonFungible' in current.fun) {
@@ -1747,7 +1804,9 @@ export function isChainUniversalLocation(location: InteriorLocation): boolean {
   }
 }
 
-export function relaychainUniversalLocation(networkId: NetworkId): InteriorLocation {
+export function relaychainUniversalLocation(
+  networkId: NetworkId,
+): InteriorLocation {
   return {
     x1: [{globalConsensus: networkId}],
   };
@@ -1815,7 +1874,9 @@ export function nonfungible(id: bigint | string) {
         break;
 
       default:
-        throw new Error(`nonfungible: invalid nonfungible id byte length: ${byteLength} (the id: ${id})`);
+        throw new Error(
+          `nonfungible: invalid nonfungible id byte length: ${byteLength} (the id: ${id})`,
+        );
     }
   }
 
@@ -1832,7 +1893,7 @@ export function findAssetById<Id extends AnyAssetId, Asset extends AnyAsset>(
   const assetIndex = findAssetIdIndex(
     xcmVersion,
     assetId,
-    assets.map((asset) => asset.id),
+    assets.map(asset => asset.id),
   );
   if (assetIndex !== undefined) {
     return [assets[assetIndex], assetIndex];
@@ -1849,7 +1910,9 @@ export function findFeeAssetById(
     const [asset, assetIndex] = result;
 
     if ('nonFungible' in asset.fun) {
-      throw new Error('findFeeAssetById: the fee asset is mentioned in the list of assets as a non-fungible. The fee asset can not be an NFT');
+      throw new Error(
+        'findFeeAssetById: the fee asset is mentioned in the list of assets as a non-fungible. The fee asset can not be an NFT',
+      );
     }
 
     const feeAsset = {
@@ -1866,7 +1929,9 @@ export function findAssetIdIndex<Id extends AnyAssetId>(
   feeAssetId: Id,
   assetIds: Id[],
 ) {
-  const index = assetIds.findIndex((assetId) => compareAssetId(assetId, feeAssetId, xcmVersion) === 0);
+  const index = assetIds.findIndex(
+    assetId => compareAssetId(assetId, feeAssetId, xcmVersion) === 0,
+  );
   if (index !== -1) {
     return index;
   }

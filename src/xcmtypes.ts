@@ -22,7 +22,7 @@ export type AnyInterior = InteriorV4 | InteriorV3 | InteriorV2;
 
 export type InteriorLocation = Interior;
 
-export type Versioned<V2, V3, V4> = { v2: V2 } | { v3: V3 } | { v4: V4 };
+export type Versioned<V2, V3, V4> = {v2: V2} | {v3: V3} | {v4: V4};
 
 export type VersionedAssetId = Versioned<AssetIdV2, AssetIdV3, AssetIdV4>;
 export type VersionedAsset = Versioned<AssetV2, AssetV3, AssetV4>;
@@ -43,8 +43,8 @@ export type AssetV2 = GenericAsset<AssetIdV2, FungibilityV2>;
 
 export type AssetId = AssetIdV4;
 export type AssetIdV4 = Location;
-export type AssetIdV3 = { concrete: LocationV3 } | { abstract: Uint8Array };
-export type AssetIdV2 = { concrete: LocationV2 } | { abstract: Uint8Array };
+export type AssetIdV3 = {concrete: LocationV3} | {abstract: Uint8Array};
+export type AssetIdV2 = {concrete: LocationV2} | {abstract: Uint8Array};
 
 export type Location = LocationV4;
 
@@ -64,8 +64,8 @@ export type VersionedFungibility = Versioned<
   FungibilityV4
 >;
 
-type Fungible = { fungible: bigint };
-type NonFungible<Instance> = { nonFungible: Instance };
+type Fungible = {fungible: bigint};
+type NonFungible<Instance> = {nonFungible: Instance};
 
 type GenericFungibility<Instance> = Fungible | NonFungible<Instance>;
 
@@ -77,26 +77,26 @@ export type AssetInstance = AssetInstanceV4;
 
 export type AssetInstanceV2 =
   | 'undefined'
-  | { index: bigint }
-  | { array4: string | Uint8Array }
-  | { array8: string | Uint8Array }
-  | { array16: string | Uint8Array }
-  | { array32: string | Uint8Array }
-  | { blob: string | Uint8Array };
+  | {index: bigint}
+  | {array4: string | Uint8Array}
+  | {array8: string | Uint8Array}
+  | {array16: string | Uint8Array}
+  | {array32: string | Uint8Array}
+  | {blob: string | Uint8Array};
 export type AssetInstanceV3 = Exclude<
   AssetInstanceV2,
-  { blob: string | Uint8Array }
+  {blob: string | Uint8Array}
 >;
 export type AssetInstanceV4 = AssetInstanceV3;
 
 type GenericJunctions<
   J,
   Length extends number,
-  ResultTuple extends J[] = []
+  ResultTuple extends J[] = [],
 > = /* If Length == 1 then X1 */ Length extends 1
-  ? { x1: [J] }
+  ? {x1: [J]}
   : /* X<Length>: ResultTuple */ ResultTuple['length'] extends Length
-    ? { [Variant in `x${Length}`]: ResultTuple }
+    ? {[Variant in `x${Length}`]: ResultTuple}
     : /* Accumulate the ResultTuple */ GenericJunctions<
         J,
         Length,
@@ -111,7 +111,7 @@ type JunctionsV4<Length extends number> = GenericJunctions<JunctionV4, Length>;
 export type Interior = InteriorV4;
 export type InteriorV2 =
   | 'here'
-  | { x1: JunctionV2 }
+  | {x1: JunctionV2}
   | JunctionsV2<2>
   | JunctionsV2<3>
   | JunctionsV2<4>
@@ -121,7 +121,7 @@ export type InteriorV2 =
   | JunctionsV2<8>;
 export type InteriorV3 =
   | 'here'
-  | { x1: JunctionV3 }
+  | {x1: JunctionV3}
   | JunctionsV3<2>
   | JunctionsV3<3>
   | JunctionsV3<4>
@@ -143,18 +143,18 @@ export type InteriorV4 =
 export type NetworkId = NetworkIdV4;
 export type NetworkIdV2 =
   | 'any'
-  | { named: string | Uint8Array }
+  | {named: string | Uint8Array}
   | 'polkadot'
   | 'kusama';
 export type NetworkIdV3 =
-  | { byGenesis: string | Uint8Array }
-  | { byFork: { blockNumber: bigint; blockHash: string | Uint8Array } }
+  | {byGenesis: string | Uint8Array}
+  | {byFork: {blockNumber: bigint; blockHash: string | Uint8Array}}
   | 'polkadot'
   | 'kusama'
   | 'westend'
   | 'rococo'
   | 'wococo'
-  | { ethereum: { chainId: bigint } }
+  | {ethereum: {chainId: bigint}}
   | 'bitcoinCore'
   | 'bitcoinCash'
   | 'polkadotBulletin';
@@ -163,8 +163,8 @@ export type NetworkIdV4 = NetworkIdV3;
 export type BodyId = BodyIdV4;
 export type BodyIdV2 =
   | 'unit'
-  | { named: string | Uint8Array }
-  | { index: bigint }
+  | {named: string | Uint8Array}
+  | {index: bigint}
   | 'executive'
   | 'technical'
   | 'legislative'
@@ -173,39 +173,39 @@ export type BodyIdV2 =
   | 'administration'
   | 'treasury';
 export type BodyIdV3 =
-  | Exclude<BodyIdV2, { named: string | Uint8Array }>
-  | { moniker: string | Uint8Array };
+  | Exclude<BodyIdV2, {named: string | Uint8Array}>
+  | {moniker: string | Uint8Array};
 export type BodyIdV4 = BodyIdV3;
 
-export type Fraction = { nom: bigint; denom: bigint };
+export type Fraction = {nom: bigint; denom: bigint};
 export type BodyPart =
   | 'voice'
-  | { members: { count: bigint } }
-  | { fraction: Fraction }
-  | { atLeastProportion: Fraction }
-  | { moreThanProportion: Fraction };
+  | {members: {count: bigint}}
+  | {fraction: Fraction}
+  | {atLeastProportion: Fraction}
+  | {moreThanProportion: Fraction};
 
 export type Junction = JunctionV4;
 export type JunctionV2 =
-  | { parachain: bigint }
-  | { accountId32: { network: NetworkIdV2; id: string | Uint8Array } }
-  | { accountIndex64: { network: NetworkIdV2; index: bigint } }
-  | { accountKey20: { network: NetworkIdV2; key: string | Uint8Array } }
-  | { palletInstance: bigint }
-  | { generalIndex: bigint }
-  | { generalKey: string | Uint8Array }
+  | {parachain: bigint}
+  | {accountId32: {network: NetworkIdV2; id: string | Uint8Array}}
+  | {accountIndex64: {network: NetworkIdV2; index: bigint}}
+  | {accountKey20: {network: NetworkIdV2; key: string | Uint8Array}}
+  | {palletInstance: bigint}
+  | {generalIndex: bigint}
+  | {generalKey: string | Uint8Array}
   | 'onlyChild'
-  | { plurality: { id: BodyIdV2; part: BodyPart } };
+  | {plurality: {id: BodyIdV2; part: BodyPart}};
 
 export type JunctionV3 =
-  | { parachain: bigint }
-  | { accountId32: { network?: NetworkIdV3 | null; id: string | Uint8Array } }
-  | { accountIndex64: { network?: NetworkIdV3 | null; index: bigint } }
-  | { accountKey20: { network?: NetworkIdV3 | null; key: string | Uint8Array } }
-  | { palletInstance: bigint }
-  | { generalIndex: bigint }
-  | { generalKey: { length: bigint; data: string | Uint8Array } }
+  | {parachain: bigint}
+  | {accountId32: {network?: NetworkIdV3 | null; id: string | Uint8Array}}
+  | {accountIndex64: {network?: NetworkIdV3 | null; index: bigint}}
+  | {accountKey20: {network?: NetworkIdV3 | null; key: string | Uint8Array}}
+  | {palletInstance: bigint}
+  | {generalIndex: bigint}
+  | {generalKey: {length: bigint; data: string | Uint8Array}}
   | 'onlyChild'
-  | { plurality: { id: BodyIdV3; part: BodyPart } }
-  | { globalConsensus: NetworkIdV3 };
+  | {plurality: {id: BodyIdV3; part: BodyPart}}
+  | {globalConsensus: NetworkIdV3};
 export type JunctionV4 = JunctionV3;

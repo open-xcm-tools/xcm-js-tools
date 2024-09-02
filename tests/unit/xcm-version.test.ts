@@ -230,156 +230,259 @@ describe('xcm location tests', () => {
 
   describe('identity test for locations', () => {
     it('v4 identity test with versioned location', () => {
-      expect(convertLocationVersion(4, locationX1V4)).toStrictEqual(locationX1V4);
-      expect(convertLocationVersion(4, locationX1BitcoinV4)).toStrictEqual(locationX1BitcoinV4);
-      expect(convertLocationVersion(4, locationX2V4)).toStrictEqual(locationX2V4);
-      expect(convertLocationVersion(4, locationX2PolkadotNetworkIdV4)).toStrictEqual(locationX2PolkadotNetworkIdV4);
-      expect(convertLocationVersion(4, locationX2EthereumNetworkIdV4)).toStrictEqual(locationX2EthereumNetworkIdV4);
-      expect(convertLocationVersion(4, locationX3GlobalConsensusV4)).toStrictEqual(locationX3GlobalConsensusV4);
+      expect(convertLocationVersion(4, locationX1V4)).toStrictEqual(
+        locationX1V4,
+      );
+      expect(convertLocationVersion(4, locationX1BitcoinV4)).toStrictEqual(
+        locationX1BitcoinV4,
+      );
+      expect(convertLocationVersion(4, locationX2V4)).toStrictEqual(
+        locationX2V4,
+      );
+      expect(
+        convertLocationVersion(4, locationX2PolkadotNetworkIdV4),
+      ).toStrictEqual(locationX2PolkadotNetworkIdV4);
+      expect(
+        convertLocationVersion(4, locationX2EthereumNetworkIdV4),
+      ).toStrictEqual(locationX2EthereumNetworkIdV4);
+      expect(
+        convertLocationVersion(4, locationX3GlobalConsensusV4),
+      ).toStrictEqual(locationX3GlobalConsensusV4);
     });
 
     it('v4 identity test with non-versioned location', () => {
-      expect(convertLocationVersion(4, locationX1V4.v4)).toStrictEqual(locationX1V4);
-      expect(convertLocationVersion(4, locationX1BitcoinV4.v4)).toStrictEqual(locationX1BitcoinV4);
-      expect(convertLocationVersion(4, locationX2V4.v4)).toStrictEqual(locationX2V4);
-      expect(convertLocationVersion(4, locationX2PolkadotNetworkIdV4.v4)).toStrictEqual(locationX2PolkadotNetworkIdV4);
-      expect(convertLocationVersion(4, locationX2EthereumNetworkIdV4.v4)).toStrictEqual(locationX2EthereumNetworkIdV4);
-      expect(convertLocationVersion(4, locationX3GlobalConsensusV4.v4)).toStrictEqual(locationX3GlobalConsensusV4);
+      expect(convertLocationVersion(4, locationX1V4.v4)).toStrictEqual(
+        locationX1V4,
+      );
+      expect(convertLocationVersion(4, locationX1BitcoinV4.v4)).toStrictEqual(
+        locationX1BitcoinV4,
+      );
+      expect(convertLocationVersion(4, locationX2V4.v4)).toStrictEqual(
+        locationX2V4,
+      );
+      expect(
+        convertLocationVersion(4, locationX2PolkadotNetworkIdV4.v4),
+      ).toStrictEqual(locationX2PolkadotNetworkIdV4);
+      expect(
+        convertLocationVersion(4, locationX2EthereumNetworkIdV4.v4),
+      ).toStrictEqual(locationX2EthereumNetworkIdV4);
+      expect(
+        convertLocationVersion(4, locationX3GlobalConsensusV4.v4),
+      ).toStrictEqual(locationX3GlobalConsensusV4);
     });
 
     it('v3 identity test with versioned location', () => {
-      expect(convertLocationVersion(3, locationX1V3)).toStrictEqual(locationX1V3);
-      expect(convertLocationVersion(3, locationX1BitcoinV3)).toStrictEqual(locationX1BitcoinV3);
-      expect(convertLocationVersion(3, locationX2V3)).toStrictEqual(locationX2V3);
-      expect(convertLocationVersion(3, locationX2PolkadotNetworkIdV3)).toStrictEqual(locationX2PolkadotNetworkIdV3);
-      expect(convertLocationVersion(3, locationX2EthereumNetworkIdV3)).toStrictEqual(locationX2EthereumNetworkIdV3);
-      expect(convertLocationVersion(3, locationX3GlobalConsensusV3)).toStrictEqual(locationX3GlobalConsensusV3);
+      expect(convertLocationVersion(3, locationX1V3)).toStrictEqual(
+        locationX1V3,
+      );
+      expect(convertLocationVersion(3, locationX1BitcoinV3)).toStrictEqual(
+        locationX1BitcoinV3,
+      );
+      expect(convertLocationVersion(3, locationX2V3)).toStrictEqual(
+        locationX2V3,
+      );
+      expect(
+        convertLocationVersion(3, locationX2PolkadotNetworkIdV3),
+      ).toStrictEqual(locationX2PolkadotNetworkIdV3);
+      expect(
+        convertLocationVersion(3, locationX2EthereumNetworkIdV3),
+      ).toStrictEqual(locationX2EthereumNetworkIdV3);
+      expect(
+        convertLocationVersion(3, locationX3GlobalConsensusV3),
+      ).toStrictEqual(locationX3GlobalConsensusV3);
     });
 
     it('v2 identity test with versioned location', () => {
-      expect(convertLocationVersion(2, locationX1V2)).toStrictEqual(locationX1V2);
-      expect(convertLocationVersion(2, locationX2V2)).toStrictEqual(locationX2V2);
-      expect(convertLocationVersion(2, locationX2PolkadotNetworkIdV2)).toStrictEqual(locationX2PolkadotNetworkIdV2);
+      expect(convertLocationVersion(2, locationX1V2)).toStrictEqual(
+        locationX1V2,
+      );
+      expect(convertLocationVersion(2, locationX2V2)).toStrictEqual(
+        locationX2V2,
+      );
+      expect(
+        convertLocationVersion(2, locationX2PolkadotNetworkIdV2),
+      ).toStrictEqual(locationX2PolkadotNetworkIdV2);
     });
   });
 
   describe('create location versions from non-versioned location', () => {
     it('v3 test create with non-versioned location', () => {
-      expect(convertLocationVersion(3, locationX1V4.v4)).toStrictEqual(locationX1V3);
-      expect(convertLocationVersion(3, locationX1BitcoinV4.v4)).toStrictEqual(locationX1BitcoinV3);
-      expect(convertLocationVersion(3, locationX2V4.v4)).toStrictEqual(locationX2V3);
-      expect(convertLocationVersion(3, locationX2PolkadotNetworkIdV4.v4)).toStrictEqual(locationX2PolkadotNetworkIdV3);
-      expect(convertLocationVersion(3, locationX2EthereumNetworkIdV4.v4)).toStrictEqual(locationX2EthereumNetworkIdV3);
-      expect(convertLocationVersion(3, locationX3GlobalConsensusV4.v4)).toStrictEqual(locationX3GlobalConsensusV3);
+      expect(convertLocationVersion(3, locationX1V4.v4)).toStrictEqual(
+        locationX1V3,
+      );
+      expect(convertLocationVersion(3, locationX1BitcoinV4.v4)).toStrictEqual(
+        locationX1BitcoinV3,
+      );
+      expect(convertLocationVersion(3, locationX2V4.v4)).toStrictEqual(
+        locationX2V3,
+      );
+      expect(
+        convertLocationVersion(3, locationX2PolkadotNetworkIdV4.v4),
+      ).toStrictEqual(locationX2PolkadotNetworkIdV3);
+      expect(
+        convertLocationVersion(3, locationX2EthereumNetworkIdV4.v4),
+      ).toStrictEqual(locationX2EthereumNetworkIdV3);
+      expect(
+        convertLocationVersion(3, locationX3GlobalConsensusV4.v4),
+      ).toStrictEqual(locationX3GlobalConsensusV3);
     });
 
     it('v2 test create with non-versioned location', () => {
-      expect(convertLocationVersion(2, locationX1V4.v4)).toStrictEqual(locationX1V2);
-      expect(convertLocationVersion(2, locationX2V4.v4)).toStrictEqual(locationX2V2);
-      expect(convertLocationVersion(2, locationX2PolkadotNetworkIdV4.v4)).toStrictEqual(locationX2PolkadotNetworkIdV2);
+      expect(convertLocationVersion(2, locationX1V4.v4)).toStrictEqual(
+        locationX1V2,
+      );
+      expect(convertLocationVersion(2, locationX2V4.v4)).toStrictEqual(
+        locationX2V2,
+      );
+      expect(
+        convertLocationVersion(2, locationX2PolkadotNetworkIdV4.v4),
+      ).toStrictEqual(locationX2PolkadotNetworkIdV2);
     });
   });
 
   describe('location convert v4->v3', () => {
     it('v4->v3: location x1', () => {
-      expect(convertLocationVersion(3, locationX1V4)).toStrictEqual(locationX1V3);
+      expect(convertLocationVersion(3, locationX1V4)).toStrictEqual(
+        locationX1V3,
+      );
     });
 
     it('v4->v3: location x1 bitcoin', () => {
-      expect(convertLocationVersion(3, locationX1BitcoinV4)).toStrictEqual(locationX1BitcoinV3);
+      expect(convertLocationVersion(3, locationX1BitcoinV4)).toStrictEqual(
+        locationX1BitcoinV3,
+      );
     });
 
     it('v4->v3: location x2', () => {
-      expect(convertLocationVersion(3, locationX2V4)).toStrictEqual(locationX2V3);
+      expect(convertLocationVersion(3, locationX2V4)).toStrictEqual(
+        locationX2V3,
+      );
     });
 
     it('v4->v3: location x2 v4->v3 polkadot network id', () => {
-      expect(convertLocationVersion(3, locationX2PolkadotNetworkIdV4)).toStrictEqual(locationX2PolkadotNetworkIdV3);
+      expect(
+        convertLocationVersion(3, locationX2PolkadotNetworkIdV4),
+      ).toStrictEqual(locationX2PolkadotNetworkIdV3);
     });
 
     it('v4->v3: location x2 ethereum network id', () => {
-      expect(convertLocationVersion(3, locationX2EthereumNetworkIdV4)).toStrictEqual(locationX2EthereumNetworkIdV3);
+      expect(
+        convertLocationVersion(3, locationX2EthereumNetworkIdV4),
+      ).toStrictEqual(locationX2EthereumNetworkIdV3);
     });
 
     it('v4->v3: location x3 global consensus', () => {
-      expect(convertLocationVersion(3, locationX3GlobalConsensusV4)).toStrictEqual(locationX3GlobalConsensusV3);
+      expect(
+        convertLocationVersion(3, locationX3GlobalConsensusV4),
+      ).toStrictEqual(locationX3GlobalConsensusV3);
     });
   });
 
   describe('location convert v3->v4', () => {
     it('v3->v4: location x1', () => {
-      expect(convertLocationVersion(4, locationX1V3)).toStrictEqual(locationX1V4);
+      expect(convertLocationVersion(4, locationX1V3)).toStrictEqual(
+        locationX1V4,
+      );
     });
 
     it('v3->v4: location x1 bitcoin', () => {
-      expect(convertLocationVersion(4, locationX1BitcoinV3)).toStrictEqual(locationX1BitcoinV4);
+      expect(convertLocationVersion(4, locationX1BitcoinV3)).toStrictEqual(
+        locationX1BitcoinV4,
+      );
     });
 
     it('v3->v4: location x2', () => {
-      expect(convertLocationVersion(4, locationX2V3)).toStrictEqual(locationX2V4);
+      expect(convertLocationVersion(4, locationX2V3)).toStrictEqual(
+        locationX2V4,
+      );
     });
 
     it('v3->v4: location x2 polkadot network id', () => {
-      expect(convertLocationVersion(4, locationX2PolkadotNetworkIdV3)).toStrictEqual(locationX2PolkadotNetworkIdV4);
+      expect(
+        convertLocationVersion(4, locationX2PolkadotNetworkIdV3),
+      ).toStrictEqual(locationX2PolkadotNetworkIdV4);
     });
 
     it('v3->v4: location x2 ethereum network id', () => {
-      expect(convertLocationVersion(4, locationX2EthereumNetworkIdV3)).toStrictEqual(locationX2EthereumNetworkIdV4);
+      expect(
+        convertLocationVersion(4, locationX2EthereumNetworkIdV3),
+      ).toStrictEqual(locationX2EthereumNetworkIdV4);
     });
 
     it('v3->v4: location x3 global consensus', () => {
-      expect(convertLocationVersion(4, locationX3GlobalConsensusV3)).toStrictEqual(locationX3GlobalConsensusV4);
+      expect(
+        convertLocationVersion(4, locationX3GlobalConsensusV3),
+      ).toStrictEqual(locationX3GlobalConsensusV4);
     });
   });
 
   describe('location convert v3->v2', () => {
     it('v3->v2: location x1', () => {
-      expect(convertLocationVersion(2, locationX1V3)).toStrictEqual(locationX1V2);
+      expect(convertLocationVersion(2, locationX1V3)).toStrictEqual(
+        locationX1V2,
+      );
     });
 
     it('v3->v2: location x1 bitcoin', () => {
-      expect(() => convertLocationVersion(2, locationX1BitcoinV3)).toThrowError('V2 network ID doesn\'t include');
+      expect(() => convertLocationVersion(2, locationX1BitcoinV3)).toThrowError(
+        "V2 network ID doesn't include",
+      );
     });
 
     it('v3->v2: location x2', () => {
-      expect(convertLocationVersion(2, locationX2V3)).toStrictEqual(locationX2V2);
+      expect(convertLocationVersion(2, locationX2V3)).toStrictEqual(
+        locationX2V2,
+      );
     });
 
     it('v3->v2: location x2 polkadot network id', () => {
-      expect(convertLocationVersion(2, locationX2PolkadotNetworkIdV3)).toStrictEqual(locationX2PolkadotNetworkIdV2);
+      expect(
+        convertLocationVersion(2, locationX2PolkadotNetworkIdV3),
+      ).toStrictEqual(locationX2PolkadotNetworkIdV2);
     });
 
     it('v3->v2: location x2 rococo network id', () => {
       expect(() =>
-        convertLocationVersion(2, locationX2RococoNetworkIdV3)).toThrowError('V2 network ID doesn\'t include');
+        convertLocationVersion(2, locationX2RococoNetworkIdV3),
+      ).toThrowError("V2 network ID doesn't include");
     });
 
     it('v3->v2: location x2 ethereum network id', () => {
       expect(() =>
-        convertLocationVersion(2, locationX2EthereumNetworkIdV3)).toThrowError('V2 network ID doesn\'t include');
+        convertLocationVersion(2, locationX2EthereumNetworkIdV3),
+      ).toThrowError("V2 network ID doesn't include");
     });
 
     it('v3->v2: location x3 global consensus', () => {
       expect(() =>
-        convertLocationVersion(2, locationX3GlobalConsensusV3)).toThrowError('V2 junctions don\'t include');
+        convertLocationVersion(2, locationX3GlobalConsensusV3),
+      ).toThrowError("V2 junctions don't include");
     });
 
     it('v3->v2: location x2 null network id', () => {
-      expect(convertLocationVersion(2, locationX2NullNetworkIdV3)).toStrictEqual(locationX2AnyNetworkIdV2);
+      expect(
+        convertLocationVersion(2, locationX2NullNetworkIdV3),
+      ).toStrictEqual(locationX2AnyNetworkIdV2);
     });
   });
 
   describe('location convert v2->v3', () => {
     it('v2->v3: location x1', () => {
-      expect(convertLocationVersion(3, locationX1V2)).toStrictEqual(locationX1V3);
+      expect(convertLocationVersion(3, locationX1V2)).toStrictEqual(
+        locationX1V3,
+      );
     });
 
     it('v2->v3: location x2', () => {
-      expect(convertLocationVersion(3, locationX2V2)).toStrictEqual(locationX2V3);
+      expect(convertLocationVersion(3, locationX2V2)).toStrictEqual(
+        locationX2V3,
+      );
     });
 
     it('v2->v3: location x2 any network id', () => {
-      expect(convertLocationVersion(3, locationX2AnyNetworkIdV2)).toStrictEqual(locationX2NullNetworkIdV3);
+      expect(convertLocationVersion(3, locationX2AnyNetworkIdV2)).toStrictEqual(
+        locationX2NullNetworkIdV3,
+      );
     });
   });
 });
@@ -535,7 +638,9 @@ describe('asset xcm tests', () => {
       expect(convertAssetVersion(4, ftAssetX1V4)).toStrictEqual(ftAssetX1V4);
       expect(convertAssetVersion(4, ftAssetX2V4)).toStrictEqual(ftAssetX2V4);
       expect(convertAssetVersion(4, nftAssetV4)).toStrictEqual(nftAssetV4);
-      expect(convertAssetVersion(4, ftAssetX2GlobalConsensusV4)).toStrictEqual(ftAssetX2GlobalConsensusV4);
+      expect(convertAssetVersion(4, ftAssetX2GlobalConsensusV4)).toStrictEqual(
+        ftAssetX2GlobalConsensusV4,
+      );
     });
 
     it('v4 identity test with non-versioned asset', () => {
@@ -543,7 +648,9 @@ describe('asset xcm tests', () => {
       expect(convertAssetVersion(4, ftAssetX1V4.v4)).toStrictEqual(ftAssetX1V4);
       expect(convertAssetVersion(4, ftAssetX2V4.v4)).toStrictEqual(ftAssetX2V4);
       expect(convertAssetVersion(4, nftAssetV4.v4)).toStrictEqual(nftAssetV4);
-      expect(convertAssetVersion(4, ftAssetX2GlobalConsensusV4.v4)).toStrictEqual(ftAssetX2GlobalConsensusV4);
+      expect(
+        convertAssetVersion(4, ftAssetX2GlobalConsensusV4.v4),
+      ).toStrictEqual(ftAssetX2GlobalConsensusV4);
     });
 
     it('v3 identity test with versioned asset', () => {
@@ -551,7 +658,9 @@ describe('asset xcm tests', () => {
       expect(convertAssetVersion(3, ftAssetX1V3)).toStrictEqual(ftAssetX1V3);
       expect(convertAssetVersion(3, ftAssetX2V3)).toStrictEqual(ftAssetX2V3);
       expect(convertAssetVersion(3, nftAssetV3)).toStrictEqual(nftAssetV3);
-      expect(convertAssetVersion(3, ftAssetX2GlobalConsensusV3)).toStrictEqual(ftAssetX2GlobalConsensusV3);
+      expect(convertAssetVersion(3, ftAssetX2GlobalConsensusV3)).toStrictEqual(
+        ftAssetX2GlobalConsensusV3,
+      );
     });
 
     it('v2 identity test with versioned asset', () => {
@@ -559,7 +668,9 @@ describe('asset xcm tests', () => {
       expect(convertAssetVersion(2, ftAssetX1V2)).toStrictEqual(ftAssetX1V2);
       expect(convertAssetVersion(2, ftAssetX2V2)).toStrictEqual(ftAssetX2V2);
       expect(convertAssetVersion(2, nftAssetV2)).toStrictEqual(nftAssetV2);
-      expect(convertAssetVersion(2, nftBlobAssetX2V2)).toStrictEqual(nftBlobAssetX2V2);
+      expect(convertAssetVersion(2, nftBlobAssetX2V2)).toStrictEqual(
+        nftBlobAssetX2V2,
+      );
     });
   });
 
@@ -569,7 +680,9 @@ describe('asset xcm tests', () => {
       expect(convertAssetVersion(3, ftAssetX1V4.v4)).toStrictEqual(ftAssetX1V3);
       expect(convertAssetVersion(3, ftAssetX2V4.v4)).toStrictEqual(ftAssetX2V3);
       expect(convertAssetVersion(3, nftAssetV4.v4)).toStrictEqual(nftAssetV3);
-      expect(convertAssetVersion(3, ftAssetX2GlobalConsensusV4.v4)).toStrictEqual(ftAssetX2GlobalConsensusV3);
+      expect(
+        convertAssetVersion(3, ftAssetX2GlobalConsensusV4.v4),
+      ).toStrictEqual(ftAssetX2GlobalConsensusV3);
     });
 
     it('v2 test create with non-versioned asset', () => {
@@ -598,7 +711,9 @@ describe('asset xcm tests', () => {
     });
 
     it('v4->v3: fungible asset x2 global consensus', () => {
-      expect(convertAssetVersion(3, ftAssetX2GlobalConsensusV4)).toStrictEqual(ftAssetX2GlobalConsensusV3);
+      expect(convertAssetVersion(3, ftAssetX2GlobalConsensusV4)).toStrictEqual(
+        ftAssetX2GlobalConsensusV3,
+      );
     });
   });
 
@@ -620,7 +735,9 @@ describe('asset xcm tests', () => {
     });
 
     it('v3->v4: fungible asset x2 global consensus', () => {
-      expect(convertAssetVersion(4, ftAssetX2GlobalConsensusV3)).toStrictEqual(ftAssetX2GlobalConsensusV4);
+      expect(convertAssetVersion(4, ftAssetX2GlobalConsensusV3)).toStrictEqual(
+        ftAssetX2GlobalConsensusV4,
+      );
     });
   });
 
@@ -643,7 +760,8 @@ describe('asset xcm tests', () => {
 
     it('v3->v2: fungible asset x2 global consensus', () => {
       expect(() =>
-        convertAssetVersion(2, ftAssetX2GlobalConsensusV4)).toThrowError('V2 junctions don\'t include');
+        convertAssetVersion(2, ftAssetX2GlobalConsensusV4),
+      ).toThrowError("V2 junctions don't include");
     });
   });
 
@@ -665,7 +783,9 @@ describe('asset xcm tests', () => {
     });
 
     it('v2->v3: non-fungible asset x2', () => {
-      expect(() => convertAssetVersion(3, nftBlobAssetX2V2)).toThrowError('cannot be upgraded to v3');
+      expect(() => convertAssetVersion(3, nftBlobAssetX2V2)).toThrowError(
+        'cannot be upgraded to v3',
+      );
     });
   });
 });

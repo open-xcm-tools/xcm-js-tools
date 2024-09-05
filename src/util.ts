@@ -1812,12 +1812,21 @@ export function relaychainUniversalLocation(
   };
 }
 
-export function parachainUniveralLocation(
+export function parachainUniversalLocation(
   networkId: NetworkId,
   paraId: bigint,
 ): InteriorLocation {
   return {
     x2: [{globalConsensus: networkId}, {parachain: paraId}],
+  };
+}
+
+export function assetHubCurrencyUniversalLocation(
+  networkId: NetworkId,
+  id: bigint,
+): InteriorLocation {
+  return {
+    x3: [{globalConsensus: networkId}, {parachain: 1000n}, {generalIndex: id}],
   };
 }
 

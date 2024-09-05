@@ -34,12 +34,15 @@ import {xcm} from './interfaces/definitions';
 
 export type PalletXcmName = 'polkadotXcm' | 'xcmPallet';
 
+/**
+ * Parameters for transferring tokens between chains.
+ */
 export type TransferParams = {
-  origin: Origin | RegistryLookup;
-  assets: AssetLookup[];
-  feeAssetId: AssetIdLookup;
-  destination: LocationLookup;
-  beneficiary: LocationLookup;
+  origin: Origin | RegistryLookup; // The origin of the transfer.
+  assets: AssetLookup[]; // The assets to be transferred.
+  feeAssetId: AssetIdLookup; // The asset used to pay the transfer fee.
+  destination: LocationLookup; // The destination location for the transfer.
+  beneficiary: LocationLookup; // The beneficiary of the transferred assets.
 };
 
 type PreparedTransferParams = {
@@ -57,6 +60,9 @@ interface TransferBackend {
   ): Promise<SubmittableExtrinsic<'promise'>>;
 }
 
+/**
+ * Class representing a simple XCM interface for cross-chain transfers.
+ */
 export class SimpleXcm {
   api: ApiPromise;
   registry: Registry;
@@ -65,12 +71,22 @@ export class SimpleXcm {
   maxXcmVersion: XcmVersion;
   xcmVersion: XcmVersion;
 
+  /**
+   * Composes a transfer extrinsic based on the provided parameters.
+   * @param transferParams - The parameters for the transfer.
+   * @returns A promise that resolves to a SubmittableExtrinsic for the transfer.
+   */
   composeTransfer(
     transferParams: TransferParams,
   ): Promise<SubmittableExtrinsic<'promise'>> {
     return this.#transferBackend().composeTransfer(transferParams);
   }
 
+  /**
+   * Enforces the specified XCM version for the transfer.
+   * @param version - The XCM version to enforce.
+   * @throws Will throw an error if the requested version exceeds the maximum supported version.
+   */
   enforceXcmVersion(version: XcmVersion) {
     if (version > this.maxXcmVersion) {
       throw new Error(
@@ -81,6 +97,13 @@ export class SimpleXcm {
     this.xcmVersion = version;
   }
 
+  /**
+   * Converts a fungible amount from a string representation to a bigint.
+   * @param amount - The amount as a string.
+   * @param decimals - The number of decimals for the asset.
+   * @returns The converted amount as a bigint.
+   * @throws Will throw an error if the amount format is invalid or if the decimals value is incorrect.
+   */
   private convertFungibleAmount(amount: string, decimals: number): bigint {
     // RegEx for number validation
     // Example:
@@ -111,6 +134,12 @@ export class SimpleXcm {
     return BigInt(integerPart + paddedDecimalPart);
   }
 
+  /**
+   * Adjusts the fungible asset amount based on the asset ID and amount.
+   * @param assetId - The ID of the asset.
+   * @param amount - The amount of the asset as a string.
+   * @returns The adjusted asset lookup object.
+   */
   adjustedFungible(assetId: AssetIdLookup, amount: string): AssetLookup {
     let decimals: number;
 
@@ -135,10 +164,21 @@ export class SimpleXcm {
     };
   }
 
+  /**
+   * Disconnects from the API.
+   */
   async disconnect() {
     await this.api.disconnect();
   }
 
+  /**
+   * Private constructor for initializing the SimpleXcm instance.
+   * @param apiPromise - The API promise instance.
+   * @param registry - The registry instance.
+   * @param chainInfo - Information about the connected chain.
+   * @param palletXcm - The name of the XCM pallet.
+   * @param maxXcmVersion - The maximum supported XCM version.
+   */
   private constructor(
     apiPromise: ApiPromise,
     registry: Registry,
@@ -154,6 +194,13 @@ export class SimpleXcm {
     this.xcmVersion = maxXcmVersion;
   }
 
+  /**
+   * Creates a new SimpleXcm instance.
+   * @param chainId - The ID of the chain to connect to.
+   * @param registry - The registry instance.
+   * @returns A promise that resolves to a SimpleXcm instance.
+   * @throws Will throw an error if no pallet-xcm is found in the runtime.
+   */
   static async create(chainId: string, registry: Registry) {
     const chainInfo = registry.chainInfoById(chainId);
 
@@ -177,6 +224,11 @@ export class SimpleXcm {
     return new SimpleXcm(api, registry, chainInfo, palletXcm, maxXcmVersion);
   }
 
+  /**
+   * Finds the XCM pallet in the API.
+   * @param api - The API promise instance.
+   * @returns The name of the XCM pallet if found, otherwise undefined.
+   */
   static #findPalletXcm(api: ApiPromise) {
     const pallets = api.registry.metadata.pallets;
     for (const pallet of pallets) {
@@ -192,6 +244,14 @@ export class SimpleXcm {
     }
   }
 
+  /**
+   * Discovers the maximum supported XCM version for the chain.
+   * @param chainId - The ID of the chain.
+   * @param api - The API promise instance.
+   * @param palletXcm - The name of the XCM pallet.
+   * @returns The maximum supported XCM version.
+   * @throws Will throw an error if no supported XCM versions are found.
+   */
   static async #discoverMaxXcmVersion(
     chainId: string,
     api: ApiPromise,
@@ -225,6 +285,11 @@ export class SimpleXcm {
     }
   }
 
+  /**
+   * Retrieves the appropriate transfer backend based on the available extrinsics.
+   * @returns The transfer backend instance.
+   * @throws Will throw an error if no known backend pallet is found.
+   */
   #transferBackend() {
     if ('transferAssets' in this.api.tx[this.palletXcm]) {
       return new PalletXcmBackend(this);
@@ -264,6 +329,12 @@ export class SimpleXcm {
     }
   }
 
+  /**
+   * Resolves a relative location to an absolute location.
+   * @param lookup - The relative location or location lookup.
+   * @returns The resolved absolute location.
+   * @throws Will throw an error if the location is unknown.
+   */
   resolveRelativeLocation(lookup: InteriorLocation | LocationLookup): Location {
     if (typeof lookup === 'string') {
       const universalLocation = this.registry.universalLocation(lookup);
@@ -290,6 +361,12 @@ export class SimpleXcm {
     }
   }
 
+  /**
+   * Resolves a location lookup to an absolute universal location.
+   * @param lookup - The location lookup.
+   * @returns The resolved universal location.
+   * @throws Will throw an error if the location is unknown.
+   */
   resolveUniversalLocation(lookup: InteriorLocationLookup): InteriorLocation {
     if (typeof lookup === 'string') {
       const universalLocation = this.registry.universalLocation(lookup);
@@ -311,6 +388,11 @@ export class SimpleXcm {
     }
   }
 
+  /**
+   * Resolves a relative asset lookup to an absolute asset.
+   * @param lookup - The asset lookup.
+   * @returns The resolved asset.
+   */
   resolveRelativeAsset(lookup: AssetLookup): Asset {
     return {
       id: this.resolveRelativeLocation(lookup.id),
@@ -318,6 +400,12 @@ export class SimpleXcm {
     };
   }
 
+  /**
+   * Converts a location lookup to an account ID.
+   * @param lookup - The location lookup.
+   * @returns A promise that resolves to the account ID.
+   * @throws Will throw an error if the conversion fails.
+   */
   async locationToAccountId(lookup: LocationLookup): Promise<string> {
     // TODO throw a better error the needed Runtime API isn't available
 
@@ -342,13 +430,25 @@ export class SimpleXcm {
   }
 }
 
+/**
+ * Class representing the backend for the XCM pallet.
+ */
 export class PalletXcmBackend implements TransferBackend {
   simpleXcm: SimpleXcm;
 
+  /**
+   * Constructor for the PalletXcmBackend.
+   * @param simpleXcm - The SimpleXcm instance.
+   */
   constructor(simpleXcm: SimpleXcm) {
     this.simpleXcm = simpleXcm;
   }
 
+  /**
+   * Composes a transfer extrinsic based on the provided parameters.
+   * @param transferParams - The parameters for the transfer.
+   * @returns A promise that resolves to a SubmittableExtrinsic for the transfer.
+   */
   async composeTransfer(
     transferParams: TransferParams,
   ): Promise<SubmittableExtrinsic<'promise'>> {
@@ -386,17 +486,31 @@ export class PalletXcmBackend implements TransferBackend {
     // 2. Compute the needed fee amount.
 
     // FIXME
+
     return txToDryRun;
   }
 }
 
+/**
+ * Class representing the backend for the XTokens pallet.
+ */
 export class XTokensBackend implements TransferBackend {
   simpleXcm: SimpleXcm;
 
+  /**
+   * Constructor for the XTokensBackend.
+   * @param simpleXcm - The SimpleXcm instance.
+   */
   constructor(simpleXcm: SimpleXcm) {
     this.simpleXcm = simpleXcm;
   }
 
+  /**
+   * Composes a transfer extrinsic based on the provided parameters.
+   * @param transferParams - The parameters for the transfer.
+   * @returns A promise that resolves to a SubmittableExtrinsic for the transfer.
+   * @throws Will throw an error if the beneficiary is not an interior location.
+   */
   async composeTransfer(
     transferParams: TransferParams,
   ): Promise<SubmittableExtrinsic<'promise'>> {
@@ -447,6 +561,12 @@ export class XTokensBackend implements TransferBackend {
   }
 }
 
+/**
+ * Prepares the transfer parameters for the transfer.
+ * @param simpleXcm - The SimpleXcm instance.
+ * @param transferParams - The parameters for the transfer.
+ * @returns A promise that resolves to the prepared transfer parameters.
+ */
 async function prepareTransferParams(
   simpleXcm: SimpleXcm,
   transferParams: TransferParams,
@@ -509,6 +629,11 @@ async function prepareTransferParams(
   };
 }
 
+/**
+ * Converts a pallet runtime name to a camelCase transaction name.
+ * @param palletRuntimeName - The runtime name of the pallet.
+ * @returns The camelCase transaction name.
+ */
 function palletApiTxName(palletRuntimeName: string) {
   const palletPascalCaseName = palletRuntimeName;
 

@@ -1215,6 +1215,8 @@ function compareNonFungibleInstance(
       );
       return compareUInt8Array(nft1.blob, nft2.blob);
     }
+  } else if (nft1 === nft2) {
+    return 0;
   }
 
   throw new Error(
@@ -1560,6 +1562,7 @@ function compareInteriors(
         return comparisonResult;
       }
     }
+    return 0;
   }
 
   if (interior1 === 'here' && interior2 === 'here') {
@@ -1646,7 +1649,6 @@ function compareAssetIdV3V2(
           assetId2.concrete.interior,
         );
   }
-
   throw new Error(
     'compareAssetIdV3V2: cannot compare assetId object, unknown content',
   );
@@ -1715,7 +1717,7 @@ function deduplicateSortedAssets(
   let last: AnyAsset = iter.next().value!;
 
   for (const current of iter) {
-    if (compareFn(last, current, xcmVersion) === 0) {
+    if (compareFn(last.id, current.id, xcmVersion) === 0) {
       if ('fungible' in last.fun && 'fungible' in current.fun) {
         last.fun = fungible(
           saturatingAdd(last.fun.fungible, current.fun.fungible, MAX_UINT64),

@@ -1955,3 +1955,23 @@ function compareUInt8Array(array1: Uint8Array, array2: Uint8Array): number {
   }
   return 0;
 }
+
+function sortObjectFields<T extends Record<string, any>>(obj: T): T {
+  const sortedObj: Record<string, any> = {};
+  const sortedEntries = Object.entries(obj).sort(([key1], [key2]) =>
+    key1 > key2 ? 1 : -1,
+  );
+
+  for (const [key, value] of sortedEntries) {
+    sortedObj[key] =
+      value === 'object' && value !== null ? sortObjectFields(value) : value;
+  }
+
+  return sortedObj as T;
+}
+
+export function convertObjToJsonString<T extends Record<string, any>>(
+  obj: T | string,
+): string {
+  return typeof obj === 'string' ? obj : stringify(sortObjectFields(obj));
+}

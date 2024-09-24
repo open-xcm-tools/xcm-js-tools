@@ -2,6 +2,7 @@ import {EndpointOption} from '@polkadot/apps-config/endpoints/types';
 import {SimpleXcm} from './simplexcm';
 import {
   concatInterior,
+  convertObjToJsonString,
   isChainUniversalLocation,
   parachainUniversalLocation,
   relaychainUniversalLocation,
@@ -17,7 +18,6 @@ import {
 } from '@polkadot/apps-config';
 import _ from 'lodash';
 import {ApiPromise, WsProvider} from '@polkadot/api';
-import {canonicalize} from 'json-canonicalize';
 
 export type Ecosystem = 'Polkadot' | 'Kusama';
 
@@ -115,7 +115,7 @@ export class Registry {
 
     info.endpoints = [...new Set(info.endpoints)];
 
-    this.chainInfos.set(canonicalize(info.universalLocation), info);
+    this.chainInfos.set(convertObjToJsonString(info.universalLocation), info);
     this.addUniversalLocation(info.chainId, info.universalLocation);
 
     return this;
@@ -165,7 +165,10 @@ export class Registry {
    * ```
    */
   addCurrency(info: CurrencyInfo): Registry {
-    this.currencyInfos.set(canonicalize(info.universalLocation), info);
+    this.currencyInfos.set(
+      convertObjToJsonString(info.universalLocation),
+      info,
+    );
     this.addUniversalLocation(info.symbol, info.universalLocation);
 
     return this;
@@ -323,10 +326,10 @@ export class Registry {
    * ```
    */
   chainInfoByLocation(location: InteriorLocation): ChainInfo {
-    const chainInfo = this.chainInfos.get(canonicalize(location));
+    const locationStr = convertObjToJsonString(location);
+    const chainInfo = this.chainInfos.get(locationStr);
 
     if (!chainInfo) {
-      const locationStr = canonicalize(location);
       throw new Error(`${locationStr}: no chain info found`);
     }
 
@@ -362,10 +365,10 @@ export class Registry {
    * ```
    */
   currencyInfoByLocation(location: InteriorLocation): CurrencyInfo {
-    const currencyInfo = this.currencyInfos.get(canonicalize(location));
+    const locationStr = convertObjToJsonString(location);
+    const currencyInfo = this.currencyInfos.get(locationStr);
 
     if (!currencyInfo) {
-      const locationStr = canonicalize(location);
       throw new Error(`${locationStr}: no currency info found`);
     }
 

@@ -1162,11 +1162,12 @@ function compareNonFungibleInstance(
     assetInstanceOrder,
     'assetInstance',
   );
-  if (typeComparison !== 0) {
-    return typeComparison;
-  }
 
-  if (typeof nft1 === 'object' && typeof nft2 === 'object') {
+  if (
+    typeComparison === 0 &&
+    typeof nft1 === 'object' &&
+    typeof nft2 === 'object'
+  ) {
     if ('index' in nft1 && 'index' in nft2) {
       return checkBigIntDiff(nft1.index - nft2.index);
     }
@@ -1215,13 +1216,13 @@ function compareNonFungibleInstance(
       );
       return compareUInt8Array(nft1.blob, nft2.blob);
     }
-  } else if (nft1 === nft2) {
-    return 0;
-  }
 
-  throw new Error(
-    'compareNonFungibleInstance: cannot compare nonFungible instance, unknown content',
-  );
+    throw new Error(
+      'compareNonFungibleInstance: cannot compare nonFungible instance, unknown content',
+    );
+  } else {
+    return typeComparison;
+  }
 }
 
 function compareNetwork(
@@ -1247,11 +1248,12 @@ function compareNetworkId(
     networkIdOrder,
     'networkId',
   );
-  if (typeComparison !== 0) {
-    return typeComparison;
-  }
 
-  if (typeof networkId1 === 'object' && typeof networkId2 === 'object') {
+  if (
+    typeComparison === 0 &&
+    typeof networkId1 === 'object' &&
+    typeof networkId2 === 'object'
+  ) {
     if ('byGenesis' in networkId1 && 'byGenesis' in networkId2) {
       [networkId1.byGenesis, networkId2.byGenesis] = validateHexStringType(
         'networkId.byGenesis',
@@ -1290,11 +1292,13 @@ function compareNetworkId(
       );
       return compareUInt8Array(networkId1.named, networkId2.named);
     }
-  }
 
-  throw new Error(
-    'compareNetworkId: cannot compare networkId object, unknown content',
-  );
+    throw new Error(
+      'compareNetworkId: cannot compare networkId object, unknown content',
+    );
+  } else {
+    return typeComparison;
+  }
 }
 
 function compareBodyId(
@@ -1309,11 +1313,12 @@ function compareBodyId(
     bodyIdOrder,
     'bodyId',
   );
-  if (typeComparison !== 0) {
-    return typeComparison;
-  }
 
-  if (typeof bodyId1 === 'object' && typeof bodyId2 === 'object') {
+  if (
+    typeComparison === 0 &&
+    typeof bodyId1 === 'object' &&
+    typeof bodyId2 === 'object'
+  ) {
     if ('named' in bodyId1 && 'named' in bodyId2) {
       [bodyId1.named, bodyId2.named] = validateHexStringType(
         'bodyId1.named',
@@ -1333,11 +1338,13 @@ function compareBodyId(
     if ('index' in bodyId1 && 'index' in bodyId2) {
       return checkBigIntDiff(bodyId1.index - bodyId2.index);
     }
-  }
 
-  throw new Error(
-    'compareBodyId: cannot compare bodyId object, unknown content',
-  );
+    throw new Error(
+      'compareBodyId: cannot compare bodyId object, unknown content',
+    );
+  } else {
+    return typeComparison;
+  }
 }
 
 function compareFraction(fraction1: Fraction, fraction2: Fraction) {
@@ -1359,11 +1366,12 @@ function compareBodyPart(
     bodyPartOrder,
     'bodyPart',
   );
-  if (typeComparison !== 0) {
-    return typeComparison;
-  }
 
-  if (typeof bodyPart1 === 'object' && typeof bodyPart2 === 'object') {
+  if (
+    typeComparison === 0 &&
+    typeof bodyPart1 === 'object' &&
+    typeof bodyPart2 === 'object'
+  ) {
     if ('members' in bodyPart1 && 'members' in bodyPart2) {
       return checkBigIntDiff(bodyPart1.members.count - bodyPart2.members.count);
     }
@@ -1388,11 +1396,13 @@ function compareBodyPart(
         bodyPart2.moreThanProportion,
       );
     }
-  }
 
-  throw new Error(
-    'compareBodyPart: cannot compare fraction object, unknown content',
-  );
+    throw new Error(
+      'compareBodyPart: cannot compare fraction object, unknown content',
+    );
+  } else {
+    return typeComparison;
+  }
 }
 
 function compareJunction(
@@ -1407,11 +1417,12 @@ function compareJunction(
     junctionOrder,
     'junction',
   );
-  if (typeComparison !== 0) {
-    return typeComparison;
-  }
 
-  if (typeof junction1 === 'object' && typeof junction2 === 'object') {
+  if (
+    typeComparison === 0 &&
+    typeof junction1 === 'object' &&
+    typeof junction2 === 'object'
+  ) {
     if ('parachain' in junction1 && 'parachain' in junction2) {
       return checkBigIntDiff(junction1.parachain - junction2.parachain);
     }
@@ -1533,10 +1544,13 @@ function compareJunction(
         xcmVersion,
       );
     }
+
+    throw new Error(
+      'compareJunction: cannot compare junction object, unknown content',
+    );
+  } else {
+    return typeComparison;
   }
-  throw new Error(
-    'compareJunction: cannot compare junction object, unknown content',
-  );
 }
 
 function compareInteriors(
@@ -1576,6 +1590,7 @@ function compareInteriors(
   if (interior2 === 'here') {
     return 1;
   }
+
   throw new Error(
     'compareInteriors: cannot compare interior object, unknown content',
   );

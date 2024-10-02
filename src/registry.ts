@@ -6,6 +6,8 @@ import {
   isChainUniversalLocation,
   parachainUniversalLocation,
   relaychainUniversalLocation,
+  sanitizeInterior,
+  sanitizeLocation,
 } from './util';
 import {InteriorLocation, Location} from './xcmtypes';
 import {
@@ -103,6 +105,7 @@ export class Registry {
    * ```
    */
   addChain(info: ChainInfo): Registry {
+    sanitizeInterior(info.universalLocation);
     if (!isChainUniversalLocation(info.universalLocation)) {
       throw new Error(
         `${info.chainId}: the provided location is not a chain universal location`,
@@ -165,6 +168,7 @@ export class Registry {
    * ```
    */
   addCurrency(info: CurrencyInfo): Registry {
+    sanitizeInterior(info.universalLocation);
     this.currencyInfos.set(
       convertObjToJsonString(info.universalLocation),
       info,
@@ -231,6 +235,7 @@ export class Registry {
     locationName: string,
     location: InteriorLocation,
   ): Registry {
+    sanitizeInterior(location);
     if (this.relativeLocations.get(locationName)) {
       throw new Error(
         `${locationName}: can't be registered as a universal location because it's already a relative one`,
@@ -274,6 +279,7 @@ export class Registry {
    * ```
    */
   addRelativeLocation(locationName: string, location: Location): Registry {
+    sanitizeLocation(location);
     if (this.universalLocations.get(locationName)) {
       throw new Error(
         `${locationName}: can't be registered as a relative location because it's already a universal one`,
@@ -326,6 +332,7 @@ export class Registry {
    * ```
    */
   chainInfoByLocation(location: InteriorLocation): ChainInfo {
+    sanitizeInterior(location);
     const locationStr = convertObjToJsonString(location);
     const chainInfo = this.chainInfos.get(locationStr);
 
@@ -365,6 +372,7 @@ export class Registry {
    * ```
    */
   currencyInfoByLocation(location: InteriorLocation): CurrencyInfo {
+    sanitizeInterior(location);
     const locationStr = convertObjToJsonString(location);
     const currencyInfo = this.currencyInfos.get(locationStr);
 
@@ -387,6 +395,7 @@ export class Registry {
     relayEndpointOption: EndpointOption,
     paraEndpointOptions: EndpointOption[],
   ): Registry {
+    sanitizeInterior(relayUniversalLocation);
     const relayEndpoints = providersToWssEndpoints(
       relayEndpointOption.providers,
     );

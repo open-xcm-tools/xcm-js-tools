@@ -17,9 +17,9 @@ class ValidationError extends Error {
   }
 }
 
-export class JunctionValidationError extends ValidationError {
+export class SanitizationError extends ValidationError {
   constructor(reason: string, description: string, cause?: Error) {
-    super('Junction Validation', reason, description, cause);
-    this.name = 'Junction validation error';
+    super('Sanitization', reason, description, cause);
+    this.name = 'Sanitization error';
   }
 }

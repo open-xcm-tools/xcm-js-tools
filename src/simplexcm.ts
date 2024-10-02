@@ -25,7 +25,10 @@ import {
   fungible,
   location,
   locationRelativeToPrefix,
-  relativeLocaionToUniversal,
+  relativeLocationToUniversal,
+  sanitizeInterior,
+  sanitizeLookup,
+  sanitizeTransferParams,
   toJunctions,
 } from './util';
 import {Origin} from './origin';
@@ -141,12 +144,13 @@ export class SimpleXcm {
    * @returns The adjusted asset lookup object.
    */
   adjustedFungible(assetId: AssetIdLookup, amount: string): AssetLookup {
+    sanitizeLookup(assetId);
     let decimals: number;
 
     if (typeof assetId === 'string') {
       decimals = this.registry.currencyInfoBySymbol(assetId).decimals;
     } else {
-      const currencyUniversalLocation = relativeLocaionToUniversal({
+      const currencyUniversalLocation = relativeLocationToUniversal({
         relativeLocation: assetId,
         context: this.chainInfo.universalLocation,
       });
@@ -352,8 +356,10 @@ export class SimpleXcm {
 
       throw new Error(`${lookup}: unknown named location`);
     } else if ('parents' in lookup) {
+      sanitizeLookup(lookup);
       return lookup;
     } else {
+      sanitizeInterior(lookup);
       return locationRelativeToPrefix({
         location: lookup,
         prefix: this.chainInfo.universalLocation,
@@ -376,7 +382,7 @@ export class SimpleXcm {
 
       const relativeLocation = this.registry.relativeLocation(lookup);
       if (relativeLocation) {
-        return relativeLocaionToUniversal({
+        return relativeLocationToUniversal({
           relativeLocation,
           context: this.chainInfo.universalLocation,
         });
@@ -384,6 +390,7 @@ export class SimpleXcm {
 
       throw new Error(`${lookup}: unknown named location`);
     } else {
+      sanitizeInterior(lookup);
       return lookup;
     }
   }
@@ -413,6 +420,7 @@ export class SimpleXcm {
       const accountLocation = this.resolveRelativeLocation(lookup);
       return this.locationToAccountId(accountLocation);
     }
+    sanitizeLookup(lookup);
 
     const versionedLocation: VersionedLocation = {v4: lookup};
     const result: Result<Bytes, Codec> =
@@ -567,7 +575,7 @@ export class XTokensBackend implements TransferBackend {
  * @param transferParams - The parameters for the transfer.
  * @returns A promise that resolves to the prepared transfer parameters.
  */
-async function prepareTransferParams(
+export async function prepareTransferParams(
   simpleXcm: SimpleXcm,
   transferParams: TransferParams,
 ): Promise<PreparedTransferParams> {
@@ -582,7 +590,7 @@ async function prepareTransferParams(
     origin = transferParams.origin;
   }
 
-  // TODO sanitize
+  sanitizeTransferParams(transferParams);
 
   const destination = simpleXcm.resolveRelativeLocation(
     transferParams.destination,

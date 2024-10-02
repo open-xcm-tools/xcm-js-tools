@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {Junction} from '../../src/xcmtypes';
 import {sanitizeJunction} from '../../src/util';
-import {JunctionValidationError} from '../../src/errors';
+import {SanitizationError} from '../../src/errors';
 
 describe('junction validation tests', () => {
   describe('raw bytes tests', () => {
@@ -24,7 +24,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionAccountId32HexInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('invalid: account id incorrect ascii data', () => {
@@ -35,7 +35,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionAccountId32IncorrectData),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: account key hex', () => {
@@ -56,7 +56,7 @@ describe('junction validation tests', () => {
         },
       };
       expect(() => sanitizeJunction(junctionAccountKeyHexInvalid)).toThrowError(
-        JunctionValidationError,
+        SanitizationError,
       );
     });
 
@@ -68,7 +68,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionAccountKeyIncorrectData),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: general key hex', () => {
@@ -91,7 +91,7 @@ describe('junction validation tests', () => {
         },
       };
       expect(() => sanitizeJunction(junctionGeneralKeyHexInvalid)).toThrowError(
-        JunctionValidationError,
+        SanitizationError,
       );
     });
 
@@ -104,7 +104,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionGeneralKeyIncorrectData),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: network id by genesis hex', () => {
@@ -133,7 +133,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionNetworkIdByGenesisHexInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('invalid: network id by genesis incorrect ascii data', () => {
@@ -147,7 +147,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionNetworkIdByGenesisIncorrectDataInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: network id by fork hex', () => {
@@ -182,7 +182,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionNetworkIdByForkHexInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('invalid: network id by fork incorrect ascii data', () => {
@@ -196,7 +196,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionNetworkIdByForkIncorrectDataInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: body id moniker hex', () => {
@@ -224,7 +224,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionBodyIdMonikerHexInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('invalid: body id moniker incorrect ascii data', () => {
@@ -238,7 +238,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionBodyIdMonikerIncorrectDataInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
   });
 
@@ -262,7 +262,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionAccountId32TextInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
   });
 
@@ -282,7 +282,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionParachainNumberInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: account index 64 number', () => {
@@ -300,7 +300,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionAccountIndex64NumberInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: pallet instance number', () => {
@@ -318,7 +318,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionPalletInstanceNumberInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: general index number', () => {
@@ -336,7 +336,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionGeneralIndexNumberInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: network id by fork block number', () => {
@@ -372,7 +372,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionNetworkIdByForkNumberInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: network id ethereum chain id number', () => {
@@ -404,7 +404,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionNetworkIdEthereumNumberValid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: plurality body part members number', () => {
@@ -428,7 +428,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionPluralityBodyPartMembersNumberInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('valid: plurality body part fraction nom & denom number', () => {
@@ -452,7 +452,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionPluralityBodyPartFractionNomNumberInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
 
     it('invalid: plurality body part fraction denom number', () => {
@@ -464,7 +464,7 @@ describe('junction validation tests', () => {
       };
       expect(() =>
         sanitizeJunction(junctionPluralityBodyPartFractionNomNumberInvalid),
-      ).toThrowError(JunctionValidationError);
+      ).toThrowError(SanitizationError);
     });
   });
 });

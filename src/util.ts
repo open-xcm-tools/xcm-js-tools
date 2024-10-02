@@ -47,10 +47,12 @@ import {
   AssetIdV4,
   AssetIdV3,
   AssetIdV2,
+  LocationLookup,
 } from './xcmtypes';
 import _ from 'lodash';
-import {JunctionValidationError} from './errors';
+import {SanitizationError} from './errors';
 import {hexToU8a, stringify} from '@polkadot/util';
+import {TransferParams} from './simplexcm';
 
 const MAX_UINT8 = 2n ** 8n - 1n;
 const MAX_UINT32 = 2n ** 32n - 1n;
@@ -225,6 +227,8 @@ function unwrapVersionedAssetsArray(assets: VersionedAssets): VersionedAsset[] {
 }
 
 export function asset(id: AssetIdLookup, fun: Fungibility): AssetLookup {
+  sanitizeLookup(id);
+  sanitizeFungibility(fun);
   return {
     id,
     fun,
@@ -235,6 +239,9 @@ export function location(
   parents: bigint,
   junctions: 'here' | Junction[],
 ): Location {
+  if (junctions instanceof Array) {
+    junctions.forEach(sanitizeJunction);
+  }
   if (junctions === 'here') {
     return {
       parents,
@@ -272,7 +279,7 @@ export function concatInterior(a: Interior, b: Interior): Interior {
   return toInterior([...junctionsA, ...junctionsB]);
 }
 
-export function relativeLocaionToUniversal({
+export function relativeLocationToUniversal({
   relativeLocation,
   context,
 }: {
@@ -284,7 +291,7 @@ export function relativeLocaionToUniversal({
 
   if (relativeLocation.parents > contextJunctions.length) {
     throw new Error(
-      'relativeLocaionToUniversal: not enough context to convert relative location to a universal one',
+      'relativeLocationToUniversal: not enough context to convert relative location to a universal one',
     );
   }
 
@@ -744,46 +751,43 @@ function downgradeJunctionV3(junction: JunctionV3): JunctionV2 {
 }
 
 function checkByteDataLength(
-  junctionName: string,
+  fieldName: string,
   expectedLength: number,
   actualLength: number | null,
 ) {
   if (actualLength === null) {
-    throw new JunctionValidationError(
-      junctionName,
-      `${junctionName} must be hex string`,
-    );
+    throw new SanitizationError(fieldName, `${fieldName} must be hex string`);
   }
 
   if (expectedLength !== actualLength) {
-    throw new JunctionValidationError(
-      junctionName,
-      `${junctionName} has incorrect length: expected ${expectedLength} bytes, got ${actualLength} bytes`,
+    throw new SanitizationError(
+      fieldName,
+      `${fieldName} has incorrect length: expected ${expectedLength} bytes, got ${actualLength} bytes`,
     );
   }
 }
 
-function hexToUint8Array(junctionName: string, hex: string): Uint8Array {
+function hexToUint8Array(fieldName: string, hex: string): Uint8Array {
   try {
     return hexToU8a(hex);
   } catch (error) {
-    throw new JunctionValidationError(
-      junctionName,
-      `failed to decode ${junctionName} hex string to Uint8Array.`,
+    throw new SanitizationError(
+      fieldName,
+      `failed to decode ${fieldName} hex string to Uint8Array.`,
       error as Error,
     );
   }
 }
 
 function checkNumberBitSize(
-  junctionName: string,
+  fieldName: string,
   expectedBitSize: 8 | 32 | 64 | 128,
   actualNumber: bigint,
 ) {
   if (actualNumber < 0) {
-    throw new JunctionValidationError(
-      junctionName,
-      `${junctionName} is less than 0, expected positive integer.`,
+    throw new SanitizationError(
+      fieldName,
+      `${fieldName} is less than 0, expected positive integer.`,
     );
   }
   let expectedMaxNumber: bigint;
@@ -801,18 +805,18 @@ function checkNumberBitSize(
       expectedMaxNumber = MAX_UINT128;
       break;
     default:
-      throw new Error(`Unknown bit size for ${junctionName}`);
+      throw new Error(`Unknown bit size for ${fieldName}`);
   }
   if (actualNumber > expectedMaxNumber) {
-    throw new JunctionValidationError(
-      junctionName,
-      `${junctionName} is greater than u${expectedBitSize}`,
+    throw new SanitizationError(
+      fieldName,
+      `${fieldName} is greater than u${expectedBitSize}`,
     );
   }
 }
 
 function invalidJunctionObj(objName: string, obj: unknown) {
-  throw new JunctionValidationError(
+  throw new SanitizationError(
     `not a V${CURRENT_XCM_VERSION} ${objName}`,
     `invalid object: ${stringify(obj)}`,
   );
@@ -941,7 +945,7 @@ export function sanitizeJunction(junction: Junction) {
       try {
         junction.accountId32.id = decodeAddress(junction.accountId32.id);
       } catch (error) {
-        throw new JunctionValidationError(
+        throw new SanitizationError(
           'accountId32',
           `failed to decode AccountId32: ${junction.accountId32.id}.`,
           error as Error,
@@ -1000,6 +1004,88 @@ export function sanitizeJunction(junction: Junction) {
   } else {
     checkUnitJunctionObj('junction', junction, ['onlyChild']);
   }
+}
+
+export function sanitizeInterior(interior: Interior) {
+  if (typeof interior === 'object') {
+    const junctions = interiorToArray(CURRENT_XCM_VERSION, interior);
+    junctions.forEach(sanitizeJunction);
+    interior = arrayToInterior(CURRENT_XCM_VERSION, junctions);
+  }
+}
+
+export function sanitizeLocation(location: Location) {
+  checkNumberBitSize('Location.parents', 8, location.parents);
+  sanitizeInterior(location.interior);
+}
+
+export function sanitizeLookup(
+  lookup: LocationLookup | AssetIdLookup | AssetLookup,
+) {
+  if (typeof lookup === 'object') {
+    if ('id' in lookup) {
+      if (typeof lookup.id === 'object') {
+        sanitizeLocation(lookup.id);
+      }
+    } else {
+      sanitizeInterior(lookup.interior);
+    }
+  }
+}
+
+export function sanitizeTransferParams(params: TransferParams) {
+  if (typeof params.origin === 'object' && 'Xcm' in params.origin) {
+    sanitizeInterior(params.origin.Xcm);
+  }
+  params.assets.forEach(sanitizeLookup);
+  sanitizeLookup(params.beneficiary);
+  sanitizeLookup(params.destination);
+  sanitizeLookup(params.feeAssetId);
+}
+
+export function sanitizeFungibility(fun: Fungibility) {
+  if ('fungible' in fun) {
+    checkNumberBitSize('fungible.value', 128, fun.fungible);
+  } else if ('nonFungible' in fun && typeof fun.nonFungible === 'object') {
+    if ('index' in fun.nonFungible) {
+      checkNumberBitSize('nonFungible.index', 128, fun.nonFungible.index);
+    }
+    if ('array4' in fun.nonFungible) {
+      checkByteDataLength(
+        'nonFungible.array4',
+        4,
+        fun.nonFungible.array4.length,
+      );
+    }
+    if ('array8' in fun.nonFungible) {
+      checkByteDataLength(
+        'nonFungible.array8',
+        8,
+        fun.nonFungible.array8.length,
+      );
+    }
+    if ('array16' in fun.nonFungible) {
+      checkByteDataLength(
+        'nonFungible.array16',
+        16,
+        fun.nonFungible.array16.length,
+      );
+    }
+    if ('array32' in fun.nonFungible) {
+      checkByteDataLength(
+        'nonFungible.array32',
+        32,
+        fun.nonFungible.array32.length,
+      );
+    }
+  }
+}
+
+export function sanitizeAssets(assets: Asset[]) {
+  assets.forEach(a => {
+    sanitizeLocation(a.id);
+    sanitizeFungibility(a.fun);
+  });
 }
 
 function upgradeJunctionV2(junction: JunctionV2): JunctionV3 {

@@ -165,10 +165,10 @@ export class SimpleXcm {
     } else {
       const currencyUniversalLocation = relativeLocationToUniversal({
         relativeLocation: assetId,
-        context: this.chainInfo.universalLocation,
+        context: this.chainInfo.identity.universalLocation,
       });
 
-      decimals = this.registry.currencyInfoByLocation(
+      decimals = this.registry.currencyInfoByUniversalLocation(
         currencyUniversalLocation,
       ).decimals;
     }
@@ -231,10 +231,10 @@ export class SimpleXcm {
 
     const xcmVersion = await Estimator.estimateMaxXcmVersion(
       api,
-      chainInfo,
+      chainInfo.identity.name,
       palletXcm,
     );
-    const estimator = new Estimator(api, chainInfo, xcmVersion);
+    const estimator = new Estimator(api, chainInfo.identity, xcmVersion);
 
     return new SimpleXcm(api, registry, chainInfo, palletXcm, estimator);
   }
@@ -250,7 +250,7 @@ export class SimpleXcm {
     }
 
     console.warn(`
-      ${this.chainInfo.chainId}: pallet-xcm does not have the needed "transferAssets" extrinsic.
+      ${this.chainInfo.identity.name}: pallet-xcm does not have the needed "transferAssets" extrinsic.
       Looking for an alternative XCM transfer backend...
     `);
 
@@ -274,12 +274,12 @@ export class SimpleXcm {
 
     if (backend) {
       console.warn(
-        `${this.chainInfo.chainId}: using an alternative XCM transfer backend - ${palletName!}`,
+        `${this.chainInfo.identity.name}: using an alternative XCM transfer backend - ${palletName!}`,
       );
       return backend;
     } else {
       throw new Error(
-        `${this.chainInfo.chainId}: No known XCM transfer backend pallet is found`,
+        `${this.chainInfo.identity.name}: No known XCM transfer backend pallet is found`,
       );
     }
   }
@@ -296,7 +296,7 @@ export class SimpleXcm {
       if (universalLocation) {
         return locationRelativeToPrefix({
           location: universalLocation,
-          prefix: this.chainInfo.universalLocation,
+          prefix: this.chainInfo.identity.universalLocation,
         });
       }
 
@@ -313,7 +313,7 @@ export class SimpleXcm {
       sanitizeInterior(lookup);
       return locationRelativeToPrefix({
         location: lookup,
-        prefix: this.chainInfo.universalLocation,
+        prefix: this.chainInfo.identity.universalLocation,
       });
     }
   }
@@ -335,7 +335,7 @@ export class SimpleXcm {
       if (relativeLocation) {
         return relativeLocationToUniversal({
           relativeLocation,
-          context: this.chainInfo.universalLocation,
+          context: this.chainInfo.identity.universalLocation,
         });
       }
 
@@ -358,7 +358,7 @@ export class SimpleXcm {
       {
         estimatorResolver: (universalLocation: InteriorLocation) => {
           const chainInfo =
-            this.registry.chainInfoByLocation(universalLocation);
+            this.registry.chainInfoByUniversalLocation(universalLocation);
           return Estimator.connect(chainInfo);
         },
       },
@@ -386,7 +386,11 @@ export class SimpleXcm {
    * @throws Will throw an error if the conversion fails.
    */
   async locationToAccountId(lookup: LocationLookup): Promise<string> {
-    // TODO throw a better error the needed Runtime API isn't available
+    if (this.api.call.locationToAccountApi === undefined) {
+      throw new Error(
+        `${this.chainInfo.identity.name} doesn't implement locationToAccount Runtime API`,
+      );
+    }
 
     if (typeof lookup === 'string') {
       const accountLocation = this.resolveRelativeLocation(lookup);
@@ -402,7 +406,7 @@ export class SimpleXcm {
 
     if (result.isErr) {
       throw new Error(
-        `${this.chainInfo.chainId}: can't convert location to an account ID - ${stringify(result.asErr.toHuman())}`,
+        `${this.chainInfo.identity.name}: can't convert location to an account ID - ${stringify(result.asErr.toHuman())}`,
       );
     }
 

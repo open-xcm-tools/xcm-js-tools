@@ -23,24 +23,13 @@ import {ApiPromise, WsProvider} from '@polkadot/api';
 
 export type Ecosystem = 'Polkadot' | 'Kusama';
 
-/**
- * Information about a chain stored in the `Registry`.
- * @example
- * ```typescript
- * {
- *     chainId: 'AssetHub',
- *     universalLocation: parachainUniversalLocation('polkadot', 2001n),
- *     endpoints: [
- *       'wss://asset-hub-polkadot-rpc.dwellir.com',
- *       'wss://sys.ibp.network/asset-hub-polkadot',
- *       // Add more endpoints as needed
- *     ],
- * }
- * ```
- */
-export interface ChainInfo {
-  chainId: string;
+export interface ChainIdentity {
+  name: string;
   universalLocation: InteriorLocation;
+}
+
+export interface ChainInfo {
+  identity: ChainIdentity;
   endpoints: string[];
 }
 
@@ -89,7 +78,7 @@ export class Registry {
 
   /**
    * Adds an external chain to the `Registry` storage.
-   * @param info - Information about the chain that isn't from the connected ecosystem.
+   * @param chain - Information about the new chain.
    * @returns The current instance of the Registry.
    * @example
    * ```typescript
@@ -104,22 +93,28 @@ export class Registry {
    * });
    * ```
    */
-  addChain(info: ChainInfo): Registry {
-    sanitizeInterior(info.universalLocation);
-    if (!isChainUniversalLocation(info.universalLocation)) {
+  addChain(chain: ChainInfo): Registry {
+    sanitizeInterior(chain.identity.universalLocation);
+    if (!isChainUniversalLocation(chain.identity.universalLocation)) {
       throw new Error(
-        `${info.chainId}: the provided location is not a chain universal location`,
+        `${chain.identity.name}: the provided location is not a chain universal location`,
       );
     }
 
-    if (info.endpoints.length === 0) {
-      throw new Error(`${info.chainId}: no endpoints provided`);
+    if (chain.endpoints.length === 0) {
+      throw new Error(`${chain.identity.name}: no endpoints provided`);
     }
 
-    info.endpoints = [...new Set(info.endpoints)];
+    chain.endpoints = [...new Set(chain.endpoints)];
 
-    this.chainInfos.set(convertObjToJsonString(info.universalLocation), info);
-    this.addUniversalLocation(info.chainId, info.universalLocation);
+    this.chainInfos.set(
+      convertObjToJsonString(chain.identity.universalLocation),
+      chain,
+    );
+    this.addUniversalLocation(
+      chain.identity.name,
+      chain.identity.universalLocation,
+    );
 
     return this;
   }
@@ -156,7 +151,7 @@ export class Registry {
 
   /**
    * Adds an external currency to the `Registry` storage.
-   * @param info - Information about the currency that isn't from the connected ecosystem.
+   * @param currency - Information about the new currency.
    * @returns The current instance of the Registry.
    * @example
    * ```typescript
@@ -167,13 +162,13 @@ export class Registry {
    * });
    * ```
    */
-  addCurrency(info: CurrencyInfo): Registry {
-    sanitizeInterior(info.universalLocation);
+  addCurrency(currency: CurrencyInfo): Registry {
+    sanitizeInterior(currency.universalLocation);
     this.currencyInfos.set(
-      convertObjToJsonString(info.universalLocation),
-      info,
+      convertObjToJsonString(currency.universalLocation),
+      currency,
     );
-    this.addUniversalLocation(info.symbol, info.universalLocation);
+    this.addUniversalLocation(currency.symbol, currency.universalLocation);
 
     return this;
   }
@@ -197,7 +192,7 @@ export class Registry {
       const symbol = api.registry.chainTokens[0];
       const decimals = api.registry.chainDecimals[0];
       const universalLocation = chainLocationToNativeCurrencyLocation(
-        chainInfo.universalLocation,
+        chainInfo.identity.universalLocation,
       );
 
       this.addCurrency({
@@ -220,8 +215,8 @@ export class Registry {
 
   /**
    * Adds a universal location to the `Registry` storage.
-   * @param locationName - The key-name for the location.
-   * @param location - The universal location.
+   * @param name - The name for the universal location.
+   * @param universalLocation - The universal location.
    * @returns The current instance of the Registry.
    * @example
    * ```typescript
@@ -232,23 +227,23 @@ export class Registry {
    * ```
    */
   addUniversalLocation(
-    locationName: string,
-    location: InteriorLocation,
+    name: string,
+    universalLocation: InteriorLocation,
   ): Registry {
-    sanitizeInterior(location);
-    if (this.relativeLocations.get(locationName)) {
+    sanitizeInterior(universalLocation);
+    if (this.relativeLocations.get(name)) {
       throw new Error(
-        `${locationName}: can't be registered as a universal location because it's already a relative one`,
+        `${name}: can't be registered as a universal location because it's already a relative one`,
       );
     }
 
-    this.universalLocations.set(locationName, location);
+    this.universalLocations.set(name, universalLocation);
     return this;
   }
 
   /**
-   * Returns the universal location by key-name if it exists.
-   * @param name - The key-name for the location.
+   * Returns the universal location by name if it exists.
+   * @param name - The name for the universal location.
    * @returns The universal location or undefined if not found.
    * @example
    * ```typescript
@@ -261,7 +256,7 @@ export class Registry {
 
   /**
    * Adds a relative location to the `Registry` storage.
-   * @param locationName - The key-name for the location.
+   * @param name - The name for the location.
    * @param location - The relative location.
    * @returns The current instance of the Registry.
    * @example
@@ -278,21 +273,21 @@ export class Registry {
    * );
    * ```
    */
-  addRelativeLocation(locationName: string, location: Location): Registry {
+  addRelativeLocation(name: string, location: Location): Registry {
     sanitizeLocation(location);
-    if (this.universalLocations.get(locationName)) {
+    if (this.universalLocations.get(name)) {
       throw new Error(
-        `${locationName}: can't be registered as a relative location because it's already a universal one`,
+        `${name}: can't be registered as a relative location because it's already a universal one`,
       );
     }
 
-    this.relativeLocations.set(locationName, location);
+    this.relativeLocations.set(name, location);
     return this;
   }
 
   /**
-   * Returns the relative location by key-name if it exists.
-   * @param name - The key-name for the location.
+   * Returns the relative location by name if it exists.
+   * @param name - The name for the location.
    * @returns The relative location or undefined if not found.
    * @example
    * ```typescript
@@ -305,35 +300,35 @@ export class Registry {
 
   /**
    * Returns information about a chain by its name.
-   * @param chainId - The name of the chain.
+   * @param chainName - The name of the chain.
    * @returns The ChainInfo object.
    * @example
    * ```typescript
    * registry.chainInfoById('Unique Network');
    * ```
    */
-  chainInfoById(chainId: string): ChainInfo {
-    const chainLocation = this.universalLocation(chainId);
+  chainInfoById(chainName: string): ChainInfo {
+    const chainLocation = this.universalLocation(chainName);
 
     if (!chainLocation) {
-      throw new Error(`${chainId}: chain's universal location is not found`);
+      throw new Error(`${chainName}: chain's universal location is not found`);
     }
 
-    return this.chainInfoByLocation(chainLocation);
+    return this.chainInfoByUniversalLocation(chainLocation);
   }
 
   /**
-   * Returns information about a chain by its location.
-   * @param location - The chain location.
+   * Returns information about a chain by its universal location.
+   * @param universalLocation - The chain's universal location.
    * @returns The ChainInfo object.
    * @example
    * ```typescript
    * registry.chainInfoByLocation(parachainUniversalLocation('polkadot', 2001n));
    * ```
    */
-  chainInfoByLocation(location: InteriorLocation): ChainInfo {
-    sanitizeInterior(location);
-    const locationStr = convertObjToJsonString(location);
+  chainInfoByUniversalLocation(universalLocation: InteriorLocation): ChainInfo {
+    sanitizeInterior(universalLocation);
+    const locationStr = convertObjToJsonString(universalLocation);
     const chainInfo = this.chainInfos.get(locationStr);
 
     if (!chainInfo) {
@@ -359,21 +354,23 @@ export class Registry {
       throw new Error(`${symbol}: currency's universal location is not found`);
     }
 
-    return this.currencyInfoByLocation(currencyLocation);
+    return this.currencyInfoByUniversalLocation(currencyLocation);
   }
 
   /**
-   * Returns information about a currency by its location.
-   * @param location - The currency location.
+   * Returns information about a currency by its universal location.
+   * @param universalLocation - The currency's universal location.
    * @returns The CurrencyInfo object.
    * @example
    * ```typescript
    * registry.currencyInfoByLocation(parachainUniversalLocation('polkadot', 2001n));
    * ```
    */
-  currencyInfoByLocation(location: InteriorLocation): CurrencyInfo {
-    sanitizeInterior(location);
-    const locationStr = convertObjToJsonString(location);
+  currencyInfoByUniversalLocation(
+    universalLocation: InteriorLocation,
+  ): CurrencyInfo {
+    sanitizeInterior(universalLocation);
+    const locationStr = convertObjToJsonString(universalLocation);
     const currencyInfo = this.currencyInfos.get(locationStr);
 
     if (!currencyInfo) {
@@ -400,8 +397,10 @@ export class Registry {
       relayEndpointOption.providers,
     );
     this.addChain({
-      chainId: relayEndpointOption.text,
-      universalLocation: relayUniversalLocation,
+      identity: {
+        name: relayEndpointOption.text,
+        universalLocation: relayUniversalLocation,
+      },
       endpoints: relayEndpoints,
     });
 
@@ -422,8 +421,10 @@ export class Registry {
       }
 
       this.addChain({
-        chainId: para.text,
-        universalLocation: paraUniversalLocation,
+        identity: {
+          name: para.text,
+          universalLocation: paraUniversalLocation,
+        },
         endpoints: paraEndpoints,
       });
     }

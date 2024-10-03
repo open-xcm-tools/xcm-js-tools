@@ -10,23 +10,31 @@ const BDK_URL = process.env.BDK_URL!;
 void (async () => {
   const registry = new Registry()
     .addChain({
-      chainId: 'Polkadot',
-      universalLocation: relaychainUniversalLocation('westend'),
+      identity: {
+        name: 'Polkadot',
+        universalLocation: relaychainUniversalLocation('westend'),
+      },
       endpoints: [`${BDK_URL}/relay/`],
     })
     .addChain({
-      chainId: 'AssetHubA',
-      universalLocation: parachainUniversalLocation('westend', 2001n),
+      identity: {
+        name: 'AssetHubA',
+        universalLocation: parachainUniversalLocation('westend', 2001n),
+      },
       endpoints: [`${BDK_URL}/relay-assethubA/`],
     })
     .addChain({
-      chainId: 'AssetHubB',
-      universalLocation: parachainUniversalLocation('westend', 2002n),
+      identity: {
+        name: 'AssetHubB',
+        universalLocation: parachainUniversalLocation('westend', 2002n),
+      },
       endpoints: [`${BDK_URL}/relay-assethubB/`],
     })
     .addChain({
-      chainId: 'AssetHubC',
-      universalLocation: parachainUniversalLocation('westend', 2003n),
+      identity: {
+        name: 'AssetHubC',
+        universalLocation: parachainUniversalLocation('westend', 2003n),
+      },
       endpoints: [`${BDK_URL}/relay-assethubC/`],
     })
     .addRelativeLocation(

@@ -1,4 +1,4 @@
-import {ChainInfo} from './registry';
+import {ChainIdentity} from './registry';
 
 class ValidationError extends Error {
   public readonly method: string;
@@ -27,24 +27,24 @@ export class SanitizationError extends ValidationError {
 }
 
 export class FeeEstimationError extends Error {
-  public readonly originChainInfo: ChainInfo;
-  public readonly destChainInfo?: ChainInfo;
+  public readonly originChainIdentity: ChainIdentity;
+  public readonly destChainIdentity?: ChainIdentity;
 
   constructor(
-    originChainInfo: ChainInfo,
-    destChainInfo?: ChainInfo,
+    originChainIdentity: ChainIdentity,
+    destChainIdentity?: ChainIdentity,
     cause?: unknown,
   ) {
-    const destChainDescr = destChainInfo
-      ? `"${destChainInfo.chainId}"`
+    const destChainDescr = destChainIdentity
+      ? `"${destChainIdentity.name}"`
       : 'an unknown chain';
 
     super(
-      `failed to estimate fees on ${destChainDescr} of a program sent from "${originChainInfo.chainId}"`,
+      `failed to estimate fees on ${destChainDescr} of a program sent from "${originChainIdentity.name}"`,
       {cause},
     );
-    this.originChainInfo = originChainInfo;
-    this.destChainInfo = destChainInfo;
+    this.originChainIdentity = originChainIdentity;
+    this.destChainIdentity = destChainIdentity;
   }
 }
 

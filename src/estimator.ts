@@ -14,7 +14,7 @@ import {SubmittableExtrinsic} from '@polkadot/api/types';
 import {Result, Vec} from '@polkadot/types-codec';
 import {Codec} from '@polkadot/types-codec/types';
 import {stringify} from '@polkadot/util';
-import {ChainInfo} from './registry';
+import {ChainIdentity, ChainInfo} from './registry';
 import {
   assetIdIntoCurrentVersion,
   assetsIntoCurrentVersion,
@@ -37,12 +37,12 @@ export type EstimatorResolver = (
 ) => Promise<Estimator>;
 
 export type SentXcmProgramsLogger = (
-  originChainInfo: ChainInfo,
+  originChainIdentity: ChainIdentity,
   sentXcmPrograms: SentXcmPrograms[],
 ) => void;
 
 export type ChainXcmFeesLogger = (
-  chainInfo: ChainInfo,
+  chainIdentity: ChainIdentity,
   requiredFees: bigint,
 ) => void;
 
@@ -65,24 +65,28 @@ export type XcmExecutionEffect = {
 };
 
 export class Estimator {
-  chainInfo: ChainInfo;
+  chainIdentity: ChainIdentity;
   api: ApiPromise;
   xcmVersion: XcmVersion;
 
-  constructor(api: ApiPromise, chainInfo: ChainInfo, xcmVersion: XcmVersion) {
-    this.chainInfo = chainInfo;
+  constructor(
+    api: ApiPromise,
+    chainIdentity: ChainIdentity,
+    xcmVersion: XcmVersion,
+  ) {
+    this.chainIdentity = chainIdentity;
     this.api = api;
     this.xcmVersion = xcmVersion;
 
     if (this.api.call.dryRunApi === undefined) {
       throw new Error(
-        `${this.chainInfo.chainId} doesn't implement dry-run Runtime API`,
+        `${this.chainIdentity.name} doesn't implement dry-run Runtime API`,
       );
     }
 
     if (this.api.call.xcmPaymentApi === undefined) {
       throw new Error(
-        `${this.chainInfo.chainId} doesn't implement XCM payment Runtime API`,
+        `${this.chainIdentity.name} doesn't implement XCM payment Runtime API`,
       );
     }
   }
@@ -91,9 +95,12 @@ export class Estimator {
     const api = await ApiPromise.create({
       provider: new WsProvider(chainInfo.endpoints),
     });
-    const xcmVersion = await Estimator.estimateMaxXcmVersion(api, chainInfo);
+    const xcmVersion = await Estimator.estimateMaxXcmVersion(
+      api,
+      chainInfo.identity.name,
+    );
 
-    return new Estimator(api, chainInfo, xcmVersion);
+    return new Estimator(api, chainInfo.identity, xcmVersion);
   }
 
   async disconnect() {
@@ -102,15 +109,17 @@ export class Estimator {
 
   static async estimateMaxXcmVersion(
     api: ApiPromise,
-    chainInfo: ChainInfo,
+    providedChainName?: string,
     palletXcmName?: string,
   ) {
+    const chainName: string =
+      providedChainName ??
+      (await api.rpc.system.chain().then(c => c.toPrimitive()));
+
     palletXcmName = palletXcmName ?? findPalletXcm(api);
 
     if (!palletXcmName) {
-      throw new Error(
-        `${chainInfo.chainId}: no pallet-xcm found in the runtime`,
-      );
+      throw new Error(`${chainName}: no pallet-xcm found in the runtime`);
     }
 
     for (
@@ -127,7 +136,7 @@ export class Estimator {
     }
 
     console.warn(
-      `${chainInfo.chainId}: ${palletXcmName} doesn't know about supported XCM versions yet. Fallbacking to safeXcmVersion`,
+      `${chainName}: ${palletXcmName} doesn't know about supported XCM versions yet. Fallbacking to safeXcmVersion`,
     );
 
     const safeVersion = await api.query[palletXcmName]
@@ -137,7 +146,7 @@ export class Estimator {
     if (MIN_XCM_VERSION <= safeVersion && safeVersion <= CURRENT_XCM_VERSION) {
       return safeVersion as XcmVersion;
     } else {
-      throw new Error(`${chainInfo.chainId}: no supported XCM versions found`);
+      throw new Error(`${chainName}: no supported XCM versions found`);
     }
   }
 
@@ -150,7 +159,7 @@ export class Estimator {
     );
     if (result.isErr) {
       throw new Error(
-        `${this.chainInfo.chainId}: failed to get the XCM fee asset IDs - ${stringify(result.asErr.toHuman())}`,
+        `${this.chainIdentity.name}: failed to get the XCM fee asset IDs - ${stringify(result.asErr.toHuman())}`,
       );
     }
 
@@ -196,7 +205,7 @@ export class Estimator {
     const sent = extractSentPrograms(dryRunEffects);
 
     const sentLogger = options.sentXcmProgramsLogger ?? logSentPrograms;
-    sentLogger(this.chainInfo, sent);
+    sentLogger(this.chainIdentity, sent);
 
     return this.estimateSentXcmProgramsFees(sent, feeAssetId, options);
   }
@@ -207,14 +216,14 @@ export class Estimator {
   ) {
     if (programs.length === 0) {
       throw new Error(
-        `${this.chainInfo.chainId}: can't compute the execution fees, no programs given`,
+        `${this.chainIdentity.name}: can't compute the execution fees, no programs given`,
       );
     }
 
     const acceptableFeeAssets = await this.estimateFeeAssetIds();
     if (findAssetIdIndex(feeAssetId, acceptableFeeAssets) === undefined) {
       throw new Error(
-        `${this.chainInfo.chainId} doesn't accept the selected fee asset as payment`,
+        `${this.chainIdentity.name} doesn't accept the selected fee asset as payment`,
       );
     }
 
@@ -222,7 +231,7 @@ export class Estimator {
 
     for (const [i, program] of programs.entries()) {
       console.info(
-        `${this.chainInfo.chainId}: estimating execution fees (${i + 1}/${programs.length})`,
+        `${this.chainIdentity.name}: estimating execution fees (${i + 1}/${programs.length})`,
       );
 
       const queryWeightResult: Result<Codec, Codec> =
@@ -230,7 +239,7 @@ export class Estimator {
       if (queryWeightResult.isErr) {
         // TODO describe the program
         throw new Error(
-          `${this.chainInfo.chainId}: failed to get the XCM program's weight - ${stringify(queryWeightResult.asErr.toHuman())}`,
+          `${this.chainIdentity.name}: failed to get the XCM program's weight - ${stringify(queryWeightResult.asErr.toHuman())}`,
         );
       }
 
@@ -245,7 +254,7 @@ export class Estimator {
       if (queryFeeResult.isErr) {
         // TODO describe the program
         throw new Error(
-          `${this.chainInfo.chainId}: failed to convert the XCM program's weight to the asset fee`,
+          `${this.chainIdentity.name}: failed to convert the XCM program's weight to the asset fee`,
         );
       }
 
@@ -263,7 +272,7 @@ export class Estimator {
     const errors: FeeEstimationError[] = [];
 
     const fees = await Estimator.#estimateProgramsFees(
-      this.chainInfo,
+      this.chainIdentity,
       sent,
       feeAssetId,
       options,
@@ -295,25 +304,25 @@ export class Estimator {
     let sentXcmPrograms: SentXcmPrograms[] = [];
     for (const [i, program] of programs.entries()) {
       console.info(
-        `${this.chainInfo.chainId}: dry-running XCM program (${i + 1}/${programs.length})`,
+        `${this.chainIdentity.name}: dry-running XCM program (${i + 1}/${programs.length})`,
       );
 
       const result: Result<any, Codec> =
         await this.api.call.dryRunApi.dryRunXcm(xcmVersionedOrigin, program);
       if (result.isErr) {
         throw new Error(
-          `failed to dry-run an XCM program on ${this.chainInfo.chainId}: ${stringify(result.asErr.toHuman())}`,
+          `failed to dry-run an XCM program on ${this.chainIdentity.name}: ${stringify(result.asErr.toHuman())}`,
         );
       }
 
       const dryRunEffect = result.asOk;
       if (dryRunEffect.executionResult.isIncomplete) {
         throw new Error(
-          `an XCM program isn't completed successfully on ${this.chainInfo.chainId}: ${dryRunEffect.executionResult.asIncomplete}`,
+          `an XCM program isn't completed successfully on ${this.chainIdentity.name}: ${dryRunEffect.executionResult.asIncomplete}`,
         );
       } else if (dryRunEffect.executionResult.isError) {
         throw new Error(
-          `an XCM program failed on ${this.chainInfo.chainId}: ${dryRunEffect.executionResult.asError}`,
+          `an XCM program failed on ${this.chainIdentity.name}: ${dryRunEffect.executionResult.asError}`,
         );
       }
 
@@ -327,7 +336,7 @@ export class Estimator {
 
     if (deliveryFeeAssets.length > 1) {
       throw new Error(
-        `${this.chainInfo.chainId}: combined delivery fees include different assets - an unsupported chain's behavior`,
+        `${this.chainIdentity.name}: combined delivery fees include different assets - an unsupported chain's behavior`,
       );
     }
 
@@ -336,7 +345,7 @@ export class Estimator {
       const deliveryFeeAsset = deliveryFeeAssets[0];
       if ('nonFungible' in deliveryFeeAsset.fun) {
         throw new Error(
-          `${this.chainInfo.chainId}: a non-fungible asset represents the delivery fees - an unsupported chain's behavior`,
+          `${this.chainIdentity.name}: a non-fungible asset represents the delivery fees - an unsupported chain's behavior`,
         );
       }
 
@@ -347,7 +356,7 @@ export class Estimator {
         compareLocation(feeAssetId, deliveryFeeAsset.id)
       ) {
         throw new Error(
-          `${this.chainInfo.chainId}: the selected fee asset isn't accepted by this chain to pay delivery fees`,
+          `${this.chainIdentity.name}: the selected fee asset isn't accepted by this chain to pay delivery fees`,
         );
       }
     }
@@ -379,7 +388,7 @@ export class Estimator {
   ): Promise<Asset[]> {
     if (programs.length === 0) {
       throw new Error(
-        `${this.chainInfo.chainId}: can't compute the delivery fees, no programs sent to the given destination ${stringify(destination)}`,
+        `${this.chainIdentity.name}: can't compute the delivery fees, no programs sent to the given destination ${stringify(destination)}`,
       );
     }
 
@@ -397,7 +406,7 @@ export class Estimator {
         );
       if (result.isErr) {
         throw new Error(
-          `${this.chainInfo.chainId}: failed to get the delivery fees`,
+          `${this.chainIdentity.name}: failed to get the delivery fees`,
         );
       }
 
@@ -413,7 +422,7 @@ export class Estimator {
   }
 
   static async #estimateProgramsFees(
-    originChainInfo: ChainInfo,
+    originChainIdentity: ChainIdentity,
     sent: SentXcmPrograms[],
     feeAssetId: AssetId,
     options: XcmFeeEstimationOptions,
@@ -430,7 +439,8 @@ export class Estimator {
         sent.map(async sent => {
           let destEstimator: Estimator | null = null;
           try {
-            const originUniversalLocation = originChainInfo.universalLocation;
+            const originUniversalLocation =
+              originChainIdentity.universalLocation;
 
             const destUniversalLocation = relativeLocationToUniversal({
               relativeLocation: sent.destination,
@@ -441,12 +451,12 @@ export class Estimator {
 
             const xcmOrigin = locationRelativeToPrefix({
               location: originUniversalLocation,
-              prefix: destEstimator.chainInfo.universalLocation,
+              prefix: destEstimator.chainIdentity.universalLocation,
             });
             const destFeeAssetId: AssetId = reanchorAssetId({
               assetId: feeAssetId,
               oldContext: originUniversalLocation,
-              newContext: destEstimator.chainInfo.universalLocation,
+              newContext: destEstimator.chainIdentity.universalLocation,
             });
 
             const executionEffect =
@@ -457,17 +467,17 @@ export class Estimator {
               );
 
             feesLogger(
-              destEstimator.chainInfo,
+              destEstimator.chainIdentity,
               executionEffect.totalFeesNeeded,
             );
             sentLogger(
-              destEstimator.chainInfo,
+              destEstimator.chainIdentity,
               executionEffect.sentXcmPrograms,
             );
 
             totalFeesNeeded += executionEffect.totalFeesNeeded;
             totalFeesNeeded += await Estimator.#estimateProgramsFees(
-              destEstimator.chainInfo,
+              destEstimator.chainIdentity,
               executionEffect.sentXcmPrograms,
               destFeeAssetId,
               options,
@@ -475,8 +485,8 @@ export class Estimator {
             );
           } catch (err) {
             throw new FeeEstimationError(
-              originChainInfo,
-              destEstimator?.chainInfo,
+              originChainIdentity,
+              destEstimator?.chainIdentity,
               {cause: err},
             );
           } finally {
@@ -517,21 +527,23 @@ function stringifyDispatchError(api: ApiPromise, error: any) {
   }
 }
 
-function logRequiredFees(chainInfo: ChainInfo, requiredFees: bigint) {
-  console.info(`${chainInfo.chainId} requires a fee amount of ${requiredFees}`);
+function logRequiredFees(chainIdentity: ChainIdentity, requiredFees: bigint) {
+  console.info(
+    `${chainIdentity.name} requires a fee amount of ${requiredFees}`,
+  );
 }
 
 function logSentPrograms(
-  originChainInfo: ChainInfo,
+  originChainIdentity: ChainIdentity,
   sentPrograms: SentXcmPrograms[],
 ) {
   if (sentPrograms.length === 0) {
-    console.info(`${originChainInfo.chainId} sent no programs`);
+    console.info(`${originChainIdentity.name} sent no programs`);
   }
 
   for (const sent of sentPrograms) {
     console.info(
-      `${originChainInfo.chainId} sent ${sent.programs.length} XCM programs to ${stringify(sent.destination)}`,
+      `${originChainIdentity.name} sent ${sent.programs.length} XCM programs to ${stringify(sent.destination)}`,
     );
   }
 }

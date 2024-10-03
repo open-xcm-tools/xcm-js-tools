@@ -1,27 +1,60 @@
 import {Registry} from './registry';
-import {asset, fungible, location} from './util';
-import {Asset, AssetLookup} from './xcmtypes';
+import {
+  location,
+  parachainUniversalLocation,
+  relaychainUniversalLocation,
+} from './util';
+
+const BDK_URL = process.env.BDK_URL!;
 
 void (async () => {
   const registry = new Registry()
-    .addEcosystemChains('Polkadot')
-    .addEcosystemChains('Kusama')
+    .addChain({
+      chainId: 'Polkadot',
+      universalLocation: relaychainUniversalLocation('westend'),
+      endpoints: [`${BDK_URL}/relay/`],
+    })
+    .addChain({
+      chainId: 'AssetHubA',
+      universalLocation: parachainUniversalLocation('westend', 2001n),
+      endpoints: [`${BDK_URL}/relay-assethubA/`],
+    })
+    .addChain({
+      chainId: 'AssetHubB',
+      universalLocation: parachainUniversalLocation('westend', 2002n),
+      endpoints: [`${BDK_URL}/relay-assethubB/`],
+    })
+    .addChain({
+      chainId: 'AssetHubC',
+      universalLocation: parachainUniversalLocation('westend', 2003n),
+      endpoints: [`${BDK_URL}/relay-assethubC/`],
+    })
     .addRelativeLocation(
-      'Test Account',
+      'Alice',
       location(0n, [
         {
           accountId32: {
-            id: '0x006ddf51db56437ce5c886ab28cd767fc85ad5cc5d4a679376a1f7e71328b501',
+            id: '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d',
           },
         },
       ]),
     );
 
   await registry.addNativeCurrency('Polkadot');
-  await registry.addNativeCurrency('Unique Network');
-  await registry.addNativeCurrency('QUARTZ by UNIQUE');
+  registry.addCurrency({
+    symbol: 'AHST',
+    decimals: 6,
+    universalLocation: {
+      x4: [
+        {globalConsensus: 'westend'},
+        {parachain: 2001n},
+        {palletInstance: 50n},
+        {generalIndex: 1984n},
+      ],
+    },
+  });
 
-  const xcm = await registry.connectXcm('Unique Network');
+  const xcm = await registry.connectXcm('AssetHubB');
   // xcm.enforceXcmVersion(2);
   // xcm.enforceXcmVersion(3);
   // xcm.enforceXcmVersion(4);
@@ -30,30 +63,11 @@ void (async () => {
   // TODO check/convert all junctions add arbitrary byte data
   // TODO conversion for account id text reprs
   const transferTx = await xcm.composeTransfer({
-    origin: 'Test Account',
-    assets: [
-      asset(location(0n, 'here'), fungible(100n)),
-
-      asset('DOT', fungible(5n)),
-
-      xcm.adjustedFungible('DOT', '300'),
-      xcm.adjustedFungible('DOT', '2.5'),
-
-      <AssetLookup>{
-        id: 'DOT',
-        fun: fungible(42n),
-      },
-
-      <Asset>{
-        id: {parents: 0n, interior: 'here'},
-        fun: {fungible: 88n},
-      },
-
-      asset('QTZ', fungible(77n)),
-    ],
-    feeAssetId: 'DOT',
-    destination: 'Acala',
-    beneficiary: 'Test Account',
+    origin: 'Alice',
+    assets: [xcm.adjustedFungible('AHST', '10')],
+    feeAssetId: 'AHST',
+    destination: 'AssetHubC',
+    beneficiary: 'Alice',
   });
 
   console.log(transferTx.method.toHex());

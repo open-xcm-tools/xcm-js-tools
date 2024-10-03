@@ -1,6 +1,7 @@
 import {EndpointOption} from '@polkadot/apps-config/endpoints/types';
 import {SimpleXcm} from './simplexcm';
 import {
+  compareInteriorLocation,
   concatInterior,
   convertObjToJsonString,
   isChainUniversalLocation,
@@ -18,7 +19,6 @@ import {
   prodParasKusamaCommon,
   prodParasKusama,
 } from '@polkadot/apps-config';
-import _ from 'lodash';
 import {ApiPromise, WsProvider} from '@polkadot/api';
 
 export type Ecosystem = 'Polkadot' | 'Kusama';
@@ -444,7 +444,7 @@ function chainLocationToNativeCurrencyLocation(
   const acalaLocation = parachainUniversalLocation('polkadot', 2000n);
   const karuraLocation = parachainUniversalLocation('kusama', 2000n);
 
-  if (_.isEqual(chainLocation, acalaLocation)) {
+  if (!compareInteriorLocation(chainLocation, acalaLocation)) {
     return concatInterior(acalaLocation, {
       x1: [
         {
@@ -455,7 +455,7 @@ function chainLocationToNativeCurrencyLocation(
         },
       ],
     });
-  } else if (_.isEqual(chainLocation, karuraLocation)) {
+  } else if (!compareInteriorLocation(chainLocation, karuraLocation)) {
     return concatInterior(karuraLocation, {
       x1: [
         {

@@ -8,6 +8,7 @@ export type InteriorLocationLookup = InteriorLocation | RegistryLookup;
 export type AssetIdLookup = AssetId | RegistryLookup;
 export type AssetLookup = GenericAsset<AssetId | RegistryLookup, Fungibility>;
 
+export type AnyLocation = LocationV2 | LocationV3 | LocationV4;
 export type AnyAssetId = AssetIdV2 | AssetIdV3 | AssetIdV4;
 export type AnyAsset = AssetV2 | AssetV3 | AssetV4;
 export type AnyAssetInstance =

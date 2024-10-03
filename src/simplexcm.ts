@@ -6,8 +6,6 @@ import {
   XcmVersion,
   Location,
   Asset,
-  CURRENT_XCM_VERSION,
-  MIN_XCM_VERSION,
   AssetLookup,
   LocationLookup,
   AssetIdLookup,
@@ -16,12 +14,13 @@ import {
   FungibleAsset,
   InteriorLocationLookup,
   InteriorLocation,
+  AssetId,
 } from './xcmtypes';
 import {ChainInfo, Registry} from './registry';
 import {
-  convertAssetsVersion,
   convertLocationVersion,
   findFeeAssetById,
+  findPalletXcm,
   fungible,
   location,
   locationRelativeToPrefix,
@@ -29,11 +28,13 @@ import {
   sanitizeInterior,
   sanitizeLookup,
   sanitizeTransferParams,
+  palletApiTxName,
+  prepareAssetsForEncoding,
   toJunctions,
 } from './util';
 import {Origin} from './origin';
 import {stringify} from '@polkadot/util';
-import {xcm} from './interfaces/definitions';
+import {Estimator} from './estimator';
 
 export type PalletXcmName = 'polkadotXcm' | 'xcmPallet';
 
@@ -57,6 +58,18 @@ type PreparedTransferParams = {
   beneficiary: Location;
 };
 
+export type XcmExecutionEffect = {
+  totalFeesNeeded: bigint;
+  sentPrograms: SentPrograms[];
+};
+
+export type XcmProgram = unknown;
+
+export type SentPrograms = {
+  destination: Location;
+  programs: XcmProgram[];
+};
+
 interface TransferBackend {
   composeTransfer(
     transferParams: TransferParams,
@@ -71,7 +84,7 @@ export class SimpleXcm {
   registry: Registry;
   chainInfo: ChainInfo;
   palletXcm: PalletXcmName;
-  maxXcmVersion: XcmVersion;
+  estimator: Estimator;
   xcmVersion: XcmVersion;
 
   /**
@@ -91,9 +104,9 @@ export class SimpleXcm {
    * @throws Will throw an error if the requested version exceeds the maximum supported version.
    */
   enforceXcmVersion(version: XcmVersion) {
-    if (version > this.maxXcmVersion) {
+    if (version > this.estimator.xcmVersion) {
       throw new Error(
-        `The requested XCM version ${version} is greater than the chain supports (= ${this.maxXcmVersion})`,
+        `The requested XCM version ${version} is greater than the chain supports (= ${this.estimator.xcmVersion})`,
       );
     }
 
@@ -188,14 +201,14 @@ export class SimpleXcm {
     registry: Registry,
     chainInfo: ChainInfo,
     palletXcm: PalletXcmName,
-    maxXcmVersion: XcmVersion,
+    estimator: Estimator,
   ) {
     this.api = apiPromise;
     this.registry = registry;
     this.chainInfo = chainInfo;
     this.palletXcm = palletXcm;
-    this.maxXcmVersion = maxXcmVersion;
-    this.xcmVersion = maxXcmVersion;
+    this.estimator = estimator;
+    this.xcmVersion = estimator.xcmVersion;
   }
 
   /**
@@ -209,84 +222,21 @@ export class SimpleXcm {
     const chainInfo = registry.chainInfoById(chainId);
 
     const provider = new WsProvider(chainInfo.endpoints);
-    const api = await ApiPromise.create({
-      provider,
-      ...xcm,
-    });
+    const api = await ApiPromise.create({provider});
 
-    const palletXcm = SimpleXcm.#findPalletXcm(api);
+    const palletXcm = findPalletXcm(api);
     if (!palletXcm) {
       throw new Error(`${chainId}: no pallet-xcm found in the runtime`);
     }
 
-    const maxXcmVersion = await SimpleXcm.#discoverMaxXcmVersion(
-      chainId,
+    const xcmVersion = await Estimator.estimateMaxXcmVersion(
       api,
+      chainInfo,
       palletXcm,
     );
+    const estimator = new Estimator(api, chainInfo, xcmVersion);
 
-    return new SimpleXcm(api, registry, chainInfo, palletXcm, maxXcmVersion);
-  }
-
-  /**
-   * Finds the XCM pallet in the API.
-   * @param api - The API promise instance.
-   * @returns The name of the XCM pallet if found, otherwise undefined.
-   */
-  static #findPalletXcm(api: ApiPromise) {
-    const pallets = api.registry.metadata.pallets;
-    for (const pallet of pallets) {
-      const palletRuntimeName = pallet.name.toPrimitive();
-      const palletName = palletApiTxName(palletRuntimeName);
-
-      switch (palletName) {
-        case 'xcmPallet':
-        case 'polkadotXcm':
-          return palletName;
-        default:
-      }
-    }
-  }
-
-  /**
-   * Discovers the maximum supported XCM version for the chain.
-   * @param chainId - The ID of the chain.
-   * @param api - The API promise instance.
-   * @param palletXcm - The name of the XCM pallet.
-   * @returns The maximum supported XCM version.
-   * @throws Will throw an error if no supported XCM versions are found.
-   */
-  static async #discoverMaxXcmVersion(
-    chainId: string,
-    api: ApiPromise,
-    palletXcm: PalletXcmName,
-  ) {
-    for (
-      let version = CURRENT_XCM_VERSION;
-      version >= MIN_XCM_VERSION;
-      --version
-    ) {
-      const supportedVersionEntries =
-        await api.query[palletXcm].supportedVersion.entries(version);
-
-      if (supportedVersionEntries.length > 0) {
-        return version;
-      }
-    }
-
-    console.warn(
-      `${chainId}: ${palletXcm} doesn't know about supported XCM versions yet. Fallbacking to safeXcmVersion`,
-    );
-
-    const safeVersion = await api.query[palletXcm]
-      .safeXcmVersion()
-      .then(version => version.toPrimitive() as number);
-
-    if (MIN_XCM_VERSION <= safeVersion && safeVersion <= CURRENT_XCM_VERSION) {
-      return safeVersion as XcmVersion;
-    } else {
-      throw new Error(`${chainId}: no supported XCM versions found`);
-    }
+    return new SimpleXcm(api, registry, chainInfo, palletXcm, estimator);
   }
 
   /**
@@ -301,21 +251,22 @@ export class SimpleXcm {
 
     console.warn(`
       ${this.chainInfo.chainId}: pallet-xcm does not have the needed "transferAssets" extrinsic.
-      Looking for an alternative transfer backend...
+      Looking for an alternative XCM transfer backend...
     `);
 
     const pallets = this.api.registry.metadata.pallets;
 
     let palletName: string;
     let backend: TransferBackend | undefined;
-    loop: for (const pallet of pallets) {
+    for (const pallet of pallets) {
       const palletRuntimeName = pallet.name.toPrimitive();
       palletName = palletApiTxName(palletRuntimeName);
 
       switch (palletName) {
-        case 'xTokens':
-          backend = new XTokensBackend(this);
-          break loop;
+        // TODO test XTokensBackend
+        // case 'xTokens':
+        //   backend = new XTokensBackend(this);
+        //   break loop;
 
         default:
       }
@@ -323,12 +274,12 @@ export class SimpleXcm {
 
     if (backend) {
       console.warn(
-        `${this.chainInfo.chainId}: using an alternative transfer backend - ${palletName!}`,
+        `${this.chainInfo.chainId}: using an alternative XCM transfer backend - ${palletName!}`,
       );
       return backend;
     } else {
       throw new Error(
-        `${this.chainInfo.chainId}: No known backend pallet is found`,
+        `${this.chainInfo.chainId}: No known XCM transfer backend pallet is found`,
       );
     }
   }
@@ -393,6 +344,27 @@ export class SimpleXcm {
       sanitizeInterior(lookup);
       return lookup;
     }
+  }
+
+  async estimateExtrinsicXcmFees(
+    origin: Origin,
+    xt: SubmittableExtrinsic<'promise'>,
+    feeAssetId: AssetId,
+  ) {
+    const estimatedFees = await this.estimator.estimateExtrinsicFees(
+      origin,
+      xt,
+      feeAssetId,
+      {
+        estimatorResolver: (universalLocation: InteriorLocation) => {
+          const chainInfo =
+            this.registry.chainInfoByLocation(universalLocation);
+          return Estimator.connect(chainInfo);
+        },
+      },
+    );
+
+    return estimatedFees;
   }
 
   /**
@@ -467,7 +439,7 @@ export class PalletXcmBackend implements TransferBackend {
 
     const xcmVersion = this.simpleXcm.xcmVersion;
 
-    const assets = convertAssetsVersion(xcmVersion, preparedParams.assets);
+    let assets = prepareAssetsForEncoding(xcmVersion, preparedParams.assets);
     const destination = convertLocationVersion(
       xcmVersion,
       preparedParams.destination,
@@ -488,14 +460,23 @@ export class PalletXcmBackend implements TransferBackend {
       noXcmWeightLimit,
     );
 
-    // TODO XcmDryRun the extrinsic
-    // 1. Check if the fee asset is OK at all the chain in between.
-    //      a. [Failed check] Throw a descriptive Error object with all relevant info. TODO error object description.
-    // 2. Compute the needed fee amount.
+    const estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
+      preparedParams.origin,
+      txToDryRun,
+      preparedParams.feeAsset.id,
+    );
 
-    // FIXME
+    preparedParams.feeAsset.fun.fungible += estimatedFees;
+    assets = prepareAssetsForEncoding(xcmVersion, preparedParams.assets);
 
-    return txToDryRun;
+    const tx = palletXcm.transferAssets(
+      destination,
+      beneficiary,
+      assets,
+      preparedParams.feeAssetIndex,
+      noXcmWeightLimit,
+    );
+    return tx;
   }
 }
 
@@ -548,7 +529,7 @@ export class XTokensBackend implements TransferBackend {
 
     const xcmVersion = this.simpleXcm.xcmVersion;
 
-    const assets = convertAssetsVersion(xcmVersion, preparedParams.assets);
+    let assets = prepareAssetsForEncoding(xcmVersion, preparedParams.assets);
     const destination = convertLocationVersion(
       xcmVersion,
       destinationBeneficiary,
@@ -564,8 +545,23 @@ export class XTokensBackend implements TransferBackend {
       noXcmWeightLimit,
     );
 
-    // FIXME
-    return txToDryRun;
+    const estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
+      preparedParams.origin,
+      txToDryRun,
+      preparedParams.feeAsset.id,
+    );
+
+    preparedParams.feeAsset.fun.fungible += estimatedFees;
+    assets = prepareAssetsForEncoding(xcmVersion, preparedParams.assets);
+
+    const tx = xTokens.transferMultiassets(
+      assets,
+      preparedParams.feeAssetIndex,
+      destination,
+      noXcmWeightLimit,
+    );
+
+    return tx;
   }
 }
 
@@ -605,13 +601,7 @@ export async function prepareTransferParams(
     simpleXcm.resolveRelativeAsset(asset),
   );
 
-  // TODO sort and deduplicate the `assets`
-
-  const feeAssetResult = findFeeAssetById(
-    simpleXcm.xcmVersion,
-    feeAssetId,
-    assets,
-  );
+  const feeAssetResult = findFeeAssetById(feeAssetId, assets);
 
   let feeAsset: FungibleAsset;
   let feeAssetIndex: number;
@@ -635,16 +625,4 @@ export async function prepareTransferParams(
     destination,
     beneficiary,
   };
-}
-
-/**
- * Converts a pallet runtime name to a camelCase transaction name.
- * @param palletRuntimeName - The runtime name of the pallet.
- * @returns The camelCase transaction name.
- */
-function palletApiTxName(palletRuntimeName: string) {
-  const palletPascalCaseName = palletRuntimeName;
-
-  // `api.tx` fields are in the `camelCase`.
-  return palletPascalCaseName[0].toLowerCase() + palletPascalCaseName.slice(1);
 }

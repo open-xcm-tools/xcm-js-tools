@@ -44,15 +44,15 @@ import {
   AnyBodyId,
   AnyJunction,
   AnyInterior,
-  AssetIdV4,
   AssetIdV3,
   AssetIdV2,
   LocationLookup,
+  AnyLocation,
 } from './xcmtypes';
-import _ from 'lodash';
 import {SanitizationError} from './errors';
 import {hexToU8a, stringify} from '@polkadot/util';
 import {TransferParams} from './simplexcm';
+import {ApiPromise} from '@polkadot/api';
 
 const MAX_UINT8 = 2n ** 8n - 1n;
 const MAX_UINT32 = 2n ** 32n - 1n;
@@ -295,9 +295,10 @@ export function relativeLocationToUniversal({
     );
   }
 
-  const universalPrefix = contextJunctions.slice(
-    Number(relativeLocation.parents),
-  );
+  const prefixBeg = 0;
+  const prefixEnd = contextJunctions.length - Number(relativeLocation.parents);
+
+  const universalPrefix = contextJunctions.slice(prefixBeg, prefixEnd);
   return toInterior([...universalPrefix, ...locationJunctions]);
 }
 
@@ -314,7 +315,7 @@ export function locationRelativeToPrefix({
   while (
     locationJunctions.length > 0 &&
     prefixJunctions.length > 0 &&
-    _.isEqual(locationJunctions[0], prefixJunctions[0])
+    !compareJunction(locationJunctions[0], prefixJunctions[0])
   ) {
     locationJunctions = locationJunctions.slice(1);
     prefixJunctions = prefixJunctions.slice(1);
@@ -324,6 +325,42 @@ export function locationRelativeToPrefix({
     parents: BigInt(prefixJunctions.length),
     interior: toInterior(locationJunctions),
   };
+}
+
+export function reanchorRelativeLocation({
+  relativeLocation,
+  oldContext,
+  newContext,
+}: {
+  relativeLocation: Location;
+  oldContext: InteriorLocation;
+  newContext: InteriorLocation;
+}): Location {
+  const location = relativeLocationToUniversal({
+    relativeLocation,
+    context: oldContext,
+  });
+
+  return locationRelativeToPrefix({
+    location,
+    prefix: newContext,
+  });
+}
+
+export function reanchorAssetId({
+  assetId,
+  oldContext,
+  newContext,
+}: {
+  assetId: AssetId;
+  oldContext: InteriorLocation;
+  newContext: InteriorLocation;
+}): AssetId {
+  return reanchorRelativeLocation({
+    relativeLocation: assetId,
+    oldContext,
+    newContext,
+  });
 }
 
 function convertXcmEntityVersion<T extends Record<string, unknown>>(
@@ -418,6 +455,16 @@ export function convertAssetsVersion(
   }
 
   return convertAssetsVersion(version, unwrapVersionedAssetsArray(assets));
+}
+
+export function prepareAssetsForEncoding(
+  version: XcmVersion,
+  assets: VersionedAssets | VersionedAsset[] | Asset[],
+): VersionedAssets {
+  const versionedAssets = convertAssetsVersion(version, assets);
+
+  sortAndDeduplicateVersionedAssets(versionedAssets);
+  return versionedAssets;
 }
 
 export function locationIntoCurrentVersion(
@@ -1491,7 +1538,11 @@ function compareBodyPart(
   }
 }
 
-function compareJunction(
+export function compareJunction(junction1: Junction, junction2: Junction) {
+  return compareAnyJunction(CURRENT_XCM_VERSION, junction1, junction2);
+}
+
+function compareAnyJunction(
   xcmVersion: XcmVersion,
   junction1: AnyJunction,
   junction2: AnyJunction,
@@ -1632,7 +1683,7 @@ function compareJunction(
     }
 
     throw new Error(
-      'compareJunction: cannot compare junction object, unknown content',
+      'compareAnyJunction: cannot compare junction object, unknown content',
     );
   } else {
     return typeComparison;
@@ -1653,7 +1704,7 @@ function compareInteriors(
     }
 
     for (let i = 0; i < junctions1.length; i++) {
-      const comparisonResult = compareJunction(
+      const comparisonResult = compareAnyJunction(
         xcmVersion,
         junctions1[i],
         junctions2[i],
@@ -1682,16 +1733,31 @@ function compareInteriors(
   );
 }
 
-function compareAssetId(
+export function compareAssetId(assetId1: AssetId, assetId2: AssetId) {
+  return compareAnyAssetId(assetId1, assetId2, CURRENT_XCM_VERSION);
+}
+
+export function compareLocation(location1: Location, location2: Location) {
+  return compareAnyLocation(CURRENT_XCM_VERSION, location1, location2);
+}
+
+export function compareInteriorLocation(
+  location1: InteriorLocation,
+  location2: InteriorLocation,
+) {
+  return compareInteriors(CURRENT_XCM_VERSION, location1, location2);
+}
+
+function compareAnyAssetId(
   assetId1: AnyAssetId,
   assetId2: AnyAssetId,
   xcmVersion: XcmVersion,
 ) {
   if (xcmVersion === 4) {
-    return compareAssetIdV4(
+    return compareAnyLocation(
       xcmVersion,
-      assetId1 as AssetIdV4,
-      assetId2 as AssetIdV4,
+      assetId1 as LocationV4,
+      assetId2 as LocationV4,
     );
   }
   if (xcmVersion < 4) {
@@ -1702,20 +1768,20 @@ function compareAssetId(
     );
   }
 
-  throw new Error('compareAssetId: unknown XCM version');
+  throw new Error('compareAnyAssetId: unknown XCM version');
 }
 
-function compareAssetIdV4(
+function compareAnyLocation(
   xcmVersion: XcmVersion,
-  assetId1: AssetIdV4,
-  assetId2: AssetIdV4,
+  location1: AnyLocation,
+  location2: AnyLocation,
 ): number {
   const parentsCompareResult = checkBigIntDiff(
-    assetId1.parents - assetId2.parents,
+    location1.parents - location2.parents,
   );
   return parentsCompareResult !== 0
     ? parentsCompareResult
-    : compareInteriors(xcmVersion, assetId1.interior, assetId2.interior);
+    : compareInteriors(xcmVersion, location1.interior, location2.interior);
 }
 
 function compareAssetIdV3V2(
@@ -1739,29 +1805,31 @@ function compareAssetIdV3V2(
   }
 
   if ('concrete' in assetId1 && 'concrete' in assetId2) {
-    const parentsCompareResult = checkBigIntDiff(
-      assetId1.concrete.parents - assetId2.concrete.parents,
-    );
-    return parentsCompareResult !== 0
-      ? parentsCompareResult
-      : compareInteriors(
-          xcmVersion,
-          assetId1.concrete.interior,
-          assetId2.concrete.interior,
-        );
+    return compareAnyLocation(xcmVersion, assetId1.concrete, assetId2.concrete);
   }
+
   throw new Error(
     'compareAssetIdV3V2: cannot compare assetId object, unknown content',
   );
 }
 
-function sortAssets(xcmVersion: XcmVersion, assets: VersionedAssets) {
-  const sortFunction = (a: AnyAsset, b: AnyAsset) => {
-    const assetIdCompareResult = compareAssetId(a.id, b.id, xcmVersion);
-    return assetIdCompareResult === 0
-      ? compareFungibility(a, b, xcmVersion)
-      : assetIdCompareResult;
-  };
+function compareAsset(xcmVersion: XcmVersion, a: AnyAsset, b: AnyAsset) {
+  const assetIdCompareResult = compareAnyAssetId(a.id, b.id, xcmVersion);
+  return assetIdCompareResult === 0
+    ? compareFungibility(a, b, xcmVersion)
+    : assetIdCompareResult;
+}
+
+function sortAssets(assets: Asset[]) {
+  const sortFunction = (a: AnyAsset, b: AnyAsset) =>
+    compareAsset(CURRENT_XCM_VERSION, a, b);
+
+  assets.sort(sortFunction);
+}
+
+function sortVersionedAssets(xcmVersion: XcmVersion, assets: VersionedAssets) {
+  const sortFunction = (a: AnyAsset, b: AnyAsset) =>
+    compareAsset(xcmVersion, a, b);
 
   if ('v4' in assets) {
     assets.v4.sort(sortFunction);
@@ -1845,26 +1913,35 @@ function deduplicateSortedAssets(
   return res;
 }
 
-export function sortAndDeduplicateAssets(assets: VersionedAssets) {
+export function sortAndDeduplicateAssets(assets: Asset[]): Asset[] {
+  sortAssets(assets);
+  return deduplicateSortedAssets(
+    assets,
+    compareAnyAssetId,
+    CURRENT_XCM_VERSION,
+  ) as AssetV4[];
+}
+
+export function sortAndDeduplicateVersionedAssets(assets: VersionedAssets) {
   const xcmVersion = extractVersion(assets);
-  sortAssets(xcmVersion, assets);
+  sortVersionedAssets(xcmVersion, assets);
 
   if ('v4' in assets) {
     assets.v4 = deduplicateSortedAssets(
       assets.v4,
-      compareAssetId,
+      compareAnyAssetId,
       xcmVersion,
     ) as AssetV4[];
   } else if ('v3' in assets) {
     assets.v3 = deduplicateSortedAssets(
       assets.v3,
-      compareAssetId,
+      compareAnyAssetId,
       xcmVersion,
     ) as AssetV3[];
   } else if ('v2' in assets) {
     assets.v2 = deduplicateSortedAssets(
       assets.v2,
-      compareAssetId,
+      compareAnyAssetId,
       xcmVersion,
     ) as AssetV2[];
   } else {
@@ -1997,13 +2074,11 @@ export function nonfungible(id: bigint | string) {
   };
 }
 
-export function findAssetById<Id extends AnyAssetId, Asset extends AnyAsset>(
-  xcmVersion: XcmVersion,
-  assetId: Id,
+export function findAssetById(
+  assetId: AssetId,
   assets: Asset[],
 ): [Asset, number] | undefined {
   const assetIndex = findAssetIdIndex(
-    xcmVersion,
     assetId,
     assets.map(asset => asset.id),
   );
@@ -2013,11 +2088,10 @@ export function findAssetById<Id extends AnyAssetId, Asset extends AnyAsset>(
 }
 
 export function findFeeAssetById(
-  xcmVersion: XcmVersion,
   feeAssetId: AssetId,
   assets: Asset[],
 ): [FungibleAsset, number] | undefined {
-  const result = findAssetById(xcmVersion, feeAssetId, assets);
+  const result = findAssetById(feeAssetId, assets);
   if (result) {
     const [asset, assetIndex] = result;
 
@@ -2036,13 +2110,9 @@ export function findFeeAssetById(
   }
 }
 
-export function findAssetIdIndex<Id extends AnyAssetId>(
-  xcmVersion: XcmVersion,
-  feeAssetId: Id,
-  assetIds: Id[],
-) {
+export function findAssetIdIndex(feeAssetId: AssetId, assetIds: AssetId[]) {
   const index = assetIds.findIndex(
-    assetId => compareAssetId(assetId, feeAssetId, xcmVersion) === 0,
+    assetId => compareAssetId(assetId, feeAssetId) === 0,
   );
   if (index !== -1) {
     return index;
@@ -2077,4 +2147,36 @@ export function convertObjToJsonString<T extends Record<string, any>>(
   obj: T | string,
 ): string {
   return typeof obj === 'string' ? obj : stringify(sortObjectFields(obj));
+}
+
+/**
+ * Finds the XCM pallet in the API.
+ * @param api - The API promise instance.
+ * @returns The name of the XCM pallet if found, otherwise undefined.
+ */
+export function findPalletXcm(api: ApiPromise) {
+  const pallets = api.registry.metadata.pallets;
+  for (const pallet of pallets) {
+    const palletRuntimeName = pallet.name.toPrimitive();
+    const palletName = palletApiTxName(palletRuntimeName);
+
+    switch (palletName) {
+      case 'xcmPallet':
+      case 'polkadotXcm':
+        return palletName;
+      default:
+    }
+  }
+}
+
+/**
+ * Converts a pallet runtime name to a camelCase name as in the `api.tx.<palletName>`.
+ * @param palletRuntimeName - The runtime name of the pallet.
+ * @returns The camelCase transaction name.
+ */
+export function palletApiTxName(palletRuntimeName: string) {
+  const palletPascalCaseName = palletRuntimeName;
+
+  // `api.tx` fields are in the `camelCase`.
+  return palletPascalCaseName[0].toLowerCase() + palletPascalCaseName.slice(1);
 }

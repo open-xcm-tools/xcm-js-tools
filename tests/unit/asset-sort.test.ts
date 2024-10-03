@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest';
 import {VersionedAssets} from '../../src/xcmtypes';
-import {sortAndDeduplicateAssets} from '../../src/util';
+import {sortAndDeduplicateVersionedAssets} from '../../src/util';
 
 describe('asset sort unit-tests', () => {
   describe('asset v2 sort', () => {
@@ -21,7 +21,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
       const expectedArray = {...assetArray};
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
 
@@ -96,7 +96,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
 
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
 
@@ -171,7 +171,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
 
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
 
@@ -301,7 +301,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
 
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
   });
@@ -389,7 +389,7 @@ describe('asset sort unit-tests', () => {
       ],
     };
 
-    sortAndDeduplicateAssets(assetArray);
+    sortAndDeduplicateVersionedAssets(assetArray);
     expect(assetArray).toStrictEqual(expectedArray);
   });
 
@@ -411,7 +411,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
       const expectedArray = {...assetArray};
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
 
@@ -486,7 +486,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
 
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
 
@@ -561,7 +561,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
 
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
 
@@ -691,7 +691,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
 
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
 
@@ -794,7 +794,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
 
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
   });
@@ -815,7 +815,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
       const expectedArray = {...assetArray};
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
 
@@ -879,7 +879,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
 
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
 
@@ -942,7 +942,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
 
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
 
@@ -1050,7 +1050,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
 
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
 
@@ -1139,7 +1139,7 @@ describe('asset sort unit-tests', () => {
         ],
       };
 
-      sortAndDeduplicateAssets(assetArray);
+      sortAndDeduplicateVersionedAssets(assetArray);
       expect(assetArray).toStrictEqual(expectedArray);
     });
   });

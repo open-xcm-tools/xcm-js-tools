@@ -1,6 +1,6 @@
 {
   "name": "@open-xcm-tools/xcm-estimate",
-  "version": "0.0.1-prealpha",
+  "version": "0.1.0-alpha",
   "main": "index.js",
   "license": "MIT",
   "type": "module",

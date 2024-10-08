@@ -2,41 +2,47 @@ import {ApiPromise, WsProvider} from '@polkadot/api';
 import {SubmittableExtrinsic} from '@polkadot/api/types';
 import {Bytes, Result} from '@polkadot/types-codec';
 import {Codec} from '@polkadot/types-codec/types';
+import {Registry} from './registry';
+import {stringify} from '@polkadot/util';
 import {
+  AssetIdLookup,
+  AssetLookup,
+  ChainInfo,
+  InteriorLocation,
+  LocationLookup,
+  PalletXcmName,
   XcmVersion,
   Location,
-  Asset,
-  AssetLookup,
-  LocationLookup,
-  AssetIdLookup,
-  RegistryLookup,
-  VersionedLocation,
-  FungibleAsset,
   InteriorLocationLookup,
-  InteriorLocation,
+  Origin,
   AssetId,
-} from './xcmtypes';
-import {ChainInfo, Registry} from './registry';
+  Asset,
+  VersionedLocation,
+  RegistryLookup,
+  FungibleAnyAsset,
+  VersionedAssets,
+} from '@open-xcm-tools/xcm-types';
 import {
+  convertAssetIdVersion,
   convertLocationVersion,
-  findFeeAssetById,
   findPalletXcm,
-  fungible,
   location,
   locationRelativeToPrefix,
+  palletApiTxName,
+  prepareAssetsForEncoding,
   relativeLocationToUniversal,
   sanitizeInterior,
   sanitizeLookup,
-  sanitizeTransferParams,
-  palletApiTxName,
-  prepareAssetsForEncoding,
   toJunctions,
-} from './util';
-import {Origin} from './origin';
-import {stringify} from '@polkadot/util';
-import {Estimator} from './estimator';
+} from '@open-xcm-tools/xcm-util';
+import {Estimator, findFeeAssetById} from '@open-xcm-tools/xcm-estimate';
+import {sanitizeTransferParams} from './main-utils';
 
-export type PalletXcmName = 'polkadotXcm' | 'xcmPallet';
+interface TransferBackend {
+  composeTransfer(
+    transferParams: TransferParams,
+  ): Promise<SubmittableExtrinsic<'promise'>>;
+}
 
 /**
  * Parameters for transferring tokens between chains.
@@ -51,30 +57,13 @@ export type TransferParams = {
 
 type PreparedTransferParams = {
   origin: Origin;
-  assets: Asset[];
+  assets: VersionedAssets;
+  feeAssetId: AssetId;
   feeAssetIndex: number;
-  feeAsset: FungibleAsset;
+  feeAnyAsset: FungibleAnyAsset;
   destination: Location;
   beneficiary: Location;
 };
-
-export type XcmExecutionEffect = {
-  totalFeesNeeded: bigint;
-  sentPrograms: SentPrograms[];
-};
-
-export type XcmProgram = unknown;
-
-export type SentPrograms = {
-  destination: Location;
-  programs: XcmProgram[];
-};
-
-interface TransferBackend {
-  composeTransfer(
-    transferParams: TransferParams,
-  ): Promise<SubmittableExtrinsic<'promise'>>;
-}
 
 /**
  * Class representing a simple XCM interface for cross-chain transfers.
@@ -114,43 +103,6 @@ export class SimpleXcm {
   }
 
   /**
-   * Converts a fungible amount from a string representation to a bigint.
-   * @param amount - The amount as a string.
-   * @param decimals - The number of decimals for the asset.
-   * @returns The converted amount as a bigint.
-   * @throws Will throw an error if the amount format is invalid or if the decimals value is incorrect.
-   */
-  private convertFungibleAmount(amount: string, decimals: number): bigint {
-    // RegEx for number validation
-    // Example:
-    // 0.23, 123, 12.232 - OK
-    // 023, 023.23, text, 2.text - Invalid
-    const numberRegEx = /^(0(\.\d+)?|[1-9]\d*(\.\d+)?)$/;
-
-    const isValidNumber = numberRegEx.test(amount);
-    if (!isValidNumber) {
-      throw new Error(
-        'convertFungibleAmount: invalid amount format. Must be an integer or decimal number.',
-      );
-    }
-    const [integerPart, decimalPart = ''] = amount.split('.');
-
-    if (!Number.isSafeInteger(decimals) || decimals < 0 || decimals > 38) {
-      throw new Error(
-        'convertFungibleAmount: decimals value is incorrect. Expected an integer between 1 and 38',
-      );
-    }
-    const paddedDecimalPart = decimalPart.padEnd(decimals, '0');
-
-    if (paddedDecimalPart.length > decimals) {
-      throw new Error(
-        `convertFungibleAmount: the fungible amount's decimal part length (${paddedDecimalPart.length}) is greater than the currency decimals (${decimals})`,
-      );
-    }
-    return BigInt(integerPart + paddedDecimalPart);
-  }
-
-  /**
    * Adjusts the fungible asset amount based on the asset ID and amount.
    * @param assetId - The ID of the asset.
    * @param amount - The amount of the asset as a string.
@@ -173,7 +125,7 @@ export class SimpleXcm {
       ).decimals;
     }
 
-    const value = this.convertFungibleAmount(amount, decimals);
+    const value = this.#convertFungibleAmount(amount, decimals);
 
     return {
       id: assetId,
@@ -212,13 +164,13 @@ export class SimpleXcm {
   }
 
   /**
-   * Creates a new SimpleXcm instance.
+   * Creates and connects a new SimpleXcm instance.
    * @param chainId - The ID of the chain to connect to.
    * @param registry - The registry instance.
    * @returns A promise that resolves to a SimpleXcm instance.
    * @throws Will throw an error if no pallet-xcm is found in the runtime.
    */
-  static async create(chainId: string, registry: Registry) {
+  static async connect(chainId: string, registry: Registry) {
     const chainInfo = registry.chainInfoById(chainId);
 
     const provider = new WsProvider(chainInfo.endpoints);
@@ -237,51 +189,6 @@ export class SimpleXcm {
     const estimator = new Estimator(api, chainInfo.identity, xcmVersion);
 
     return new SimpleXcm(api, registry, chainInfo, palletXcm, estimator);
-  }
-
-  /**
-   * Retrieves the appropriate transfer backend based on the available extrinsics.
-   * @returns The transfer backend instance.
-   * @throws Will throw an error if no known backend pallet is found.
-   */
-  #transferBackend() {
-    if ('transferAssets' in this.api.tx[this.palletXcm]) {
-      return new PalletXcmBackend(this);
-    }
-
-    console.warn(`
-      ${this.chainInfo.identity.name}: pallet-xcm does not have the needed "transferAssets" extrinsic.
-      Looking for an alternative XCM transfer backend...
-    `);
-
-    const pallets = this.api.registry.metadata.pallets;
-
-    let palletName: string;
-    let backend: TransferBackend | undefined;
-    for (const pallet of pallets) {
-      const palletRuntimeName = pallet.name.toPrimitive();
-      palletName = palletApiTxName(palletRuntimeName);
-
-      switch (palletName) {
-        // TODO test XTokensBackend
-        // case 'xTokens':
-        //   backend = new XTokensBackend(this);
-        //   break loop;
-
-        default:
-      }
-    }
-
-    if (backend) {
-      console.warn(
-        `${this.chainInfo.identity.name}: using an alternative XCM transfer backend - ${palletName!}`,
-      );
-      return backend;
-    } else {
-      throw new Error(
-        `${this.chainInfo.identity.name}: No known XCM transfer backend pallet is found`,
-      );
-    }
   }
 
   /**
@@ -412,12 +319,94 @@ export class SimpleXcm {
 
     return result.asOk.toHex();
   }
+
+  /**
+   * Converts a fungible amount from a string representation to a bigint.
+   * @param amount - The amount as a string.
+   * @param decimals - The number of decimals for the asset.
+   * @returns The converted amount as a bigint.
+   * @throws Will throw an error if the amount format is invalid or if the decimals value is incorrect.
+   */
+  #convertFungibleAmount(amount: string, decimals: number): bigint {
+    // RegEx for number validation
+    // Example:
+    // 0.23, 123, 12.232 - OK
+    // 023, 023.23, text, 2.text - Invalid
+    const numberRegEx = /^(0(\.\d+)?|[1-9]\d*(\.\d+)?)$/;
+
+    const isValidNumber = numberRegEx.test(amount);
+    if (!isValidNumber) {
+      throw new Error(
+        'convertFungibleAmount: invalid amount format. Must be an integer or decimal number.',
+      );
+    }
+    const [integerPart, decimalPart = ''] = amount.split('.');
+
+    if (!Number.isSafeInteger(decimals) || decimals < 0 || decimals > 38) {
+      throw new Error(
+        'convertFungibleAmount: decimals value is incorrect. Expected an integer between 1 and 38',
+      );
+    }
+    const paddedDecimalPart = decimalPart.padEnd(decimals, '0');
+
+    if (paddedDecimalPart.length > decimals) {
+      throw new Error(
+        `convertFungibleAmount: the fungible amount's decimal part length (${paddedDecimalPart.length}) is greater than the currency decimals (${decimals})`,
+      );
+    }
+    return BigInt(integerPart + paddedDecimalPart);
+  }
+
+  /**
+   * Retrieves the appropriate transfer backend based on the available extrinsics.
+   * @returns The transfer backend instance.
+   * @throws Will throw an error if no known backend pallet is found.
+   */
+  #transferBackend() {
+    if ('transferAssets' in this.api.tx[this.palletXcm]) {
+      return new PalletXcmBackend(this);
+    }
+
+    console.warn(`
+      ${this.chainInfo.identity.name}: pallet-xcm does not have the needed "transferAssets" extrinsic.
+      Looking for an alternative XCM transfer backend...
+    `);
+
+    const pallets = this.api.registry.metadata.pallets;
+
+    let palletName: string;
+    let backend: TransferBackend | undefined;
+    for (const pallet of pallets) {
+      const palletRuntimeName = pallet.name.toPrimitive();
+      palletName = palletApiTxName(palletRuntimeName);
+
+      switch (palletName) {
+        // TODO test XTokensBackend
+        // case 'xTokens':
+        //   backend = new XTokensBackend(this);
+        //   break loop;
+
+        default:
+      }
+    }
+
+    if (backend) {
+      console.warn(
+        `${this.chainInfo.identity.name}: using an alternative XCM transfer backend - ${palletName!}`,
+      );
+      return backend;
+    } else {
+      throw new Error(
+        `${this.chainInfo.identity.name}: No known XCM transfer backend pallet is found`,
+      );
+    }
+  }
 }
 
 /**
  * Class representing the backend for the XCM pallet.
  */
-export class PalletXcmBackend implements TransferBackend {
+class PalletXcmBackend implements TransferBackend {
   simpleXcm: SimpleXcm;
 
   /**
@@ -443,7 +432,6 @@ export class PalletXcmBackend implements TransferBackend {
 
     const xcmVersion = this.simpleXcm.xcmVersion;
 
-    let assets = prepareAssetsForEncoding(xcmVersion, preparedParams.assets);
     const destination = convertLocationVersion(
       xcmVersion,
       preparedParams.destination,
@@ -459,7 +447,7 @@ export class PalletXcmBackend implements TransferBackend {
     const txToDryRun = palletXcm.transferAssets(
       destination,
       beneficiary,
-      assets,
+      preparedParams.assets,
       preparedParams.feeAssetIndex,
       noXcmWeightLimit,
     );
@@ -467,16 +455,15 @@ export class PalletXcmBackend implements TransferBackend {
     const estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
       preparedParams.origin,
       txToDryRun,
-      preparedParams.feeAsset.id,
+      preparedParams.feeAssetId,
     );
 
-    preparedParams.feeAsset.fun.fungible += estimatedFees;
-    assets = prepareAssetsForEncoding(xcmVersion, preparedParams.assets);
+    preparedParams.feeAnyAsset.fun.fungible += estimatedFees;
 
     const tx = palletXcm.transferAssets(
       destination,
       beneficiary,
-      assets,
+      preparedParams.assets,
       preparedParams.feeAssetIndex,
       noXcmWeightLimit,
     );
@@ -487,7 +474,7 @@ export class PalletXcmBackend implements TransferBackend {
 /**
  * Class representing the backend for the XTokens pallet.
  */
-export class XTokensBackend implements TransferBackend {
+class XTokensBackend implements TransferBackend {
   simpleXcm: SimpleXcm;
 
   /**
@@ -533,7 +520,6 @@ export class XTokensBackend implements TransferBackend {
 
     const xcmVersion = this.simpleXcm.xcmVersion;
 
-    let assets = prepareAssetsForEncoding(xcmVersion, preparedParams.assets);
     const destination = convertLocationVersion(
       xcmVersion,
       destinationBeneficiary,
@@ -543,7 +529,7 @@ export class XTokensBackend implements TransferBackend {
     const noXcmWeightLimit = 'Unlimited';
 
     const txToDryRun = xTokens.transferMultiassets(
-      assets,
+      preparedParams.assets,
       preparedParams.feeAssetIndex,
       destination,
       noXcmWeightLimit,
@@ -552,14 +538,13 @@ export class XTokensBackend implements TransferBackend {
     const estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
       preparedParams.origin,
       txToDryRun,
-      preparedParams.feeAsset.id,
+      preparedParams.feeAssetId,
     );
 
-    preparedParams.feeAsset.fun.fungible += estimatedFees;
-    assets = prepareAssetsForEncoding(xcmVersion, preparedParams.assets);
+    preparedParams.feeAnyAsset.fun.fungible += estimatedFees;
 
     const tx = xTokens.transferMultiassets(
-      assets,
+      preparedParams.assets,
       preparedParams.feeAssetIndex,
       destination,
       noXcmWeightLimit,
@@ -601,31 +586,47 @@ export async function prepareTransferParams(
   const feeAssetId = simpleXcm.resolveRelativeLocation(
     transferParams.feeAssetId,
   );
-  const assets = transferParams.assets.map(asset =>
+
+  const resolvedAssets = transferParams.assets.map(asset =>
     simpleXcm.resolveRelativeAsset(asset),
   );
 
-  const feeAssetResult = findFeeAssetById(feeAssetId, assets);
+  const assets = prepareAssetsForEncoding(simpleXcm.xcmVersion, resolvedAssets);
 
-  let feeAsset: FungibleAsset;
+  const convertedFeeAssetId = convertAssetIdVersion(
+    simpleXcm.xcmVersion,
+    feeAssetId,
+  );
+  const feeAssetResult = findFeeAssetById(convertedFeeAssetId, assets);
+
+  let feeAnyAsset: FungibleAnyAsset;
   let feeAssetIndex: number;
 
   if (feeAssetResult === undefined) {
-    feeAsset = {
-      id: feeAssetId,
-      fun: fungible(1n),
-    };
-    feeAssetIndex = assets.length;
-    assets.push(feeAsset);
+    // FIXME refactor fee estimation so that it can estimate fees when the fee asset
+    // is neither part of the transfer nor above the minimum amount to cover the fees.
+    throw Error(
+      `${simpleXcm.chainInfo.identity.name}: failed to compose transfer, the fee asset isn't part of the transfer (a temporary limitation, see README)`,
+    );
+
+    // const feeAsset = {
+    //   id: feeAssetId,
+    //   fun: fungible(2n),
+    // };
+    // resolvedAssets.push(feeAsset);
+
+    // assets = prepareAssetsForEncoding(simpleXcm.xcmVersion, resolvedAssets);
+    // [feeAnyAsset, feeAssetIndex] = findFeeAssetById(feeAssetId, assets)!;
   } else {
-    [feeAsset, feeAssetIndex] = feeAssetResult;
+    [feeAnyAsset, feeAssetIndex] = feeAssetResult;
   }
 
   return {
     origin,
     assets,
+    feeAssetId,
     feeAssetIndex,
-    feeAsset,
+    feeAnyAsset,
     destination,
     beneficiary,
   };

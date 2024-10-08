@@ -3,17 +3,12 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Node",
-    "rootDir": "./",
-    "baseUrl": ".",
+    "sourceMap": true,
+    "declaration": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true
   },
-  "exclude": ["node_modules"],
-  "include": ["./src/*.ts", "./src/**/*.ts", "./tests/*.ts", "./tests/**/*.ts"],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
-  }
+  "exclude": ["node_modules", ".yarn", ".baedeker", ".github"]
 }

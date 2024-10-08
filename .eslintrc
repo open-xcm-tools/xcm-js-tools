@@ -1,7 +1,7 @@
 {
     "env": {
       "browser": true,
-      "es2020": true
+      "es2022": true
     },
     "extends": [
       "eslint:recommended",
@@ -14,9 +14,7 @@
       "sourceType": "module",
       "project": "./tsconfig.json"
     },
-    "ignorePatterns": [
-      "src/interfaces/"
-    ],
+    "ignorePatterns": [],
     "plugins": ["@typescript-eslint", "prettier"],
     "rules": {
       "@typescript-eslint/no-floating-promises": "error",

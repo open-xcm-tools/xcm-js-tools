@@ -1,16 +1,4 @@
 import {EndpointOption} from '@polkadot/apps-config/endpoints/types';
-import {SimpleXcm} from './simplexcm';
-import {
-  compareInteriorLocation,
-  concatInterior,
-  convertObjToJsonString,
-  isChainUniversalLocation,
-  parachainUniversalLocation,
-  relaychainUniversalLocation,
-  sanitizeInterior,
-  sanitizeLocation,
-} from './util';
-import {InteriorLocation, Location} from './xcmtypes';
 import {
   prodRelayPolkadot,
   prodParasPolkadotCommon,
@@ -20,18 +8,26 @@ import {
   prodParasKusama,
 } from '@polkadot/apps-config';
 import {ApiPromise, WsProvider} from '@polkadot/api';
-
-export type Ecosystem = 'Polkadot' | 'Kusama';
-
-export interface ChainIdentity {
-  name: string;
-  universalLocation: InteriorLocation;
-}
-
-export interface ChainInfo {
-  identity: ChainIdentity;
-  endpoints: string[];
-}
+import {
+  ChainInfo,
+  CurrencyInfo,
+  Ecosystem,
+  InteriorLocation,
+  Location,
+} from '@open-xcm-tools/xcm-types';
+import {SimpleXcm} from './simplexcm';
+import {
+  isChainUniversalLocation,
+  parachainUniversalLocation,
+  relaychainUniversalLocation,
+} from './main-utils';
+import {
+  compareInteriorLocation,
+  concatInterior,
+  convertObjToJsonString,
+  sanitizeInterior,
+  sanitizeLocation,
+} from '@open-xcm-tools/xcm-util';
 
 /**
  * Information about a currency stored in the `Registry`.
@@ -44,12 +40,6 @@ export interface ChainInfo {
  * }
  * ```
  */
-export interface CurrencyInfo {
-  symbol: string;
-  decimals: number;
-  universalLocation: InteriorLocation;
-}
-
 export class Registry {
   chainInfos: Map<string, ChainInfo>;
   universalLocations: Map<string, InteriorLocation>;
@@ -73,7 +63,7 @@ export class Registry {
    * ```
    */
   connectXcm(chainId: string): Promise<SimpleXcm> {
-    return SimpleXcm.create(chainId, this);
+    return SimpleXcm.connect(chainId, this);
   }
 
   /**

@@ -1,6 +1,9 @@
+import {VersionedAsset, VersionedLocation} from '@open-xcm-tools/xcm-types';
+import {
+  convertAssetVersion,
+  convertLocationVersion,
+} from '@open-xcm-tools/xcm-util';
 import {describe, expect, it} from 'vitest';
-import {convertAssetVersion, convertLocationVersion} from '../../src/util';
-import {VersionedAsset, VersionedLocation} from '../../src/xcmtypes';
 
 describe('xcm location tests', () => {
   const locationX1V4: VersionedLocation = {

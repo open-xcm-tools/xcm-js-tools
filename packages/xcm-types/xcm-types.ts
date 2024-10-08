@@ -2,6 +2,36 @@ export type XcmVersion = 2 | 3 | 4;
 export const CURRENT_XCM_VERSION: XcmVersion = 4;
 export const MIN_XCM_VERSION: XcmVersion = 2;
 
+export type Ecosystem = 'Polkadot' | 'Kusama';
+
+export interface ChainIdentity {
+  name: string;
+  universalLocation: InteriorLocation;
+}
+export interface ChainInfo {
+  identity: ChainIdentity;
+  endpoints: string[];
+}
+export interface CurrencyInfo {
+  symbol: string;
+  decimals: number;
+  universalLocation: InteriorLocation;
+}
+
+export type PalletXcmName = 'polkadotXcm' | 'xcmPallet';
+
+export type XcmExecutionEffect = {
+  totalFeesNeeded: bigint;
+  sentPrograms: SentPrograms[];
+};
+
+export type XcmProgram = unknown;
+
+export type SentPrograms = {
+  destination: Location;
+  programs: XcmProgram[];
+};
+
 export type RegistryLookup = string;
 export type LocationLookup = Location | RegistryLookup;
 export type InteriorLocationLookup = InteriorLocation | RegistryLookup;
@@ -20,6 +50,7 @@ export type AnyNetworkId = NetworkIdV4 | NetworkIdV3 | NetworkIdV2;
 export type AnyBodyId = BodyIdV4 | BodyIdV3 | BodyIdV2;
 export type AnyJunction = JunctionV4 | JunctionV3 | JunctionV2;
 export type AnyInterior = InteriorV4 | InteriorV3 | InteriorV2;
+export type AnyFungibility = FungibilityV4 | FungibilityV3 | FungibilityV2;
 
 export type InteriorLocation = Interior;
 
@@ -31,7 +62,7 @@ export type VersionedAssets = Versioned<AssetV2[], AssetV3[], AssetV4[]>;
 export type VersionedLocation = Versioned<LocationV2, LocationV3, LocationV4>;
 
 export type Asset = GenericAsset<AssetId, Fungibility>;
-export type FungibleAsset = GenericAsset<AssetId, Fungible>;
+export type FungibleAnyAsset = GenericAsset<AnyAssetId, Fungible>;
 
 type GenericAsset<Id, Fun> = {
   id: Id;
@@ -105,9 +136,18 @@ type GenericJunctions<
       >;
 
 export type Junctions<Length extends number> = JunctionsV4<Length>;
-type JunctionsV2<Length extends number> = GenericJunctions<JunctionV2, Length>;
-type JunctionsV3<Length extends number> = GenericJunctions<JunctionV3, Length>;
-type JunctionsV4<Length extends number> = GenericJunctions<JunctionV4, Length>;
+export type JunctionsV2<Length extends number> = GenericJunctions<
+  JunctionV2,
+  Length
+>;
+export type JunctionsV3<Length extends number> = GenericJunctions<
+  JunctionV3,
+  Length
+>;
+export type JunctionsV4<Length extends number> = GenericJunctions<
+  JunctionV4,
+  Length
+>;
 
 export type Interior = InteriorV4;
 export type InteriorV2 =

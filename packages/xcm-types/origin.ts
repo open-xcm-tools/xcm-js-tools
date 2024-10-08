@@ -1,4 +1,4 @@
-import {Location} from './xcmtypes';
+import {Location} from './xcm-types';
 
 export type Origin =
   | {System: SystemOrigin}

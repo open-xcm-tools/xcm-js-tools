@@ -1,6 +1,6 @@
+import {VersionedAssets} from '@open-xcm-tools/xcm-types';
+import {sortAndDeduplicateVersionedAssets} from '@open-xcm-tools/xcm-util';
 import {describe, expect, test} from 'vitest';
-import {VersionedAssets} from '../../src/xcmtypes';
-import {sortAndDeduplicateVersionedAssets} from '../../src/util';
 
 describe('asset sort unit-tests', () => {
   describe('asset v2 sort', () => {

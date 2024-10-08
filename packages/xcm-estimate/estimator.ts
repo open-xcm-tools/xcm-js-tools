@@ -2,19 +2,22 @@ import {ApiPromise, WsProvider} from '@polkadot/api';
 import {
   Asset,
   AssetId,
+  ChainIdentity,
+  ChainInfo,
   CURRENT_XCM_VERSION,
   InteriorLocation,
   MIN_XCM_VERSION,
   VersionedAssetId,
   VersionedAssets,
   XcmVersion,
-} from './xcmtypes';
-import {Origin} from './origin';
+  Origin,
+  Location,
+} from '@open-xcm-tools/xcm-types';
 import {SubmittableExtrinsic} from '@polkadot/api/types';
 import {Result, Vec} from '@polkadot/types-codec';
 import {Codec} from '@polkadot/types-codec/types';
 import {stringify} from '@polkadot/util';
-import {ChainIdentity, ChainInfo} from './registry';
+import {FeeEstimationError, FeeEstimationErrors} from './errors';
 import {
   assetIdIntoCurrentVersion,
   assetsIntoCurrentVersion,
@@ -28,9 +31,7 @@ import {
   reanchorAssetId,
   relativeLocationToUniversal,
   sortAndDeduplicateAssets,
-} from './util';
-import {Location} from './xcmtypes';
-import {FeeEstimationError, FeeEstimationErrors} from './errors';
+} from '@open-xcm-tools/xcm-util';
 
 export type EstimatorResolver = (
   universalLocation: InteriorLocation,
@@ -379,7 +380,8 @@ export class Estimator {
       combinedDeliveryFees.push(...destDeliveryFee);
     }
 
-    return sortAndDeduplicateAssets(combinedDeliveryFees);
+    sortAndDeduplicateAssets(combinedDeliveryFees);
+    return combinedDeliveryFees;
   }
 
   async #estimateXcmDeliveryFeesToDest(
@@ -418,7 +420,8 @@ export class Estimator {
       deliveryFeeAssets.push(...programDeliveryFee);
     }
 
-    return sortAndDeduplicateAssets(deliveryFeeAssets);
+    sortAndDeduplicateAssets(deliveryFeeAssets);
+    return deliveryFeeAssets;
   }
 
   static async #estimateProgramsFees(

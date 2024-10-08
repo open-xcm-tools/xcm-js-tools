@@ -1,7 +1,6 @@
+import {Junction} from '@open-xcm-tools/xcm-types';
+import {SanitizationError, sanitizeJunction} from '@open-xcm-tools/xcm-util';
 import {describe, expect, it} from 'vitest';
-import {Junction} from '../../src/xcmtypes';
-import {sanitizeJunction} from '../../src/util';
-import {SanitizationError} from '../../src/errors';
 
 describe('junction validation tests', () => {
   describe('raw bytes tests', () => {

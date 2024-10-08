@@ -1,0 +1,7 @@
+{
+  "name": "@open-xcm-tools/xcm-types",
+  "version": "0.0.1-prealpha",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "module"
+}

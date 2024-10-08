@@ -1,7 +1,7 @@
-import {Registry} from 'src/registry';
-import {prepareTransferParams, TransferParams} from 'src/simplexcm';
-import {asset, fungible, location} from 'src/util';
-import {Asset} from 'src/xcmtypes';
+import {Registry, TransferParams} from '@open-xcm-tools/simple-xcm';
+import {Asset} from '@open-xcm-tools/xcm-types';
+import {fungible, asset, location} from '@open-xcm-tools/xcm-util';
+import {prepareTransferParams} from '@open-xcm-tools/simple-xcm/simplexcm';
 import {describe, expect, test} from 'vitest';
 
 describe('preparing transfer params test', () => {
@@ -25,7 +25,7 @@ describe('preparing transfer params test', () => {
       const params = <TransferParams>{
         origin: 'Test Account',
         assets: [
-          asset(location(0n, 'here'), fungible(100n)),
+          asset('DOT', fungible(100n)),
 
           <Asset>{
             id: {
@@ -55,7 +55,7 @@ describe('preparing transfer params test', () => {
       const params = <TransferParams>{
         origin: 'Test Account',
         assets: [
-          asset(location(0n, 'here'), fungible(100n)),
+          asset('DOT', fungible(100n)),
 
           <Asset>{
             id: {
@@ -82,6 +82,8 @@ describe('preparing transfer params test', () => {
       const params = <TransferParams>{
         origin: 'Test Account',
         assets: [
+          asset('DOT', fungible(100n)),
+
           <Asset>{
             id: {
               parents: 0n,
@@ -107,6 +109,8 @@ describe('preparing transfer params test', () => {
       const params = <TransferParams>{
         origin: 'Test Account',
         assets: [
+          asset('DOT', fungible(100n)),
+
           <Asset>{
             id: {
               parents: 0n,

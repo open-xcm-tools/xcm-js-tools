@@ -108,6 +108,37 @@ export class Estimator {
     await this.api.disconnect();
   }
 
+  static async dryRunExtrinsic(
+    api: ApiPromise,
+    origin: Origin,
+    xt: SubmittableExtrinsic<'promise'>,
+  ) {
+    const result: Result<any, Codec> = await api.call.dryRunApi.dryRunCall(
+      origin,
+      xt,
+    );
+
+    if (result.isErr) {
+      const xtStr = extrinsicStrId(xt);
+      throw new Error(
+        `failed to dry-run the XCM transfer extrinsic '${xtStr}': ${stringify(result.asErr.toHuman())}`,
+      );
+    }
+
+    const dryRunEffects = result.asOk;
+    if (dryRunEffects.executionResult.isErr) {
+      const xtStr = extrinsicStrId(xt);
+
+      const dispatchError = dryRunEffects.executionResult.asErr.error;
+      const errorStr = stringifyDispatchError(api, dispatchError);
+      throw new Error(
+        `the XCM transfer extrinsic '${xtStr}' would fail with error: ${errorStr}`,
+      );
+    }
+
+    return dryRunEffects;
+  }
+
   static async estimateMaxXcmVersion(
     api: ApiPromise,
     providedChainName?: string,
@@ -180,29 +211,7 @@ export class Estimator {
     feeAssetId: AssetId,
     options: XcmFeeEstimationOptions,
   ) {
-    const result: Result<any, Codec> = await this.api.call.dryRunApi.dryRunCall(
-      origin,
-      xt,
-    );
-
-    if (result.isErr) {
-      const xtStr = extrinsicStrId(xt);
-      throw new Error(
-        `failed to dry-run the XCM transfer extrinsic '${xtStr}': ${stringify(result.asErr.toHuman())}`,
-      );
-    }
-
-    const dryRunEffects = result.asOk;
-    if (dryRunEffects.executionResult.isErr) {
-      const xtStr = extrinsicStrId(xt);
-
-      const dispatchError = dryRunEffects.executionResult.asErr.error;
-      const errorStr = stringifyDispatchError(this.api, dispatchError);
-      throw new Error(
-        `the XCM transfer extrinsic '${xtStr}' would fail with error: ${errorStr}`,
-      );
-    }
-
+    const dryRunEffects = await Estimator.dryRunExtrinsic(this.api, origin, xt);
     const sent = extractSentPrograms(dryRunEffects);
 
     const sentLogger = options.sentXcmProgramsLogger ?? logSentPrograms;

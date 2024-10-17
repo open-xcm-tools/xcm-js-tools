@@ -467,6 +467,13 @@ class PalletXcmBackend implements TransferBackend {
       preparedParams.feeAssetIndex,
       noXcmWeightLimit,
     );
+
+    await Estimator.dryRunExtrinsic(
+      this.simpleXcm.api,
+      preparedParams.origin,
+      tx,
+    );
+
     return tx;
   }
 }
@@ -548,6 +555,12 @@ class XTokensBackend implements TransferBackend {
       preparedParams.feeAssetIndex,
       destination,
       noXcmWeightLimit,
+    );
+
+    await Estimator.dryRunExtrinsic(
+      this.simpleXcm.api,
+      preparedParams.origin,
+      tx,
     );
 
     return tx;

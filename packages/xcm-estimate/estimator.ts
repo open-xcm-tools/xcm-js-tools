@@ -17,7 +17,7 @@ import {SubmittableExtrinsic} from '@polkadot/api/types';
 import {Result, Vec} from '@polkadot/types-codec';
 import {Codec} from '@polkadot/types-codec/types';
 import {stringify} from '@polkadot/util';
-import {FeeEstimationError, FeeEstimationErrors} from './errors';
+import {FeeEstimationError, FeeEstimationErrors, TooExpensiveFeeError} from './errors';
 import {
   assetIdIntoCurrentVersion,
   assetsIntoCurrentVersion,
@@ -210,14 +210,17 @@ export class Estimator {
     xt: SubmittableExtrinsic<'promise'>,
     feeAssetId: AssetId,
     options: XcmFeeEstimationOptions,
-  ) {
+  ): Promise<Result<bigint, FeeEstimationErrors>> {
     const dryRunEffects = await Estimator.dryRunExtrinsic(this.api, origin, xt);
     const sent = extractSentPrograms(dryRunEffects);
 
     const sentLogger = options.sentXcmProgramsLogger ?? logSentPrograms;
     sentLogger(this.chainIdentity, sent);
-
-    return this.estimateSentXcmProgramsFees(sent, feeAssetId, options);
+    try {
+      return this.estimateSentXcmProgramsFees(sent, feeAssetId, options);
+    } catch (errors: FeeEstimationErrors) {
+      return errors;
+    }
   }
 
   async estimateXcmProgramsExecutionFees(
@@ -327,6 +330,9 @@ export class Estimator {
 
       const dryRunEffect = result.asOk;
       if (dryRunEffect.executionResult.isIncomplete) {
+        if (dryRunEffect.executionResult.asIncomplete['error'].has('tooExpensive')) {
+          throw new TooExpensiveFeeError(executionFee);
+        }
         throw new Error(
           `an XCM program isn't completed successfully on ${this.chainIdentity.name}: ${dryRunEffect.executionResult.asIncomplete}`,
         );

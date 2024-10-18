@@ -258,20 +258,24 @@ export class SimpleXcm {
     xt: SubmittableExtrinsic<'promise'>,
     feeAssetId: AssetId,
   ) {
-    const estimatedFees = await this.estimator.estimateExtrinsicFees(
-      origin,
-      xt,
-      feeAssetId,
-      {
-        estimatorResolver: (universalLocation: InteriorLocation) => {
-          const chainInfo =
-            this.registry.chainInfoByUniversalLocation(universalLocation);
-          return Estimator.connect(chainInfo);
+    try {
+      const estimatedFees = await this.estimator.estimateExtrinsicFees(
+        origin,
+        xt,
+        feeAssetId,
+        {
+          estimatorResolver: (universalLocation: InteriorLocation) => {
+            const chainInfo =
+              this.registry.chainInfoByUniversalLocation(universalLocation);
+            return Estimator.connect(chainInfo);
+          },
         },
-      },
-    );
+      );
+      return estimatedFees;
+    } catch (errors: FeeEstimationErrors) {
 
-    return estimatedFees;
+    }
+
   }
 
   /**

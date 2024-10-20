@@ -25,10 +25,10 @@ export class FeeEstimationError extends Error {
 export class TooExpensiveFeeError extends Error {
   public readonly missingAmount: bigint;
 
-  constructor(
-    missingAmount: bigint,
-  ) {
-    super(`failed to dryRun xcm program, the amount transferred is much less than fee. Expected at least ${missingAmount}`);
+  constructor(missingAmount: bigint) {
+    super(
+      `failed to dryRun xcm program, the amount transferred is much less than fee. Expected at least ${missingAmount}`,
+    );
     this.missingAmount = missingAmount;
   }
 }

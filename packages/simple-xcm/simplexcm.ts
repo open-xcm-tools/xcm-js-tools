@@ -567,7 +567,7 @@ class XTokensBackend implements TransferBackend {
 
     const xTokens = this.simpleXcm.api.tx['xTokens'];
     const noXcmWeightLimit = 'Unlimited';
-    
+
     while (true) {
       const txToDryRun = xTokens.transferMultiassets(
         destination,

@@ -70,7 +70,7 @@ type PreparedTransferParams = {
   assets: VersionedAssets;
   feeAssetId: AssetId;
   feeAssetIndex: number;
-  feeAnyAsset: FungibleAnyAsset;
+  feeAnyAssetRef: FungibleAnyAsset; // docs
   destination: Location;
   beneficiary: Location;
 };
@@ -263,7 +263,7 @@ export class SimpleXcm {
     }
   }
 
-  async estimateExtrinsicXcmFees(
+  async tryEstimateExtrinsicXcmFees(
     origin: Origin,
     xt: SubmittableExtrinsic<'promise'>,
     feeAssetId: AssetId,
@@ -283,11 +283,16 @@ export class SimpleXcm {
       return {value: estimatedFees};
     } catch (errors) {
       if (errors instanceof FeeEstimationErrors) {
-        const tooExpensiveError = errors.errors.find(
+        const tooExpensiveErrors = errors.errors.filter(
           error => error instanceof TooExpensiveFeeError,
         );
-        if (tooExpensiveError) {
-          return {error: tooExpensiveError};
+    
+        if (tooExpensiveErrors.length > 0) {
+          const totalValue = tooExpensiveErrors.reduce((sum, error) => {
+            return sum + error.missingAmount;
+          }, BigInt(0));
+    
+          return { error: new TooExpensiveFeeError(totalValue) };
         }
       }
       throw errors;
@@ -449,9 +454,9 @@ class PalletXcmBackend implements TransferBackend {
       this.simpleXcm,
       transferParams,
     );
-
+  
     const xcmVersion = this.simpleXcm.xcmVersion;
-
+  
     const destination = convertLocationVersion(
       xcmVersion,
       preparedParams.destination,
@@ -460,11 +465,12 @@ class PalletXcmBackend implements TransferBackend {
       xcmVersion,
       preparedParams.beneficiary,
     );
-
+  
     const palletXcm = this.simpleXcm.api.tx[this.simpleXcm.palletXcm];
     const noXcmWeightLimit = 'Unlimited';
-
-    while (true) {
+  
+    let estimatedFees;
+    do {
       const txToDryRun = palletXcm.transferAssets(
         destination,
         beneficiary,
@@ -472,27 +478,22 @@ class PalletXcmBackend implements TransferBackend {
         preparedParams.feeAssetIndex,
         noXcmWeightLimit,
       );
-
-      const estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
+  
+      estimatedFees = await this.simpleXcm.tryEstimateExtrinsicXcmFees(
         preparedParams.origin,
         txToDryRun,
         preparedParams.feeAssetId,
       );
-
+  
       if ('error' in estimatedFees) {
-        const asset = unwrapVersionedAssets(preparedParams.assets).find(
-          asset => asset.id === preparedParams.feeAssetId,
-        );
-        if (asset && 'fungible' in asset.fun) {
-          asset.fun.fungible += estimatedFees.error.missingAmount;
-          continue;
+        if ('fungible' in preparedParams.feeAnyAssetRef.fun) {
+          preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.error.missingAmount;
         }
       } else {
-        preparedParams.feeAnyAsset.fun.fungible += estimatedFees.value;
-        break;
+        preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.value;
       }
-    }
-
+    } while ('error' in estimatedFees);
+  
     const tx = palletXcm.transferAssets(
       destination,
       beneficiary,
@@ -500,16 +501,16 @@ class PalletXcmBackend implements TransferBackend {
       preparedParams.feeAssetIndex,
       noXcmWeightLimit,
     );
-
+  
     await Estimator.dryRunExtrinsic(
       this.simpleXcm.api,
       preparedParams.origin,
       tx,
     );
-
+  
     return tx;
   }
-}
+  
 
 /**
  * Class representing the backend for the XTokens pallet.
@@ -568,32 +569,21 @@ class XTokensBackend implements TransferBackend {
     const xTokens = this.simpleXcm.api.tx['xTokens'];
     const noXcmWeightLimit = 'Unlimited';
 
-    while (true) {
-      const txToDryRun = xTokens.transferMultiassets(
-        destination,
-        preparedParams.assets,
-        preparedParams.feeAssetIndex,
-        noXcmWeightLimit,
-      );
+    const txToDryRun = xTokens.transferMultiassets(
+      preparedParams.assets,
+      preparedParams.feeAssetIndex,
+      destination,
+      noXcmWeightLimit,
+    );
 
-      const estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
-        preparedParams.origin,
-        txToDryRun,
-        preparedParams.feeAssetId,
-      );
+    const estimatedFees = await this.simpleXcm.tryEstimateExtrinsicXcmFees(
+      preparedParams.origin,
+      txToDryRun,
+      preparedParams.feeAssetId,
+    );
 
-      if ('error' in estimatedFees) {
-        const asset = unwrapVersionedAssets(preparedParams.assets).find(
-          asset => asset.id === preparedParams.feeAssetId,
-        );
-        if (asset && 'fungible' in asset.fun) {
-          asset.fun.fungible += estimatedFees.error.missingAmount;
-          continue;
-        }
-      } else {
-        preparedParams.feeAnyAsset.fun.fungible += estimatedFees.value;
-        break;
-      }
+    if ('value' in estimatedFees) {
+      preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.value;
     }
 
     const tx = xTokens.transferMultiassets(
@@ -603,13 +593,8 @@ class XTokensBackend implements TransferBackend {
       noXcmWeightLimit,
     );
 
-    await Estimator.dryRunExtrinsic(
-      this.simpleXcm.api,
-      preparedParams.origin,
-      tx,
-    );
-
     return tx;
+  }
   }
 }
 
@@ -685,7 +670,7 @@ export async function prepareTransferParams(
     assets,
     feeAssetId,
     feeAssetIndex,
-    feeAnyAsset,
+    feeAnyAssetRef: feeAnyAsset,
     destination,
     beneficiary,
   };

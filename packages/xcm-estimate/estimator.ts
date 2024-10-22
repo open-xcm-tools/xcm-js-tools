@@ -331,7 +331,9 @@ export class Estimator {
       const dryRunEffect = result.asOk;
       if (dryRunEffect.executionResult.isIncomplete) {
         if (
-          dryRunEffect.executionResult.asIncomplete['error'].has('tooExpensive')
+          JSON.stringify(dryRunEffect.executionResult.asIncomplete).includes(
+            'tooExpensive',
+          )
         ) {
           throw new TooExpensiveFeeError(executionFee);
         }
@@ -507,7 +509,7 @@ export class Estimator {
             throw new FeeEstimationError(
               originChainIdentity,
               destEstimator?.chainIdentity,
-              {cause: err},
+              err,
             );
           } finally {
             if (destEstimator) {

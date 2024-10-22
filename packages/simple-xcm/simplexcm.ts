@@ -277,15 +277,14 @@ export class SimpleXcm {
       return {value: estimatedFees};
     } catch (errors) {
       if (errors instanceof FeeEstimationErrors) {
-        const tooExpensiveErrors = errors.errors.filter(
-          error => error instanceof TooExpensiveFeeError,
-        );
+        const totalValue = errors.errors.reduce((sum, error) => {
+          if (error.cause instanceof TooExpensiveFeeError) {
+            return sum + BigInt(error.cause.missingAmount);
+          }
+          return sum;
+        }, BigInt(0));
 
-        if (tooExpensiveErrors.length > 0) {
-          const totalValue = tooExpensiveErrors.reduce(
-            (sum, error) => sum + error.missingAmount,
-            BigInt(0),
-          );
+        if (totalValue > 0) {
           return {error: new TooExpensiveFeeError(totalValue)};
         }
       }

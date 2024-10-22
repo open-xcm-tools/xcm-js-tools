@@ -14,3 +14,7 @@ TBD
 ## Usage
 
 TBD
+
+## Dependencies
+
+- `@open-xcm-tools/xcm-types`

@@ -21,12 +21,10 @@ import {
   RegistryLookup,
   FungibleAnyAsset,
   VersionedAssets,
-  VersionedAsset,
 } from '@open-xcm-tools/xcm-types';
 import {
   convertAssetIdVersion,
   convertLocationVersion,
-  extractVersion,
   findPalletXcm,
   location,
   locationRelativeToPrefix,
@@ -43,10 +41,6 @@ import {
   FeeEstimationErrors,
   TooExpensiveFeeError,
 } from '@open-xcm-tools/xcm-estimate/errors';
-import {
-  unwrapVersionedAsset,
-  unwrapVersionedAssets,
-} from '@open-xcm-tools/xcm-util/convert-xcm-version/convert-xcm-version';
 
 interface TransferBackend {
   composeTransfer(
@@ -286,13 +280,13 @@ export class SimpleXcm {
         const tooExpensiveErrors = errors.errors.filter(
           error => error instanceof TooExpensiveFeeError,
         );
-    
+
         if (tooExpensiveErrors.length > 0) {
-          const totalValue = tooExpensiveErrors.reduce((sum, error) => {
-            return sum + error.missingAmount;
-          }, BigInt(0));
-    
-          return { error: new TooExpensiveFeeError(totalValue) };
+          const totalValue = tooExpensiveErrors.reduce(
+            (sum, error) => sum + error.missingAmount,
+            BigInt(0),
+          );
+          return {error: new TooExpensiveFeeError(totalValue)};
         }
       }
       throw errors;
@@ -454,9 +448,9 @@ class PalletXcmBackend implements TransferBackend {
       this.simpleXcm,
       transferParams,
     );
-  
+
     const xcmVersion = this.simpleXcm.xcmVersion;
-  
+
     const destination = convertLocationVersion(
       xcmVersion,
       preparedParams.destination,
@@ -465,10 +459,10 @@ class PalletXcmBackend implements TransferBackend {
       xcmVersion,
       preparedParams.beneficiary,
     );
-  
+
     const palletXcm = this.simpleXcm.api.tx[this.simpleXcm.palletXcm];
     const noXcmWeightLimit = 'Unlimited';
-  
+
     let estimatedFees;
     do {
       const txToDryRun = palletXcm.transferAssets(
@@ -478,22 +472,23 @@ class PalletXcmBackend implements TransferBackend {
         preparedParams.feeAssetIndex,
         noXcmWeightLimit,
       );
-  
+
       estimatedFees = await this.simpleXcm.tryEstimateExtrinsicXcmFees(
         preparedParams.origin,
         txToDryRun,
         preparedParams.feeAssetId,
       );
-  
+
       if ('error' in estimatedFees) {
         if ('fungible' in preparedParams.feeAnyAssetRef.fun) {
-          preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.error.missingAmount;
+          preparedParams.feeAnyAssetRef.fun.fungible +=
+            estimatedFees.error.missingAmount;
         }
       } else {
         preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.value;
       }
     } while ('error' in estimatedFees);
-  
+
     const tx = palletXcm.transferAssets(
       destination,
       beneficiary,
@@ -501,16 +496,16 @@ class PalletXcmBackend implements TransferBackend {
       preparedParams.feeAssetIndex,
       noXcmWeightLimit,
     );
-  
+
     await Estimator.dryRunExtrinsic(
       this.simpleXcm.api,
       preparedParams.origin,
       tx,
     );
-  
+
     return tx;
   }
-  
+}
 
 /**
  * Class representing the backend for the XTokens pallet.
@@ -594,7 +589,6 @@ class XTokensBackend implements TransferBackend {
     );
 
     return tx;
-  }
   }
 }
 

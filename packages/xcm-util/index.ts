@@ -39,6 +39,7 @@ export {
   reanchorAssetId,
   reanchorRelativeLocation,
   SanitizationError,
+  universalLocation,
 } from './common';
 
 export {

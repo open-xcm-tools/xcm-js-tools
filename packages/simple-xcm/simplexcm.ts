@@ -37,6 +37,10 @@ import {
 } from '@open-xcm-tools/xcm-util';
 import {Estimator, findFeeAssetById} from '@open-xcm-tools/xcm-estimate';
 import {sanitizeTransferParams} from './main-utils';
+import {
+  FeeEstimationErrors,
+  TooExpensiveFeeError,
+} from '@open-xcm-tools/xcm-estimate/errors';
 
 interface TransferBackend {
   composeTransfer(
@@ -57,10 +61,10 @@ export type TransferParams = {
 
 type PreparedTransferParams = {
   origin: Origin;
-  assets: VersionedAssets;
-  feeAssetId: AssetId;
-  feeAssetIndex: number;
-  feeAnyAsset: FungibleAnyAsset;
+  assets: VersionedAssets; // A collection of assets to be transferred, including their versions.
+  feeAssetId: AssetId; // The identifier of the asset that will be used to pay the transfer fee.
+  feeAssetIndex: number; // The index of the asset in the assets array that will be used for the fee.
+  feeAnyAssetRef: FungibleAnyAsset; // Reference to the fungible asset from PreparedTransferParams.assets, which will be taken as fee asset.
   destination: Location;
   beneficiary: Location;
 };
@@ -257,21 +261,35 @@ export class SimpleXcm {
     origin: Origin,
     xt: SubmittableExtrinsic<'promise'>,
     feeAssetId: AssetId,
-  ) {
-    const estimatedFees = await this.estimator.estimateExtrinsicFees(
-      origin,
-      xt,
-      feeAssetId,
-      {
-        estimatorResolver: (universalLocation: InteriorLocation) => {
-          const chainInfo =
-            this.registry.chainInfoByUniversalLocation(universalLocation);
-          return Estimator.connect(chainInfo);
+  ): Promise<{value: bigint} | {error: TooExpensiveFeeError}> {
+    try {
+      const estimatedFees = await this.estimator.tryEstimateExtrinsicFees(
+        origin,
+        xt,
+        feeAssetId,
+        {
+          estimatorResolver: (universalLocation: InteriorLocation) =>
+            Estimator.connect(
+              this.registry.chainInfoByUniversalLocation(universalLocation),
+            ),
         },
-      },
-    );
+      );
+      return {value: estimatedFees};
+    } catch (errors) {
+      if (errors instanceof FeeEstimationErrors) {
+        const totalValue = errors.errors.reduce((sum, error) => {
+          if (error.cause instanceof TooExpensiveFeeError) {
+            return sum + error.cause.missingAmount;
+          }
+          return sum;
+        }, BigInt(0));
 
-    return estimatedFees;
+        if (totalValue > 0) {
+          return {error: new TooExpensiveFeeError(totalValue)};
+        }
+      }
+      throw errors;
+    }
   }
 
   /**
@@ -444,21 +462,29 @@ class PalletXcmBackend implements TransferBackend {
     const palletXcm = this.simpleXcm.api.tx[this.simpleXcm.palletXcm];
     const noXcmWeightLimit = 'Unlimited';
 
-    const txToDryRun = palletXcm.transferAssets(
-      destination,
-      beneficiary,
-      preparedParams.assets,
-      preparedParams.feeAssetIndex,
-      noXcmWeightLimit,
-    );
+    let estimatedFees;
+    do {
+      const txToDryRun = palletXcm.transferAssets(
+        destination,
+        beneficiary,
+        preparedParams.assets,
+        preparedParams.feeAssetIndex,
+        noXcmWeightLimit,
+      );
 
-    const estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
-      preparedParams.origin,
-      txToDryRun,
-      preparedParams.feeAssetId,
-    );
+      estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
+        preparedParams.origin,
+        txToDryRun,
+        preparedParams.feeAssetId,
+      );
 
-    preparedParams.feeAnyAsset.fun.fungible += estimatedFees;
+      if ('error' in estimatedFees) {
+        preparedParams.feeAnyAssetRef.fun.fungible +=
+          estimatedFees.error.missingAmount;
+      } else {
+        preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.value;
+      }
+    } while ('error' in estimatedFees);
 
     const tx = palletXcm.transferAssets(
       destination,
@@ -467,6 +493,15 @@ class PalletXcmBackend implements TransferBackend {
       preparedParams.feeAssetIndex,
       noXcmWeightLimit,
     );
+
+    // This call is necessary to verify the user's sufficient balance for executing the extrinsic,
+    // which encompasses the assets and already estimated fees.
+    await Estimator.dryRunExtrinsic(
+      this.simpleXcm.api,
+      preparedParams.origin,
+      tx,
+    );
+
     return tx;
   }
 }
@@ -541,7 +576,9 @@ class XTokensBackend implements TransferBackend {
       preparedParams.feeAssetId,
     );
 
-    preparedParams.feeAnyAsset.fun.fungible += estimatedFees;
+    if ('value' in estimatedFees) {
+      preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.value;
+    }
 
     const tx = xTokens.transferMultiassets(
       preparedParams.assets,
@@ -626,7 +663,7 @@ export async function prepareTransferParams(
     assets,
     feeAssetId,
     feeAssetIndex,
-    feeAnyAsset,
+    feeAnyAssetRef: feeAnyAsset,
     destination,
     beneficiary,
   };

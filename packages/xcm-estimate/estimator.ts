@@ -17,7 +17,11 @@ import {SubmittableExtrinsic} from '@polkadot/api/types';
 import {Result, Vec} from '@polkadot/types-codec';
 import {Codec} from '@polkadot/types-codec/types';
 import {stringify} from '@polkadot/util';
-import {FeeEstimationError, FeeEstimationErrors} from './errors';
+import {
+  FeeEstimationError,
+  FeeEstimationErrors,
+  TooExpensiveFeeError,
+} from './errors';
 import {
   assetIdIntoCurrentVersion,
   assetsIntoCurrentVersion,
@@ -108,6 +112,37 @@ export class Estimator {
     await this.api.disconnect();
   }
 
+  static async dryRunExtrinsic(
+    api: ApiPromise,
+    origin: Origin,
+    xt: SubmittableExtrinsic<'promise'>,
+  ) {
+    const result: Result<any, Codec> = await api.call.dryRunApi.dryRunCall(
+      origin,
+      xt,
+    );
+
+    if (result.isErr) {
+      const xtStr = extrinsicStrId(xt);
+      throw new Error(
+        `failed to dry-run the XCM transfer extrinsic '${xtStr}': ${stringify(result.asErr.toHuman())}`,
+      );
+    }
+
+    const dryRunEffects = result.asOk;
+    if (dryRunEffects.executionResult.isErr) {
+      const xtStr = extrinsicStrId(xt);
+
+      const dispatchError = dryRunEffects.executionResult.asErr.error;
+      const errorStr = stringifyDispatchError(api, dispatchError);
+      throw new Error(
+        `the XCM transfer extrinsic '${xtStr}' would fail with error: ${errorStr}`,
+      );
+    }
+
+    return dryRunEffects;
+  }
+
   static async estimateMaxXcmVersion(
     api: ApiPromise,
     providedChainName?: string,
@@ -174,40 +209,17 @@ export class Estimator {
     });
   }
 
-  async estimateExtrinsicFees(
+  async tryEstimateExtrinsicFees(
     origin: Origin,
     xt: SubmittableExtrinsic<'promise'>,
     feeAssetId: AssetId,
     options: XcmFeeEstimationOptions,
-  ) {
-    const result: Result<any, Codec> = await this.api.call.dryRunApi.dryRunCall(
-      origin,
-      xt,
-    );
-
-    if (result.isErr) {
-      const xtStr = extrinsicStrId(xt);
-      throw new Error(
-        `failed to dry-run the XCM transfer extrinsic '${xtStr}': ${stringify(result.asErr.toHuman())}`,
-      );
-    }
-
-    const dryRunEffects = result.asOk;
-    if (dryRunEffects.executionResult.isErr) {
-      const xtStr = extrinsicStrId(xt);
-
-      const dispatchError = dryRunEffects.executionResult.asErr.error;
-      const errorStr = stringifyDispatchError(this.api, dispatchError);
-      throw new Error(
-        `the XCM transfer extrinsic '${xtStr}' would fail with error: ${errorStr}`,
-      );
-    }
-
+  ): Promise<bigint> {
+    const dryRunEffects = await Estimator.dryRunExtrinsic(this.api, origin, xt);
     const sent = extractSentPrograms(dryRunEffects);
 
     const sentLogger = options.sentXcmProgramsLogger ?? logSentPrograms;
     sentLogger(this.chainIdentity, sent);
-
     return this.estimateSentXcmProgramsFees(sent, feeAssetId, options);
   }
 
@@ -318,6 +330,13 @@ export class Estimator {
 
       const dryRunEffect = result.asOk;
       if (dryRunEffect.executionResult.isIncomplete) {
+        if (
+          JSON.stringify(dryRunEffect.executionResult.asIncomplete).includes(
+            'tooExpensive',
+          )
+        ) {
+          throw new TooExpensiveFeeError(executionFee);
+        }
         throw new Error(
           `an XCM program isn't completed successfully on ${this.chainIdentity.name}: ${dryRunEffect.executionResult.asIncomplete}`,
         );
@@ -490,7 +509,7 @@ export class Estimator {
             throw new FeeEstimationError(
               originChainIdentity,
               destEstimator?.chainIdentity,
-              {cause: err},
+              err,
             );
           } finally {
             if (destEstimator) {

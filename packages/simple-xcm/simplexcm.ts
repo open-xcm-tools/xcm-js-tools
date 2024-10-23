@@ -61,10 +61,10 @@ export type TransferParams = {
 
 type PreparedTransferParams = {
   origin: Origin;
-  assets: VersionedAssets;
-  feeAssetId: AssetId;
-  feeAssetIndex: number;
-  feeAnyAssetRef: FungibleAnyAsset; // docs
+  assets: VersionedAssets; // A collection of assets to be transferred, including their versions.
+  feeAssetId: AssetId; // The identifier of the asset that will be used to pay the transfer fee.
+  feeAssetIndex: number; // The index of the asset in the assets array that will be used for the fee.
+  feeAnyAssetRef: FungibleAnyAsset; // Reference to the fungible asset from PreparedTransferParams.assets, which will be taken as fee asset.
   destination: Location;
   beneficiary: Location;
 };
@@ -279,7 +279,7 @@ export class SimpleXcm {
       if (errors instanceof FeeEstimationErrors) {
         const totalValue = errors.errors.reduce((sum, error) => {
           if (error.cause instanceof TooExpensiveFeeError) {
-            return sum + BigInt(error.cause.missingAmount);
+            return sum + error.cause.missingAmount;
           }
           return sum;
         }, BigInt(0));
@@ -479,10 +479,8 @@ class PalletXcmBackend implements TransferBackend {
       );
 
       if ('error' in estimatedFees) {
-        if ('fungible' in preparedParams.feeAnyAssetRef.fun) {
-          preparedParams.feeAnyAssetRef.fun.fungible +=
-            estimatedFees.error.missingAmount;
-        }
+        preparedParams.feeAnyAssetRef.fun.fungible +=
+          estimatedFees.error.missingAmount;
       } else {
         preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.value;
       }

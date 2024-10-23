@@ -209,7 +209,7 @@ export class Estimator {
     });
   }
 
-  async estimateExtrinsicFees(
+  async tryEstimateExtrinsicFees(
     origin: Origin,
     xt: SubmittableExtrinsic<'promise'>,
     feeAssetId: AssetId,

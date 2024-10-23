@@ -257,13 +257,13 @@ export class SimpleXcm {
     }
   }
 
-  async tryEstimateExtrinsicXcmFees(
+  async estimateExtrinsicXcmFees(
     origin: Origin,
     xt: SubmittableExtrinsic<'promise'>,
     feeAssetId: AssetId,
   ): Promise<{value: bigint} | {error: TooExpensiveFeeError}> {
     try {
-      const estimatedFees = await this.estimator.estimateExtrinsicFees(
+      const estimatedFees = await this.estimator.tryEstimateExtrinsicFees(
         origin,
         xt,
         feeAssetId,
@@ -472,7 +472,7 @@ class PalletXcmBackend implements TransferBackend {
         noXcmWeightLimit,
       );
 
-      estimatedFees = await this.simpleXcm.tryEstimateExtrinsicXcmFees(
+      estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
         preparedParams.origin,
         txToDryRun,
         preparedParams.feeAssetId,
@@ -494,6 +494,8 @@ class PalletXcmBackend implements TransferBackend {
       noXcmWeightLimit,
     );
 
+    // This call is necessary to verify the user's sufficient balance for executing the extrinsic,
+    // which encompasses the assets and already estimated fees.
     await Estimator.dryRunExtrinsic(
       this.simpleXcm.api,
       preparedParams.origin,
@@ -568,7 +570,7 @@ class XTokensBackend implements TransferBackend {
       noXcmWeightLimit,
     );
 
-    const estimatedFees = await this.simpleXcm.tryEstimateExtrinsicXcmFees(
+    const estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
       preparedParams.origin,
       txToDryRun,
       preparedParams.feeAssetId,

@@ -224,7 +224,6 @@ registry.enforceXcmVersion(3);
 
 > Note: The XCM version cannot exceed the maximum XCM version supported by the chain!
 
-
 ## Dependencies
 
 - `@open-xcm-tools/xcm-types`

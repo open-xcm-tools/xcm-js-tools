@@ -5,7 +5,7 @@ docker pull parity/polkadot-parachain:1.14.0
 docker pull uniquenetwork/builder-polkadot:release-v1.0.0
 
 if [ ! -e baedeker ]; then
-    curl -L https://github.com/UniqueNetwork/baedeker/releases/download/v0.1.2/baedeker -o baedeker
+    curl -L https://github.com/UniqueNetwork/baedeker/releases/download/v0.1.4/baedeker -o baedeker
     chmod +x baedeker
 fi
 

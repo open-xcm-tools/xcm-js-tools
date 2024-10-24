@@ -257,7 +257,7 @@ export class SimpleXcm {
     }
   }
 
-  async tryEstimateExtrinsicXcmFees(
+  async estimateExtrinsicXcmFees(
     origin: Origin,
     xt: SubmittableExtrinsic<'promise'>,
     feeAssetId: AssetId,
@@ -276,6 +276,8 @@ export class SimpleXcm {
       );
       return {value: estimatedFees};
     } catch (errors) {
+      console.log('AAAAAAAAA');
+      console.log(errors);
       if (errors instanceof FeeEstimationErrors) {
         const totalValue = errors.errors.reduce((sum, error) => {
           if (error.cause instanceof TooExpensiveFeeError) {
@@ -283,7 +285,7 @@ export class SimpleXcm {
           }
           return sum;
         }, BigInt(0));
-
+        console.log(totalValue);
         if (totalValue > 0) {
           return {error: new TooExpensiveFeeError(totalValue)};
         }

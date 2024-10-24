@@ -37,9 +37,7 @@ export class FeeEstimationErrors extends Error {
   public errors: FeeEstimationError[];
 
   constructor(errors: FeeEstimationError[]) {
-    super(`fee estimation failed: ${errors.length} error(s) encountered`, {
-      cause: errors,
-    });
+    super(`fee estimation failed: ${errors.length} error(s) encountered`);
     this.errors = errors;
   }
 }

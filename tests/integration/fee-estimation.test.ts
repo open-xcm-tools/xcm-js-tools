@@ -60,10 +60,55 @@ describe('fee estimation tests', async () => {
 
   await registry.addNativeCurrency('Polkadot');
 
-  test('test tooExpensive', async () => {
+  test('correct composeTransfer: A -> B', async () => {
+    const xcmAssetHubA = await registry.connectXcm('AssetHubA');
+    expect(
+      await xcmAssetHubA.composeTransfer({
+        origin: 'Alice',
+        assets: [xcmAssetHubA.adjustedFungible('USDT', '20')],
+        feeAssetId: 'USDT',
+        destination: 'AssetHubB',
+        beneficiary: 'Alice',
+      }),
+    );
+
+    // await xcmAssetHubA.disconnect();
+  });
+  
+  test('correct composeTransfer: B -> C', async () => {
+    const xcmAssetHubA = await registry.connectXcm('AssetHubB');
+    expect(
+      await xcmAssetHubA.composeTransfer({
+        origin: 'Alice',
+        assets: [xcmAssetHubA.adjustedFungible('USDT', '15')],
+        feeAssetId: 'USDT',
+        destination: 'AssetHubC',
+        beneficiary: 'Alice',
+      }),
+    );
+
+    // await xcmAssetHubA.disconnect();
+  });
+
+  test('correct composeTransfer: C -> A', async () => {
+    const xcmAssetHubA = await registry.connectXcm('AssetHubB');
+    expect(
+      await xcmAssetHubA.composeTransfer({
+        origin: 'Alice',
+        assets: [xcmAssetHubA.adjustedFungible('USDT', '1')],
+        feeAssetId: 'USDT',
+        destination: 'AssetHubA',
+        beneficiary: 'Alice',
+      }),
+    );
+
+    // await xcmAssetHubA.disconnect();
+  });
+
+  test('tooExpensive error handling: A -> B', async () => {
     const xcm = await registry.connectXcm('AssetHubA');
     expect(
-      xcm.composeTransfer({
+      await xcm.composeTransfer({
         origin: 'Alice',
         assets: [xcm.adjustedFungible('USDT', '0.000001')],
         feeAssetId: 'USDT',
@@ -72,6 +117,51 @@ describe('fee estimation tests', async () => {
       }),
     );
 
-    await xcm.disconnect();
+    // await xcm.disconnect();
+  });
+
+  test('tooExpensive error handling: A -> C', async () => {
+    const xcm = await registry.connectXcm('AssetHubA');
+    expect(
+      await xcm.composeTransfer({
+        origin: 'Alice',
+        assets: [xcm.adjustedFungible('USDT', '0.000001')],
+        feeAssetId: 'USDT',
+        destination: 'AssetHubC',
+        beneficiary: 'Alice',
+      }),
+    );
+
+    // await xcm.disconnect();
+  });
+
+  test('tooExpensive error handling: B -> C', async () => {
+    const xcm = await registry.connectXcm('AssetHubA');
+    expect(
+      await xcm.composeTransfer({
+        origin: 'Alice',
+        assets: [xcm.adjustedFungible('USDT', '0.000001')],
+        feeAssetId: 'USDT',
+        destination: 'AssetHubB',
+        beneficiary: 'Alice',
+      }),
+    );
+
+    // await xcm.disconnect();
+  });
+
+  test('tooExpensive error handling: C -> A', async () => {
+    const xcm = await registry.connectXcm('AssetHubA');
+    expect(
+      await xcm.composeTransfer({
+        origin: 'Alice',
+        assets: [xcm.adjustedFungible('USDT', '0.000001')],
+        feeAssetId: 'USDT',
+        destination: 'AssetHubB',
+        beneficiary: 'Alice',
+      }),
+    );
+
+    // await xcm.disconnect();
   });
 });

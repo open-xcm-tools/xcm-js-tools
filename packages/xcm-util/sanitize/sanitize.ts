@@ -24,6 +24,11 @@ import {decodeAddress} from '@polkadot/keyring';
 import {bodyIdOrder, networkIdOrder} from '../asset-sort/compare-constants';
 import {arrayToInterior, interiorToArray, SanitizationError} from '../common';
 
+/**
+ * Sanitizes an array of assets by validating their locations and fungibility.
+ *
+ * @param assets - An array of assets to sanitize.
+ */
 export function sanitizeAssets(assets: Asset[]) {
   assets.forEach(a => {
     sanitizeLocation(a.id);
@@ -31,6 +36,12 @@ export function sanitizeAssets(assets: Asset[]) {
   });
 }
 
+/**
+ * Sanitizes a fungibility object by checking its properties for valid sizes.
+ *
+ * @param fun - The fungibility object to sanitize.
+ * @throws Error if the fungibility properties do not meet the required specifications.
+ */
 export function sanitizeFungibility(fun: Fungibility) {
   if ('fungible' in fun) {
     checkNumberBitSize('fungible.value', 128, fun.fungible);
@@ -69,6 +80,12 @@ export function sanitizeFungibility(fun: Fungibility) {
   }
 }
 
+/**
+ * Sanitizes a lookup object, which can be a location, asset ID, or asset lookup.
+ *
+ * @param lookup - The lookup object to sanitize.
+ * @throws Error if the lookup object is invalid or cannot be sanitized.
+ */
 export function sanitizeLookup(
   lookup: LocationLookup | AssetIdLookup | AssetLookup,
 ) {
@@ -83,11 +100,22 @@ export function sanitizeLookup(
   }
 }
 
+/**
+ * Sanitizes a location object by validating its properties.
+ *
+ * @param location - The location object to sanitize.
+ * @throws Error if the location properties do not meet the required specifications.
+ */
 export function sanitizeLocation(location: Location) {
   checkNumberBitSize('Location.parents', 8, location.parents);
   sanitizeInterior(location.interior);
 }
 
+/**
+ * Sanitizes an interior object by validating its junctions.
+ *
+ * @param interior - The interior object to sanitize.
+ */
 export function sanitizeInterior(interior: Interior) {
   if (typeof interior === 'object') {
     const junctions = interiorToArray(CURRENT_XCM_VERSION, interior);
@@ -96,6 +124,12 @@ export function sanitizeInterior(interior: Interior) {
   }
 }
 
+/**
+ * Sanitizes a junction object by validating its properties.
+ *
+ * @param junction - The junction object to sanitize.
+ * @throws SanitizationError if the junction properties are invalid or cannot be decoded.
+ */
 export function sanitizeJunction(junction: Junction) {
   if (typeof junction === 'object') {
     if ('parachain' in junction) {

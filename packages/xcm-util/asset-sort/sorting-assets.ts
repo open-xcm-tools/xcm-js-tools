@@ -16,6 +16,11 @@ import {
 } from './compare-assets';
 import {extractVersion, fungible, MAX_UINT64} from '../common';
 
+/**
+ * Sorts and deduplicates an array of assets.
+ *
+ * @param assets - An array of assets to be sorted and deduplicated.
+ */
 export function sortAndDeduplicateAssets(assets: Asset[]) {
   sortAssets(assets);
   const deduplicated = deduplicateAnySortedAssets(
@@ -27,6 +32,12 @@ export function sortAndDeduplicateAssets(assets: Asset[]) {
   assets.splice(0, assets.length, ...deduplicated);
 }
 
+/**
+ * Sorts and deduplicates versioned assets based on their XCM version.
+ *
+ * @param assets - The versioned assets to be sorted and deduplicated.
+ * @throws Error if the XCM version is unknown.
+ */
 export function sortAndDeduplicateVersionedAssets(assets: VersionedAssets) {
   const xcmVersion = extractVersion(assets);
   sortVersionedAssets(xcmVersion, assets);

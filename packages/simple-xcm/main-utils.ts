@@ -11,6 +11,12 @@ import {
 } from '@open-xcm-tools/xcm-util';
 import {TransferParams} from './simplexcm';
 
+/**
+ * Creates a universal location for a relay chain based on the provided network ID.
+ *
+ * @param networkId - The network ID of the relay chain.
+ * @returns The universal location for the relay chain.
+ */
 export function relaychainUniversalLocation(
   networkId: NetworkId,
 ): InteriorLocation {
@@ -19,6 +25,13 @@ export function relaychainUniversalLocation(
   };
 }
 
+/**
+ * Creates a universal location for a parachain based on the provided network ID and parachain ID.
+ *
+ * @param networkId - The network ID of the parachain.
+ * @param paraId - The ID of the parachain.
+ * @returns The universal location for the parachain.
+ */
 export function parachainUniversalLocation(
   networkId: NetworkId,
   paraId: bigint,
@@ -28,6 +41,13 @@ export function parachainUniversalLocation(
   };
 }
 
+/**
+ * Creates a universal location for an asset hub currency based on the provided network ID and asset ID.
+ *
+ * @param networkId - The network ID of the asset hub.
+ * @param id - The ID of the asset.
+ * @returns The universal location for the asset hub currency.
+ */
 export function assetHubCurrencyUniversalLocation(
   networkId: NetworkId,
   id: bigint,
@@ -42,6 +62,15 @@ export function assetHubCurrencyUniversalLocation(
   };
 }
 
+/**
+ * Checks if a given location is a universal location for a chain.
+ *
+ * A universal location is defined as starting with a global consensus junction,
+ * and can either be a relay chain or a parachain.
+ *
+ * @param location - The location to check.
+ * @returns True if the location is a universal location, false otherwise.
+ */
 export function isChainUniversalLocation(location: InteriorLocation): boolean {
   const locationArray: Junction[] = interiorToArray(
     CURRENT_XCM_VERSION,
@@ -77,6 +106,14 @@ export function isChainUniversalLocation(location: InteriorLocation): boolean {
   }
 }
 
+/**
+ * Sanitizes transfer parameters to ensure they conform to expected formats.
+ *
+ * This function checks and sanitizes the origin, assets, beneficiary, destination,
+ * and fee asset ID in the transfer parameters.
+ *
+ * @param params - The transfer parameters to sanitize.
+ */
 export function sanitizeTransferParams(params: TransferParams) {
   if (typeof params.origin === 'object' && 'Xcm' in params.origin) {
     sanitizeInterior(params.origin.Xcm);

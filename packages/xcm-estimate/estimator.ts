@@ -258,7 +258,7 @@ export class Estimator {
    * @returns A promise that resolves to the estimated fee.
    * @throws If the estimation fails.
    */
-  async estimateExtrinsicFees(
+  async tryEstimateExtrinsicFees(
     origin: Origin,
     xt: SubmittableExtrinsic<'promise'>,
     feeAssetId: AssetId,

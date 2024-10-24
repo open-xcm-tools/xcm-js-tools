@@ -39,6 +39,14 @@ import {
 } from './compare-utils';
 import {interiorToArray} from '../common';
 
+/**
+ * Compares two assets of any type based on their asset IDs and fungibility.
+ *
+ * @param xcmVersion - The version of the XCM protocol being used.
+ * @param a - The first asset to compare.
+ * @param b - The second asset to compare.
+ * @returns A negative number if `a` is less than `b`, a positive number if `a` is greater than `b`, or zero if they are equal.
+ */
 export function compareAnyAsset(
   xcmVersion: XcmVersion,
   a: AnyAsset,
@@ -50,10 +58,26 @@ export function compareAnyAsset(
     : assetIdCompareResult;
 }
 
+/**
+ * Compares two assets using the current XCM version.
+ *
+ * @param asset1 - The first asset to compare.
+ * @param asset2 - The second asset to compare.
+ * @returns A comparison result as described in `compareAnyAsset`.
+ */
 export function compareAsset(asset1: Asset, asset2: Asset) {
   return compareAnyAsset(CURRENT_XCM_VERSION, asset1, asset2);
 }
 
+/**
+ * Compares two fungibility types, which can be either fungible or non-fungible.
+ *
+ * @param xcmVersion - The version of the XCM protocol being used.
+ * @param fungibility1 - The first fungibility type to compare.
+ * @param fungibility2 - The second fungibility type to compare.
+ * @returns A negative number if `fungibility1` is less than `fungibility2`, a positive number if `fungibility1` is greater than `fungibility2`, or zero if they are equal.
+ * @throws Error if the fungibility types are unknown or cannot be compared.
+ */
 export function compareAnyFungibility(
   xcmVersion: XcmVersion,
   fungibility1: AnyFungibility,
@@ -82,10 +106,26 @@ export function compareAnyFungibility(
   );
 }
 
+/**
+ * Compares two fungibility types using the current XCM version.
+ *
+ * @param fun1 - The first fungibility type to compare.
+ * @param fun2 - The second fungibility type to compare.
+ * @returns A comparison result as described in `compareAnyFungibility`.
+ */
 export function compareFungibility(fun1: Fungibility, fun2: Fungibility) {
   return compareAnyFungibility(CURRENT_XCM_VERSION, fun1, fun2);
 }
 
+/**
+ * Compares two non-fungible asset instances based on their properties.
+ *
+ * @param xcmVersion - The version of the XCM protocol being used.
+ * @param nft1 - The first non-fungible asset instance to compare.
+ * @param nft2 - The second non-fungible asset instance to compare.
+ * @returns A comparison result as described in `compareEnumObjects`.
+ * @throws Error if the non-fungible instances are unknown or cannot be compared.
+ */
 export function compareAnyNonFungibleInstance(
   xcmVersion: XcmVersion,
   nft1: AnyAssetInstance,
@@ -161,6 +201,13 @@ export function compareAnyNonFungibleInstance(
   }
 }
 
+/**
+ * Compares two non-fungible asset instances using the current XCM version.
+ *
+ * @param nft1 - The first non-fungible asset instance to compare.
+ * @param nft2 - The second non-fungible asset instance to compare.
+ * @returns A comparison result as described in `compareAnyNonFungibleInstance`.
+ */
 export function compareNonFungibleInstance(
   nft1: AssetInstance,
   nft2: AssetInstance,
@@ -168,10 +215,26 @@ export function compareNonFungibleInstance(
   return compareAnyNonFungibleInstance(CURRENT_XCM_VERSION, nft1, nft2);
 }
 
+/**
+ * Compares two junctions based on their properties.
+ *
+ * @param junction1 - The first junction to compare.
+ * @param junction2 - The second junction to compare.
+ * @returns A comparison result as described in `compareAnyJunction`.
+ */
 export function compareJunction(junction1: Junction, junction2: Junction) {
   return compareAnyJunction(CURRENT_XCM_VERSION, junction1, junction2);
 }
 
+/**
+ * Compares two junctions of any type based on their properties.
+ *
+ * @param xcmVersion - The version of the XCM protocol being used.
+ * @param junction1 - The first junction to compare.
+ * @param junction2 - The second junction to compare.
+ * @returns A comparison result as described in `compareEnumObjects`.
+ * @throws Error if the junctions are unknown or cannot be compared.
+ */
 export function compareAnyJunction(
   xcmVersion: XcmVersion,
   junction1: AnyJunction,
@@ -320,14 +383,35 @@ export function compareAnyJunction(
   }
 }
 
+/**
+ * Compares two asset IDs.
+ *
+ * @param assetId1 - The first asset ID to compare.
+ * @param assetId2 - The second asset ID to compare.
+ * @returns A comparison result as described in `compareAnyAssetId`.
+ */
 export function compareAssetId(assetId1: AssetId, assetId2: AssetId) {
   return compareAnyAssetId(CURRENT_XCM_VERSION, assetId1, assetId2);
 }
 
+/**
+ * Compares two locations based on their properties.
+ *
+ * @param location1 - The first location to compare.
+ * @param location2 - The second location to compare.
+ * @returns A comparison result as described in `compareAnyLocation`.
+ */
 export function compareLocation(location1: Location, location2: Location) {
   return compareAnyLocation(CURRENT_XCM_VERSION, location1, location2);
 }
 
+/**
+ * Compares two interior locations.
+ *
+ * @param location1 - The first interior location to compare.
+ * @param location2 - The second interior location to compare.
+ * @returns A comparison result as described in `compareAnyInteriors`.
+ */
 export function compareInteriorLocation(
   location1: InteriorLocation,
   location2: InteriorLocation,
@@ -335,6 +419,15 @@ export function compareInteriorLocation(
   return compareAnyInteriors(CURRENT_XCM_VERSION, location1, location2);
 }
 
+/**
+ * Compares two asset IDs of any type based on the XCM version.
+ *
+ * @param xcmVersion - The version of the XCM protocol being used.
+ * @param assetId1 - The first asset ID to compare.
+ * @param assetId2 - The second asset ID to compare.
+ * @returns A comparison result based on the asset IDs.
+ * @throws Error if the XCM version is unknown.
+ */
 export function compareAnyAssetId(
   xcmVersion: XcmVersion,
   assetId1: AnyAssetId,
@@ -358,6 +451,14 @@ export function compareAnyAssetId(
   throw new Error('compareAnyAssetId: unknown XCM version');
 }
 
+/**
+ * Compares two locations based on their properties and the XCM version.
+ *
+ * @param xcmVersion - The version of the XCM protocol being used.
+ * @param location1 - The first location to compare.
+ * @param location2 - The second location to compare.
+ * @returns A negative number if `location1` is less than `location2`, a positive number if `location1` is greater than `location2`, or zero if they are equal.
+ */
 export function compareAnyLocation(
   xcmVersion: XcmVersion,
   location1: AnyLocation,
@@ -371,6 +472,14 @@ export function compareAnyLocation(
     : compareAnyInteriors(xcmVersion, location1.interior, location2.interior);
 }
 
+/**
+ * Compares two network IDs based on the XCM version.
+ *
+ * @param xcmVersion - The version of the XCM protocol being used.
+ * @param network1 - The first network ID to compare.
+ * @param network2 - The second network ID to compare.
+ * @returns A comparison result as described in `compareAnyNetworkId`.
+ */
 function compareAnyNetwork(
   xcmVersion: XcmVersion,
   network1: AnyNetworkId | undefined | null,
@@ -382,6 +491,15 @@ function compareAnyNetwork(
   return compareAnyNetworkId(xcmVersion, network1, network2);
 }
 
+/**
+ * Compares two network IDs of any type based on the XCM version.
+ *
+ * @param xcmVersion - The version of the XCM protocol being used.
+ * @param networkId1 - The first network ID to compare.
+ * @param networkId2 - The second network ID to compare.
+ * @returns A comparison result as described in `compareEnumObjects`.
+ * @throws Error if the network IDs are unknown or cannot be compared.
+ */
 function compareAnyNetworkId(
   xcmVersion: XcmVersion,
   networkId1: AnyNetworkId,

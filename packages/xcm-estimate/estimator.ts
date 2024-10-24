@@ -69,11 +69,21 @@ export type XcmExecutionEffect = {
   sentXcmPrograms: SentXcmPrograms[];
 };
 
+/**
+ * Class representing an Estimator for XCM operations.
+ */
 export class Estimator {
-  chainIdentity: ChainIdentity;
-  api: ApiPromise;
-  xcmVersion: XcmVersion;
+  chainIdentity: ChainIdentity; // The identity of the chain associated with this estimator.
+  api: ApiPromise; // The API instance for interacting with the blockchain.
+  xcmVersion: XcmVersion; // The version of XCM being used.
 
+  /**
+   * Creates an instance of Estimator.
+   * @param api - The API instance for the blockchain.
+   * @param chainIdentity - The identity of the chain.
+   * @param xcmVersion - The version of XCM.
+   * @throws If the dry-run or XCM payment APIs are not implemented.
+   */
   constructor(
     api: ApiPromise,
     chainIdentity: ChainIdentity,
@@ -96,6 +106,11 @@ export class Estimator {
     }
   }
 
+  /**
+   * Connects to the specified chain and creates an Estimator instance.
+   * @param chainInfo - Information about the chain to connect to.
+   * @returns A promise that resolves to an Estimator instance.
+   */
   static async connect(chainInfo: ChainInfo) {
     const api = await ApiPromise.create({
       provider: new WsProvider(chainInfo.endpoints),
@@ -108,10 +123,22 @@ export class Estimator {
     return new Estimator(api, chainInfo.identity, xcmVersion);
   }
 
+  /**
+   * Disconnects from the blockchain.
+   * @returns A promise that resolves when the disconnection is complete.
+   */
   async disconnect() {
     await this.api.disconnect();
   }
 
+  /**
+   * Performs a dry run of an extrinsic to estimate its effects.
+   * @param api - The API instance for the blockchain.
+   * @param origin - The origin of the extrinsic.
+   * @param xt - The extrinsic to dry run.
+   * @returns A promise that resolves to the dry run effects.
+   * @throws If the dry run fails or the extrinsic would fail.
+   */
   static async dryRunExtrinsic(
     api: ApiPromise,
     origin: Origin,
@@ -143,6 +170,14 @@ export class Estimator {
     return dryRunEffects;
   }
 
+  /**
+   * Estimates the maximum XCM version supported by the chain.
+   * @param api - The API instance for the blockchain.
+   * @param providedChainName - Optional name of the chain.
+   * @param palletXcmName - Optional name of the pallet for XCM.
+   * @returns A promise that resolves to the maximum XCM version.
+   * @throws If no supported XCM versions are found.
+   */
   static async estimateMaxXcmVersion(
     api: ApiPromise,
     providedChainName?: string,
@@ -186,6 +221,11 @@ export class Estimator {
     }
   }
 
+  /**
+   * Estimates the asset IDs that can be used for fees.
+   * @returns A promise that resolves to an array of acceptable asset IDs.
+   * @throws If the estimation fails.
+   */
   async estimateFeeAssetIds(): Promise<AssetId[]> {
     const result: Result<
       Vec<Codec>,
@@ -209,6 +249,15 @@ export class Estimator {
     });
   }
 
+  /**
+   * Estimates the fees for submitting an extrinsic.
+   * @param origin - The origin of the extrinsic.
+   * @param xt - The extrinsic to estimate fees for.
+   * @param feeAssetId - The asset ID to use for fee estimation.
+   * @param options - Options for fee estimation.
+   * @returns A promise that resolves to the estimated fee.
+   * @throws If the estimation fails.
+   */
   async estimateExtrinsicFees(
     origin: Origin,
     xt: SubmittableExtrinsic<'promise'>,
@@ -223,6 +272,13 @@ export class Estimator {
     return this.estimateSentXcmProgramsFees(sent, feeAssetId, options);
   }
 
+  /**
+   * Estimates the execution fees for a set of XCM programs.
+   * @param feeAssetId - The asset ID to use for fee estimation.
+   * @param programs - The XCM programs to estimate fees for.
+   * @returns A promise that resolves to the total execution fees.
+   * @throws If the estimation fails.
+   */
   async estimateXcmProgramsExecutionFees(
     feeAssetId: AssetId,
     programs: XcmProgram[],
@@ -277,6 +333,14 @@ export class Estimator {
     return executionFees;
   }
 
+  /**
+   * Estimates the fees for sent XCM programs.
+   * @param sent - The sent XCM programs.
+   * @param feeAssetId - The asset ID to use for fee estimation.
+   * @param options - Options for fee estimation.
+   * @returns A promise that resolves to the total estimated fees.
+   * @throws If there are errors during estimation.
+   */
   async estimateSentXcmProgramsFees(
     sent: SentXcmPrograms[],
     feeAssetId: AssetId,
@@ -299,6 +363,14 @@ export class Estimator {
     return fees;
   }
 
+  /**
+   * Estimates the execution effect of an XCM operation.
+   * @param xcmOrigin - The origin location for the XCM operation.
+   * @param feeAssetId - The asset ID to use for fee estimation.
+   * @param programs - The XCM programs to execute.
+   * @returns A promise that resolves to the execution effect.
+   * @throws If the estimation fails.
+   */
   async estimateXcmExecutionEffect(
     xcmOrigin: Location,
     feeAssetId: AssetId,
@@ -387,6 +459,12 @@ export class Estimator {
     };
   }
 
+  /**
+   * Estimates the delivery fees for sent XCM programs.
+   * @param sentPrograms - The sent XCM programs.
+   * @returns A promise that resolves to an array of assets representing the delivery fees.
+   * @throws If the estimation fails.
+   */
   async estimateXcmDeliveryFees(
     sentPrograms: SentXcmPrograms[],
   ): Promise<Asset[]> {
@@ -403,6 +481,13 @@ export class Estimator {
     return combinedDeliveryFees;
   }
 
+  /**
+   * Estimates the delivery fees to a specific destination for a set of XCM programs.
+   * @param destination - The destination location for the delivery fees.
+   * @param programs - The XCM programs for which to estimate delivery fees.
+   * @returns A promise that resolves to an array of assets representing the delivery fees.
+   * @throws If the estimation fails.
+   */
   async #estimateXcmDeliveryFeesToDest(
     destination: Location,
     programs: XcmProgram[],
@@ -443,6 +528,15 @@ export class Estimator {
     return deliveryFeeAssets;
   }
 
+  /**
+   * Estimates the total fees for a set of sent XCM programs.
+   * @param originChainIdentity - The identity of the origin chain.
+   * @param sent - The sent XCM programs.
+   * @param feeAssetId - The asset ID to use for fee estimation.
+   * @param options - Options for fee estimation.
+   * @param errors - An array to collect any errors encountered during estimation.
+   * @returns A promise that resolves to the total estimated fees.
+   */
   static async #estimateProgramsFees(
     originChainIdentity: ChainIdentity,
     sent: SentXcmPrograms[],
@@ -532,12 +626,23 @@ export class Estimator {
   }
 }
 
+/**
+ * Converts an extrinsic to a string representation for logging.
+ * @param xt - The extrinsic to convert.
+ * @returns A string representation of the extrinsic.
+ */
 function extrinsicStrId(xt: SubmittableExtrinsic<'promise'>) {
   const section = xt.method.section;
   const method = xt.method.method;
   return `${section}.${method}`;
 }
 
+/**
+ * Stringifies a dispatch error for logging.
+ * @param api - The API instance for the blockchain.
+ * @param error - The error to stringify.
+ * @returns A string representation of the error.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function stringifyDispatchError(api: ApiPromise, error: any) {
   if (error.isModule) {
@@ -549,12 +654,22 @@ function stringifyDispatchError(api: ApiPromise, error: any) {
   }
 }
 
+/**
+ * Logs the required fees for a chain.
+ * @param chainIdentity - The identity of the chain.
+ * @param requiredFees - The required fees to log.
+ */
 function logRequiredFees(chainIdentity: ChainIdentity, requiredFees: bigint) {
   console.info(
     `${chainIdentity.name} requires a fee amount of ${requiredFees}`,
   );
 }
 
+/**
+ * Logs the sent XCM programs for a given origin chain.
+ * @param originChainIdentity - The identity of the origin chain.
+ * @param sentPrograms - The sent XCM programs to log.
+ */
 function logSentPrograms(
   originChainIdentity: ChainIdentity,
   sentPrograms: SentXcmPrograms[],

@@ -42,7 +42,16 @@ import {
   TooExpensiveFeeError,
 } from '@open-xcm-tools/xcm-estimate/errors';
 
+/**
+ * Interface representing the backend for transferring assets.
+ */
 interface TransferBackend {
+  /**
+   * Composes a transfer extrinsic based on the provided parameters.
+   *
+   * @param transferParams - The parameters for the transfer.
+   * @returns A promise that resolves to a SubmittableExtrinsic for the transfer.
+   */
   composeTransfer(
     transferParams: TransferParams,
   ): Promise<SubmittableExtrinsic<'promise'>>;
@@ -257,6 +266,14 @@ export class SimpleXcm {
     }
   }
 
+  /**
+   * Estimates the extrinsic XCM fees for a given transfer.
+   *
+   * @param origin - The origin of the transfer.
+   * @param xt - The extrinsic to estimate fees for.
+   * @param feeAssetId - The asset ID used for the transfer fee.
+   * @returns A promise that resolves to an object containing the estimated fees or an error.
+   */
   async tryEstimateExtrinsicXcmFees(
     origin: Origin,
     xt: SubmittableExtrinsic<'promise'>,

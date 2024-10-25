@@ -18,5 +18,8 @@ jobs:
   lint-lib:
     uses: ./.github/workflows/lint.yml
 
-  test-simple-xcm:
+  unit-test:
     uses: ./.github/workflows/test.yml
+
+  integration-test:
+    uses: ./.github/workflows/integration-test.yml

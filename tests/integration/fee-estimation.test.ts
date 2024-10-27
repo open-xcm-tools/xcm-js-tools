@@ -3,7 +3,12 @@ import {
   Registry,
   relaychainUniversalLocation,
 } from '@open-xcm-tools/simple-xcm';
-import {universalLocation, location, asset, fungible} from '@open-xcm-tools/xcm-util';
+import {
+  universalLocation,
+  location,
+  asset,
+  fungible,
+} from '@open-xcm-tools/xcm-util';
 import {describe, expect, test} from 'vitest';
 
 describe('fee estimation tests', async () => {
@@ -73,19 +78,41 @@ describe('fee estimation tests', async () => {
         beneficiary: 'Alice',
       }),
     );
-    });
-  
+  });
+
   test('correct composeTransfer: B -> C', async () => {
     expect(
       await xcmAssetHubB.composeTransfer({
         origin: 'Alice',
-        assets: [asset({parents: 1n, interior: {x3: [{parachain: 2001n}, {palletInstance: 50n}, {generalIndex: 1984n}]}}, fungible(5n))],
-        feeAssetId: {parents: 1n, interior: {x3: [{parachain: 2001n}, {palletInstance: 50n}, {generalIndex: 1984n}]}},
+        assets: [
+          asset(
+            {
+              parents: 1n,
+              interior: {
+                x3: [
+                  {parachain: 2001n},
+                  {palletInstance: 50n},
+                  {generalIndex: 1984n},
+                ],
+              },
+            },
+            fungible(5n),
+          ),
+        ],
+        feeAssetId: {
+          parents: 1n,
+          interior: {
+            x3: [
+              {parachain: 2001n},
+              {palletInstance: 50n},
+              {generalIndex: 1984n},
+            ],
+          },
+        },
         destination: 'AssetHubC',
         beneficiary: 'Alice',
       }),
     );
-
   });
 
   test('correct composeTransfer: C -> A', async () => {
@@ -128,8 +155,31 @@ describe('fee estimation tests', async () => {
     expect(
       await xcmAssetHubB.composeTransfer({
         origin: 'Alice',
-        assets: [asset({parents: 1n, interior: {x3: [{parachain: 2001n}, {palletInstance: 50n}, {generalIndex: 1984n}]}}, fungible(5n))],
-        feeAssetId: {parents: 1n, interior: {x3: [{parachain: 2001n}, {palletInstance: 50n}, {generalIndex: 1984n}]}},
+        assets: [
+          asset(
+            {
+              parents: 1n,
+              interior: {
+                x3: [
+                  {parachain: 2001n},
+                  {palletInstance: 50n},
+                  {generalIndex: 1984n},
+                ],
+              },
+            },
+            fungible(5n),
+          ),
+        ],
+        feeAssetId: {
+          parents: 1n,
+          interior: {
+            x3: [
+              {parachain: 2001n},
+              {palletInstance: 50n},
+              {generalIndex: 1984n},
+            ],
+          },
+        },
         destination: 'AssetHubC',
         beneficiary: 'Alice',
       }),

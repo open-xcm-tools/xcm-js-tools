@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm i -g yarn
+          npm i -g yarn typescript
           yarn install
       - name: Install baedeker
         uses: UniqueNetwork/baedeker-action/setup@v1-no-debug-output
@@ -50,7 +50,8 @@ jobs:
       
       - name: Setup node settings
         run: |
-          node --loader ts-node/esm ./.baedeker/init_fee.ts
+          tsc ./.baedeker/init_fee.ts
+          node ./.baedeker/init_fee.js
       
       - name: Run tests
         run: |

@@ -2,7 +2,8 @@ import {ApiPromise, Keyring, WsProvider} from '@polkadot/api';
 import {exit} from 'process';
 
 void (async () => {
-  const BDK_URL = process.env.BDK_URL!;
+  await new Promise(f => setTimeout(f, 30000));
+  const BDK_URL = process.env.BDK_BALANCER!.replace('http', 'ws');
   const INTERVAL = 10000;
 
   const providerRelay = new WsProvider(`${BDK_URL}/relay/`);

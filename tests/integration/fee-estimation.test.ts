@@ -12,7 +12,7 @@ import {
 import {describe, expect, test} from 'vitest';
 
 describe('fee estimation tests', async () => {
-  const BDK_URL = process.env.BDK_URL!;
+  const BDK_URL = process.env.BDK_BALANCER!.replace('http', 'ws');
 
   const registry = new Registry()
     .addChain({

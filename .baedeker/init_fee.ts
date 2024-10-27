@@ -2,7 +2,7 @@ import {ApiPromise, Keyring, WsProvider} from '@polkadot/api';
 import {exit} from 'process';
 
 void (async () => {
-  await new Promise(f => setTimeout(f, 30000));
+  await new Promise(f => setTimeout(f, 60000));
   const BDK_URL = process.env.BDK_BALANCER!.replace('http', 'ws');
   const INTERVAL = 10000;
 

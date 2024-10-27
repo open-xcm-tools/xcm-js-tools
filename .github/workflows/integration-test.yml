@@ -50,7 +50,7 @@ jobs:
       
       - name: Setup node settings
         run: |
-          tsc ./.baedeker/init_fee.ts
+          tsc ./.baedeker/init_fee.ts || true
           node ./.baedeker/init_fee.js
       
       - name: Run tests

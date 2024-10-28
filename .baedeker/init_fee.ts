@@ -1,4 +1,5 @@
 import {ApiPromise, Keyring, WsProvider} from '@polkadot/api';
+import {exit} from 'process';
 
 async function retry(fn, ...args) {
   while (true) {
@@ -366,4 +367,6 @@ void (async () => {
       .signAndSend(alice),
   );
   console.log('Tokens minted for AssetHubC');
+
+  exit(0);
 })();

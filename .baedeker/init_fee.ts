@@ -4,7 +4,8 @@ import {exit} from 'process';
 void (async () => {
   await new Promise(f => setTimeout(f, 60000));
   const BDK_URL = process.env.BDK_BALANCER!.replace('http', 'ws');
-  const INTERVAL = 12000;
+  const INTERVAL = 10000;
+  const INTERVAL_ASHB = 15000;
 
   const providerRelay = new WsProvider(`${BDK_URL}/relay/`);
   const providerAssetHubA = new WsProvider(`${BDK_URL}/relay-assethubA/`);
@@ -236,7 +237,7 @@ void (async () => {
 
   console.log('Asset metadata on AssetHubC');
 
-  await new Promise(f => setTimeout(f, INTERVAL));
+  await new Promise(f => setTimeout(f, INTERVAL_ASHB));
 
   await apiAssetHubA.tx.assets
     .mint(
@@ -247,7 +248,7 @@ void (async () => {
     .signAndSend(alice);
   console.log('Tokens minted for AssetHubA');
 
-  await new Promise(f => setTimeout(f, INTERVAL));
+  await new Promise(f => setTimeout(f, INTERVAL_ASHB));
 
   await apiAssetHubA.tx.assets
     .mint(
@@ -273,7 +274,7 @@ void (async () => {
 
   console.log('Tokens minted for AssetHubB');
 
-  await new Promise(f => setTimeout(f, INTERVAL));
+  await new Promise(f => setTimeout(f, INTERVAL_ASHB));
 
   await apiAssetHubB.tx.foreignAssets
     .mint(
@@ -304,7 +305,7 @@ void (async () => {
     .signAndSend(alice);
   console.log('Tokens minted for AssetHubC');
 
-  await new Promise(f => setTimeout(f, INTERVAL));
+  await new Promise(f => setTimeout(f, INTERVAL_ASHB));
 
   await apiAssetHubC.tx.foreignAssets
     .mint(

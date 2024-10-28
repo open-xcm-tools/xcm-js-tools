@@ -45,7 +45,7 @@ jobs:
             relay_spec=rococo-local
           inputs: |
             .baedeker/multiple-assethub.jsonnet
-            snippet:(import 'baedeker-library/ops/rewrites.libsonnet').rewriteNodePaths({'bin/polkadot':'./.baedeker/polkadot'})
+            snippet:(import 'baedeker-library/ops/rewrites.libsonnet').rewriteNodePaths({'bin/polkadot':{dockerImage:'uniquenetwork/ci-unique-assethub:polkadot'}})
             snippet:(import 'baedeker-library/ops/rewrites.libsonnet').rewriteNodePaths({'bin/assethub':{dockerImage:'uniquenetwork/ci-unique-assethub:polkadot-parachain'}})
       
       - name: Setup node settings

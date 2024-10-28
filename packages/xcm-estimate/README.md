@@ -30,7 +30,7 @@ yarn add @open-xcm-tools/xcm-estimate
 
 ## Usage
 
-The `Estimator` class provides a comprehensive framework for estimating fees and execution effects of cross-chain message (XCM) programs within a blockchain ecosystem, enabling seamless interactions and efficient resource management by leveraging dry-run simulations and dynamic fee calculations based on the specific characteristics of the connected chain.
+The `Estimator` class provides a comprehensive framework for estimating fees and execution effects of cross-chain message (XCM) programs using Runtime API. It enables seamless interactions and efficient resource management by leveraging dry-run simulations and dynamic fee calculations based on the connected chain's XCM Runtime API reports.
 
 ### Connect to the Blockchain
 
@@ -50,21 +50,35 @@ const chainInfo: ChainInfo = {
 };
 ```
 
-Use the `Estimator.connect` method to connect to the blockchain and create an instance of the `Estimator` class.
+Use the constructor of `Estimator` to create an instance of this class:
 
 ```typescript
-const estimator = await Estimator.connect(chainInfo);
+const api = new ApiPromise.create({provider: provider});
+const estimator = new Estimator(api, chainInfo.identity, 4);
+```
+
+> Note: Also `Estimator.connect` method performs the same function, and you may choose to use it as well.
+
+```typescript
+      Estimator.connect(
+        this.registry.chainInfoByUniversalLocation(universalLocation), // pass only the chain info
+      ),
 ```
 
 ### Estimate extrinsic fees
 
-Call the `estimateExtrinsicFees` method to get the estimated fees for the specified extrinsic. Pass parameters for extrinsic estimation like `Origin` (from `@open-xcm-tools/xcm-types`), `feeAssetId` and extrinsic hash.
+Call the `tryEstimateExtrinsicFees` method to get the estimated fees for the specified extrinsic. Pass parameters for extrinsic estimation like `Origin` (from `@open-xcm-tools/xcm-types`), `feeAssetId` and a constructed extrinsic.
 
 ```typescript
-const estimatedFees = await this.estimator.estimateExtrinsicFees(
-  'Alice',
+const estimatedFees = await this.estimator.tryEstimateExtrinsicFees(
+  {System: {Signed: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'}},
   api.tx.palletXcm.transferAssets(/* parameters */),
-  'USDT',
+  <AssetId>{
+    parents: 1n,
+    interior: {
+      x3: [{parachain: 1000n}, {palletInstance: 50n}, {generalIndex: 1984n}],
+    },
+  },
   {
     estimatorResolver: (universalLocation: InteriorLocation) =>
       Estimator.connect(

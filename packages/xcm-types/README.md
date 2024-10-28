@@ -30,6 +30,8 @@ yarn add @open-xcm-tools/xcm-types
 
 ## Usage
 
-The primary purpose of this package is to utilize the types described within it to execute various tasks.
+This package's primary purpose is to provide types to facilitate the handling of XCM objects in other packages.
 
 ## Dependencies
+
+None.

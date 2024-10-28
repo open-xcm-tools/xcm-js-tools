@@ -108,6 +108,8 @@ export class Estimator {
 
   /**
    * Connects to the specified chain and creates an Estimator instance.
+   * This method is solely for the convenience of creating ApiPromise internally.
+   * If you already have an ApiPromise instance, please use the constructor instead.
    * @param chainInfo - Information about the chain to connect to.
    * @returns A promise that resolves to an Estimator instance.
    */
@@ -174,7 +176,7 @@ export class Estimator {
    * Estimates the maximum XCM version supported by the chain.
    * @param api - The API instance for the blockchain.
    * @param providedChainName - Optional name of the chain.
-   * @param palletXcmName - Optional name of the pallet for XCM.
+   * @param palletXcmName - Optional name of the pallet-xcm in the runtime (usually 'palletXcm' or 'polkadotXcm').
    * @returns A promise that resolves to the maximum XCM version.
    * @throws If no supported XCM versions are found.
    */
@@ -222,7 +224,7 @@ export class Estimator {
   }
 
   /**
-   * Estimates the asset IDs that can be used for fees.
+   * Estimates the list of asset IDs that can be used to cover fees.
    * @returns A promise that resolves to an array of acceptable asset IDs.
    * @throws If the estimation fails.
    */
@@ -266,7 +268,6 @@ export class Estimator {
   ): Promise<bigint> {
     const dryRunEffects = await Estimator.dryRunExtrinsic(this.api, origin, xt);
     const sent = extractSentPrograms(dryRunEffects);
-
     const sentLogger = options.sentXcmProgramsLogger ?? logSentPrograms;
     sentLogger(this.chainIdentity, sent);
     return this.estimateSentXcmProgramsFees(sent, feeAssetId, options);

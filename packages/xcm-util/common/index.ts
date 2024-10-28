@@ -38,7 +38,7 @@ import {
  * Converts an interior representation into an array of junctions.
  *
  * @param interiorVersion - The version of the XCM protocol being used.
- * @param interior - The interior representation, which can be a specific structure or the string 'here'.
+ * @param interior - The interior representation, which can be an object with a field `x[1-8]` or the string 'here'.
  * @returns An array of junctions corresponding to the provided interior representation.
  * @throws Error if the interior representation is invalid.
  */
@@ -126,7 +126,7 @@ export function toInterior(junctions: Junction[]): Interior {
 }
 
 /**
- * Converts an interior representation back into an array of junctions.
+ * Converts an interior representation back into an array of junctions using the current XCM version.
  *
  * @param interior - The interior representation.
  * @returns An array of junctions.
@@ -172,7 +172,7 @@ export function universalLocation(
 }
 
 /**
- * Creates a location object based on the number of parent blocks and junctions.
+ * Creates a location object based on the number of parents and junctions.
  *
  * @param parents - The number of parent blocks.
  * @param junctions - Either the string 'here' or an array of junctions.
@@ -216,6 +216,8 @@ export function fungible(amount: bigint) {
  * Creates a non-fungible asset representation.
  *
  * @param id - The identifier for the non-fungible asset, which can be a bigint or a string.
+ *        If the `id` is a `bigint`, it will be represented as `{ index: bigint }`.
+ *        If the `id` is a `string`, it will be assigned to the corresponding array* variant
  * @returns An object representing the non-fungible asset.
  * @throws Error if the identifier's byte length is invalid.
  */
@@ -441,7 +443,7 @@ export function locationRelativeToPrefix({
 }
 
 /**
- * Prepares assets for encoding by converting them to the appropriate version and sorting them.
+ * Prepares assets for encoding by converting them to the appropriate version and sorting&duplicating them.
  *
  * @param version - The XCM version to which the assets should be converted.
  * @param assets - The assets to be prepared, which can be a single asset or an array of assets.

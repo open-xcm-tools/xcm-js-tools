@@ -40,7 +40,7 @@ import {
 import {interiorToArray} from '../common';
 
 /**
- * Compares two assets of any type based on their asset IDs and fungibility.
+ * Compares two assets of any version based on their asset IDs and fungibility.
  *
  * @param xcmVersion - The version of the XCM protocol being used.
  * @param a - The first asset to compare.

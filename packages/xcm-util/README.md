@@ -35,15 +35,17 @@ yarn add @open-xcm-tools/xcm-util
 
 ## Usage
 
-For showing all functionality let's take a look to the examples of `Location` and `Asset` entities:
+For showing the general functionality of the package let's take a look to the examples of `Location` and `Asset` entities:
 
 ```typescript
+// A more concise way to write `{ parents: 1n, interior: { x3: [/* parachain, ... */] } }`
 const location: Location = location(1n, [
-  {parachain: 2001n},
+  {parachain: 1000n},
   {palletInstance: 50n},
   {generalIndex: 1984n},
 ]);
 
+// A more concise way to write `{ id: { parents: 0n, interior: 'here' }, fun: { fungible: 100n } }`
 const asset: Asset = asset(location(0n, 'here'), fungible(100n));
 ```
 
@@ -76,9 +78,9 @@ const asset: Asset = assetIntoCurrentVersion(versionedAssetV2);
 
 ### Sorting and deduplicating assets
 
-`xcm-util` defines a set of functions designed to sort and deduplicate asset collections based on their versioning and properties. The primary goal is to ensure that the assets are organized in a specific order and that any duplicates are removed, while also aggregating certain properties of the assets when duplicates are found.
+`xcm-util` defines a set of functions designed to sort and deduplicate asset collections based on their versioning and properties. The primary goal is to ensure that the assets are organized in a specific order, that any duplicates are removed and aggregate certain properties, specifically summing the fungible amounts of assets with the same ID or ignoring duplicate NFTs.
 
-`xcm-util` package provides opportunity to create an array of assets without thinking about their logical order, just use the function `sortAndDeduplicateAssets` or `sortAndDeduplicateVersionedAssets`:
+The `sortAndDeduplicateAssets` and `sortAndDeduplicateVersionedAssets` functions provide the described functionality.
 
 ```typescript
 const assets = [
@@ -106,30 +108,46 @@ sortAndDeduplicateAssets(assets);
 
 ### Sanitizing XCM entities
 
-`xcm-util` provides a comprehensive set of functions for sanitizing and validating various assets data structures in the context of cross-chain messaging (XCM). It ensures that the data adheres to specified constraints, such as bit size and byte length, thereby preventing potential errors and inconsistencies when processing assets across different networks. The module includes functions to sanitize assets, fungibility types, locations, junctions, and network identifiers, ensuring that all data conforms to the expected formats and standards.
+`xcm-util` provides a comprehensive set of functions for sanitizing and validating various assets data structures in the context of cross-chain messaging (XCM). It ensures that the data adheres to specified constraints, such as bit size and byte length, thereby preventing potential errors and inconsistencies. The module includes functions to sanitize assets, fungibility types, locations, junctions, and network identifiers, ensuring that all data conforms to the expected formats and standards.
 
-This functionality will validate and sanitize your array of assets:
+For instance, the `sanitizeAssets` function will validate and sanitize your array of assets:
 
 ```typescript
 const assets = [
-  asset(location(0n, 'here'), fungible(100n)),
-  asset('DOT', fungible(5n)),
-  xcm.adjustedFungible('DOT', '2.5'),
-
-  <AssetLookup>{
-    id: 'DOT',
-    fun: fungible(42n),
-  },
-
+  asset(location(258n, 'here'), fungible(100n)), // sanitizeAssets will throw error due to `parents` value (8-bit max)
   <Asset>{
-    id: {parents: 0n, interior: 'here'},
+    id: {
+      parents: 1n,
+      interior: {
+        x3: [
+          {parachain: 1000000000000000n}, // sanitizeAssets will throw error due to `parachain` value (32-bit max)
+          {palletInstance: 50n},
+          {generalIndex: 1984n},
+        ],
+      },
+    },
     fun: {fungible: 88n},
   },
-
-  asset('QTZ', fungible(77n)),
 ];
 
 sanitizeAssets(assets);
+
+const locations = [
+  location(0n, [
+    {parachain: 1000n},
+    {
+      accountId32: {
+        id: '0x006ddf51db56437ce5c886ab28cd767fc85ad5cc5d4a679376a1f7e71328b501',
+      },
+    },
+  ]),
+  location(0n, [
+    {parachain: 1000n},
+    {accountId32: {id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'}},
+  ]),
+]; // both variants of accountId32 field are correct, sanitize will convert it to unified form
+
+locations.forEach(sanitizeLocation);
 ```
 
 > **Note:** `sanitizeAssets` working with array in-place.

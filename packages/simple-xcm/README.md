@@ -30,9 +30,20 @@ yarn add @open-xcm-tools/simple-xcm
 
 ## Usage
 
-The simple-xcm library offers a set of intuitive functions for transferring tokens between chains. The primary class to use is `Registry`, which is responsible for storing information about parachains, currency data, and the main functionalities of this library.
+The simple-xcm library offers a set of intuitive functions for transferring tokens between chains. The primary classes to use are:
 
-### Registering Chains
+- `Registry`, which is responsible for storing information about parachains, currency data, and the main functionalities of this library.
+- `SimpleXcm`, which helps to compose the actual transfer extrinsic for a given chain.
+
+The "simple-xcm" library is built upon smaller, modular components that can be utilized independently, allowing for greater flexibility and customization in cross-chain token transfers. Here are brief descriptions of these modules:
+
+- `xcm-types` module provides types for XCM entities of all XCM versions.
+- `xcm-util` module provides a comprehensive set of functions for sanitizing and validating various assets data structures in the context of cross-chain messaging (XCM).
+- `xcm-estimate` module provides general functionality for fee estimation.
+
+### Filling a `Registry` object
+
+#### Registering Chains
 
 To start using the `Registry`, you need to add ecosystems of parachains.
 
@@ -47,12 +58,6 @@ If you want to add an external parachain (not from a connected ecosystem), you c
 For understanding, it is necessary to show `ChainInfo` instance:
 
 ```typescript
-interface CurrencyInfo {
-  symbol: string;
-  decimals: number;
-  universalLocation: InteriorLocation;
-}
-
 interface ChainInfo {
   identity: ChainIdentity;
   endpoints: string[];
@@ -75,9 +80,9 @@ registry.addChain(<ChainInfo>{
 });
 ```
 
-### Registering Currencies
+#### Registering Currencies
 
-The library allows you to add information about the native currency of a parachain that you wish to use, simply by specifying the chain ID. For example:
+The library allows you to add information about the native currency of a parachain that you wish to use, simply by specifying the (already registered) chain ID. For example:
 
 ```typescript
 await registry.addNativeCurrency('Unique Network');
@@ -91,14 +96,14 @@ registry.addCurrency(<CurrencyInfo>{
   symbol: 'USDT',
   decimals: 6,
   universalLocation: universalLocation('polkadot', [
-    {parachain: 2001n},
+    {parachain: 1000n},
     {palletInstance: 50n},
     {generalIndex: 1984n},
   ]),
 });
 ```
 
-### Registering Locations
+#### Registering Arbitrary Locations
 
 You can add information about universal or relative locations to your Registry object. For example:
 
@@ -112,7 +117,7 @@ registry.addRelativeLocation(
   location(0n, [
     {
       accountId32: {
-        id: '0x006ddf51db56437ce5c886ab28cd767fc85ad5cc5d4a679376a1f7e71328b501',
+        id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
       },
     },
   ]),
@@ -127,15 +132,15 @@ The `Registry` class provides several functions to retrieve information about th
 
 ```typescript
 registry.chainInfoById('Unique Network');
-registry.chainInfoByLocation(parachainUniversalLocation('polkadot', 2001n));
+registry.chainInfoByLocation(parachainUniversalLocation('polkadot', 2037n)); // will return the same as above since it's the Unique's universal location
 registry.currencyInfoBySymbol('DOT');
-registry.currencyInfoByLocation(parachainUniversalLocation('polkadot', 2001n));
+registry.currencyInfoByLocation(parachainUniversalLocation('polkadot')); // will return the same as above
 registry.universalLocation('SomeChainLocation');
 registry.relativeLocation('MyAccountLocation');
 ```
 
-After completing the setup, the library can interact with an XCM-capable parachain pallet. The library provides functionality to connect to a parachain using its registry name.
-For example, using the registry name:
+After completing the setup, the library can interact with an XCM-capable parachain pallet (`pallet-xcm` at the moment; `pallet-xtokens` support is coming in a future release). The library provides functionality to connect to a parachain using its in-registry name.
+For example, using the chain's in-registry name:
 
 ```typescript
 const xcm: SimpleXcm = await registry.connectXcm('Unique Network');
@@ -167,7 +172,9 @@ const assets = [
 ];
 ```
 
-Additionally, the library will sort and deduplicate assets automatically, so the user does not need to worry about it.
+> Note: In the `composeTransfer` method, all arguments representing locations can be passed as strings. In this case, the library will retrieve them from the `Registry` storage.
+
+Additionally, the `simple-xcm` library automatically sorts and deduplicates assets, relieving users of the need to manage these tasks manually. This functionality is essential due to the peculiarities of XCM decoding. By handling sorting and deduplication automatically, the library ensures that users can focus on their core functionalities without being concerned about the complexities of XCM asset management.
 
 You can retrieve the adjusted (converted a specified amount token into its equivalent while taking into account the decimal places) fungible amount by calling `adjustedFungible`:
 
@@ -179,30 +186,13 @@ To transfer assets between accounts cross-chain, you can use the `composeTransfe
 
 ```typescript
 await xcm.composeTransfer({
-  origin: 'Test Account',
+  origin: 'Test Account', // Assume you registered 'Test Account' as a relative `accountId32` location in the registry
+  // List of assets to transfer
   assets: [
     asset(location(0n, 'here'), fungible(100n)),
     asset('DOT', fungible(5n)),
   ],
-  feeAssetId: 'DOT',
-  destination: 'Acala',
-  beneficiary: 'Test Account',
-});
-
-await xcm.composeTransfer({
-  origin: 'Test Account',
-  assets: [
-    <AssetLookup>{
-      id: 'DOT',
-      fun: fungible(42n),
-    },
-
-    <Asset>{
-      id: {parents: 0n, interior: 'here'},
-      fun: {fungible: 88n},
-    },
-  ],
-  feeAssetId: 'DOT',
+  feeAssetId: 'DOT', // What asset to use to cover the fees on *all* the hops
   destination: 'Acala',
   beneficiary: 'Test Account',
 });

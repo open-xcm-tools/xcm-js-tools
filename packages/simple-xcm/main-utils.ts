@@ -13,8 +13,9 @@ import {TransferParams} from './simplexcm';
 
 /**
  * Creates a universal location for a relay chain based on the provided network ID.
+ * This method makes sense only for the `Polkadot`, `Kusama`, `Westend` and other Parity-related ecosystems.
  *
- * @param networkId - The network ID of the relay chain.
+ * @param networkId - The network ID of an ecosystem.
  * @returns The universal location for the relay chain.
  */
 export function relaychainUniversalLocation(
@@ -28,7 +29,7 @@ export function relaychainUniversalLocation(
 /**
  * Creates a universal location for a parachain based on the provided network ID and parachain ID.
  *
- * @param networkId - The network ID of the parachain.
+ * @param networkId - The network ID of an ecosystem.
  * @param paraId - The ID of the parachain.
  * @returns The universal location for the parachain.
  */
@@ -43,8 +44,9 @@ export function parachainUniversalLocation(
 
 /**
  * Creates a universal location for an asset hub currency based on the provided network ID and asset ID.
+ * This function assumes that the asset hub has the `paraId = 1000`.
  *
- * @param networkId - The network ID of the asset hub.
+ * @param networkId - The network ID of an ecosystem.
  * @param id - The ID of the asset.
  * @returns The universal location for the asset hub currency.
  */
@@ -66,7 +68,7 @@ export function assetHubCurrencyUniversalLocation(
  * Checks if a given location is a universal location for a chain.
  *
  * A universal location is defined as starting with a global consensus junction,
- * and can either be a relay chain or a parachain.
+ * and can be 1) a relay chain, 2) a solo-chain like Ethereum, 3) a parachain.
  *
  * @param location - The location to check.
  * @returns True if the location is a universal location, false otherwise.

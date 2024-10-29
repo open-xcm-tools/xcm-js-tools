@@ -32,7 +32,7 @@ yarn add @open-xcm-tools/simple-xcm
 
 The simple-xcm library offers a set of intuitive functions for transferring tokens between chains. The primary classes to use are:
 
-- `Registry`, which is responsible for storing information about parachains, currency data, and the main functionalities of this library.
+- `Registry`, which is responsible for storing information about parachains, currency data.
 - `SimpleXcm`, which helps to compose the actual transfer extrinsic for a given chain.
 
 The "simple-xcm" library is built upon smaller, modular components that can be utilized independently, allowing for greater flexibility and customization in cross-chain token transfers. Here are brief descriptions of these modules:
@@ -55,22 +55,13 @@ const registry = new Registry()
 
 If you want to add an external parachain (not from a connected ecosystem), you can use the `Registry.addChain` function, which takes a `ChainInfo` object as a parameter.
 
-For understanding, it is necessary to show `ChainInfo` instance:
-
-```typescript
-interface ChainInfo {
-  identity: ChainIdentity;
-  endpoints: string[];
-}
-```
-
 Example of adding chain to `Registry` instance:
 
 ```typescript
 registry.addChain(<ChainInfo>{
   identity: {
     name: 'AssetHub',
-    universalLocation: parachainUniversalLocation('polkadot', 2001n),
+    universalLocation: parachainUniversalLocation('polkadot', 1000n),
   },
   endpoints: [
     'wss://asset-hub-polkadot-rpc.dwellir.com',
@@ -134,7 +125,7 @@ The `Registry` class provides several functions to retrieve information about th
 registry.chainInfoById('Unique Network');
 registry.chainInfoByLocation(parachainUniversalLocation('polkadot', 2037n)); // will return the same as above since it's the Unique's universal location
 registry.currencyInfoBySymbol('DOT');
-registry.currencyInfoByLocation(parachainUniversalLocation('polkadot')); // will return the same as above
+registry.currencyInfoByLocation(relaychainUniversalLocation('polkadot')); // will return the same as above
 registry.universalLocation('SomeChainLocation');
 registry.relativeLocation('MyAccountLocation');
 ```
@@ -172,7 +163,7 @@ const assets = [
 ];
 ```
 
-> Note: In the `composeTransfer` method, all arguments representing locations can be passed as strings. In this case, the library will retrieve them from the `Registry` storage.
+> Notice we used strings where an asset ID or a location is expected. These strings represent the in-registry names of these assets/locations. The `composeTransfer` utilizes this fact and resolves the actual asset IDs and locations via the `Registry`.
 
 Additionally, the `simple-xcm` library automatically sorts and deduplicates assets, relieving users of the need to manage these tasks manually. This functionality is essential due to the peculiarities of XCM decoding. By handling sorting and deduplication automatically, the library ensures that users can focus on their core functionalities without being concerned about the complexities of XCM asset management.
 
@@ -187,18 +178,20 @@ To transfer assets between accounts cross-chain, you can use the `composeTransfe
 ```typescript
 await xcm.composeTransfer({
   origin: 'Test Account', // Assume you registered 'Test Account' as a relative `accountId32` location in the registry
+
   // List of assets to transfer
   assets: [
     asset(location(0n, 'here'), fungible(100n)),
     asset('DOT', fungible(5n)),
   ],
+
   feeAssetId: 'DOT', // What asset to use to cover the fees on *all* the hops
   destination: 'Acala',
   beneficiary: 'Test Account',
 });
 ```
 
-> Note: In the `composeTransfer` method, all arguments representing locations can be passed as strings. In this case, the library will retrieve them from the `Registry` storage.
+> Note: In the `composeTransfer` method, all arguments representing locations and asset IDs can be passed as strings. In this case, the library will retrieve them from the `Registry`.
 
 Don't forget to disconnect your XCM connection after completing all operations:
 

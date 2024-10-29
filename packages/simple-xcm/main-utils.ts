@@ -21,6 +21,14 @@ import {TransferParams} from './simplexcm';
 export function relaychainUniversalLocation(
   networkId: NetworkId,
 ): InteriorLocation {
+  const validNetworks = ['polkadot', 'kusama', 'rococo', 'westend', 'wococo'];
+
+  if (typeof networkId !== 'string' || !validNetworks.includes(networkId)) {
+    throw new Error(
+      'Non-Parity network id passed. Please, use only Parity-related ecosystems',
+    );
+  }
+
   return {
     x1: [{globalConsensus: networkId}],
   };

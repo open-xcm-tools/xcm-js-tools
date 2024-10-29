@@ -32,37 +32,39 @@ yarn add @open-xcm-tools/xcm-estimate
 
 The `Estimator` class provides a comprehensive framework for estimating fees and execution effects of cross-chain message (XCM) programs using Runtime API. It enables seamless interactions and efficient resource management by leveraging dry-run simulations and dynamic fee calculations based on the connected chain's XCM Runtime API reports.
 
-### Connect to the Blockchain
+### Estimator creation
 
-Define the chain information, including the WebSocket endpoint and the chain identity:
+Define the chain identity:
 
 ```typescript
-const chainInfo: ChainInfo = {
-  identity: {
+const chainIdentity: ChainIdentity = {
     name: 'AssetHub',
-    universalLocation: parachainUniversalLocation('polkadot', 2001n),
-  },
-  endpoints: [
-    'wss://asset-hub-polkadot-rpc.dwellir.com',
-    'wss://sys.ibp.network/asset-hub-polkadot',
-    // Add more endpoints as needed
-  ],
+    universalLocation: parachainUniversalLocation('polkadot', 1000n),
 };
 ```
 
 Use the constructor of `Estimator` to create an instance of this class:
 
 ```typescript
-const api = new ApiPromise.create({provider: provider});
-const estimator = new Estimator(api, chainInfo.identity, 4);
+const api = /* an instance of the `ApiPromise` */;
+const xcmVersion = /* xcm version to use to communicate with the chain */
+const estimator = new Estimator(api, chainIdentity, xcmVersion);
 ```
 
-> Note: Also `Estimator.connect` method performs the same function, and you may choose to use it as well.
+The `Estimator` can estimate the XCM version by itself (see `estimateMaxXcmVersion`) and it also can create the `ApiPromise` instance internally. If you want to pass the `ChainInfo` (which is the chain identity + list of endpoints) and make the `Estimator` to "just connect", you can use the `connect` method.
 
 ```typescript
-      Estimator.connect(
-        this.registry.chainInfoByUniversalLocation(universalLocation), // pass only the chain info
-      ),
+Estimator.connect(<ChainInfo>{
+  identity: {
+    name: 'AssetHub',
+    universalLocation: parachainUniversalLocation('polkadot', 1000n),
+  },
+  endpoints: [
+    'wss://asset-hub-polkadot-rpc.dwellir.com',
+    'wss://sys.ibp.network/asset-hub-polkadot',
+    // Add more endpoints as needed
+  ],
+}),
 ```
 
 ### Estimate extrinsic fees

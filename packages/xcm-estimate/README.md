@@ -38,8 +38,8 @@ Define the chain identity:
 
 ```typescript
 const chainIdentity: ChainIdentity = {
-    name: 'AssetHub',
-    universalLocation: parachainUniversalLocation('polkadot', 1000n),
+  name: 'AssetHub',
+  universalLocation: parachainUniversalLocation('polkadot', 1000n),
 };
 ```
 

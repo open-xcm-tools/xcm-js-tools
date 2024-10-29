@@ -8,6 +8,15 @@ import {
   SanitizationError,
 } from '../common';
 
+/**
+ * Checks the length of byte data against an expected length.
+ *
+ * @param fieldName - The name of the field being validated, used for error messages.
+ * @param expectedLength - The expected length of the byte data in bytes.
+ * @param actualLength - The actual length of the byte data, or null if not provided.
+ *
+ * @throws {SanitizationError} If actualLength is null or does not match expectedLength.
+ */
 export function checkByteDataLength(
   fieldName: string,
   expectedLength: number,
@@ -25,6 +34,16 @@ export function checkByteDataLength(
   }
 }
 
+/**
+ * Converts a hexadecimal string to a Uint8Array.
+ *
+ * @param fieldName - The name of the field being converted, used for error messages.
+ * @param hex - The hexadecimal string to be converted.
+ *
+ * @returns {Uint8Array} The converted Uint8Array.
+ *
+ * @throws {SanitizationError} If the hex string cannot be decoded.
+ */
 export function hexToUint8Array(fieldName: string, hex: string): Uint8Array {
   try {
     return hexToU8a(hex);
@@ -37,6 +56,16 @@ export function hexToUint8Array(fieldName: string, hex: string): Uint8Array {
   }
 }
 
+/**
+ * Checks if a number fits within the specified bit size.
+ *
+ * @param fieldName - The name of the field being validated, used for error messages.
+ * @param expectedBitSize - The expected bit size (8, 32, 64, or 128).
+ * @param actualNumber - The actual number to be checked, represented as a bigint.
+ *
+ * @throws {SanitizationError} If actualNumber is negative or exceeds the maximum value for the expected bit size.
+ * @throws {Error} If an unknown bit size is provided.
+ */
 export function checkNumberBitSize(
   fieldName: string,
   expectedBitSize: 8 | 32 | 64 | 128,
@@ -73,6 +102,14 @@ export function checkNumberBitSize(
   }
 }
 
+/**
+ * Throws a SanitizationError for an invalid junction object.
+ *
+ * @param objName - The name of the object being validated, used for error messages.
+ * @param obj - The object that failed validation.
+ *
+ * @throws {SanitizationError} Always thrown with details about the invalid object.
+ */
 export function invalidJunctionObj(objName: string, obj: unknown) {
   throw new SanitizationError(
     `not a V${CURRENT_XCM_VERSION} ${objName}`,
@@ -80,6 +117,15 @@ export function invalidJunctionObj(objName: string, obj: unknown) {
   );
 }
 
+/**
+ * Validates a unit junction object against a list of valid variants.
+ *
+ * @param objName - The name of the object being validated, used for error messages.
+ * @param obj - The object to be validated.
+ * @param validUnitVariants - An array of valid unit variants for comparison.
+ *
+ * @throws {SanitizationError} If the object is not a valid unit variant.
+ */
 export function checkUnitJunctionObj<T>(
   objName: string,
   obj: T,

@@ -61,7 +61,7 @@ interface TransferBackend {
  * Parameters for transferring tokens between chains.
  */
 export type TransferParams = {
-  origin: Origin | RegistryLookup; // The origin of the transfer.
+  origin: RegistryLookup; // The origin of the transfer.
   assets: AssetLookup[]; // The assets to be transferred.
   feeAssetId: AssetIdLookup; // The asset used to pay the transfer fee.
   destination: LocationLookup; // The destination location for the transfer.
@@ -278,35 +278,19 @@ export class SimpleXcm {
     origin: Origin,
     xt: SubmittableExtrinsic<'promise'>,
     feeAssetId: AssetId,
-  ): Promise<{value: bigint} | {error: TooExpensiveFeeError}> {
-    try {
-      const estimatedFees = await this.estimator.tryEstimateExtrinsicFees(
-        origin,
-        xt,
-        feeAssetId,
-        {
-          estimatorResolver: (universalLocation: InteriorLocation) =>
-            Estimator.connect(
-              this.registry.chainInfoByUniversalLocation(universalLocation),
-            ),
-        },
-      );
-      return {value: estimatedFees};
-    } catch (errors) {
-      if (errors instanceof FeeEstimationErrors) {
-        const totalValue = errors.errors.reduce((sum, error) => {
-          if (error.cause instanceof TooExpensiveFeeError) {
-            return sum + error.cause.missingAmount;
-          }
-          return sum;
-        }, BigInt(0));
-
-        if (totalValue > 0) {
-          return {error: new TooExpensiveFeeError(totalValue)};
-        }
-      }
-      throw errors;
-    }
+  ): Promise<bigint> {
+    const estimatedFees = await this.estimator.tryEstimateExtrinsicFees(
+      origin,
+      xt,
+      feeAssetId,
+      {
+        estimatorResolver: (universalLocation: InteriorLocation) =>
+          Estimator.connect(
+            this.registry.chainInfoByUniversalLocation(universalLocation),
+          ),
+      },
+    );
+    return estimatedFees;
   }
 
   /**
@@ -479,29 +463,30 @@ class PalletXcmBackend implements TransferBackend {
     const palletXcm = this.simpleXcm.api.tx[this.simpleXcm.palletXcm];
     const noXcmWeightLimit = 'Unlimited';
 
-    let estimatedFees;
-    do {
-      const txToDryRun = palletXcm.transferAssets(
-        destination,
-        beneficiary,
+    const assetsBalances =
+      await this.simpleXcm.estimator.collectFungiblesBalances(
+        preparedParams.origin.System.Signed,
         preparedParams.assets,
-        preparedParams.feeAssetIndex,
-        noXcmWeightLimit,
       );
+    console.log(
+      JSON.stringify(assetsBalances, (_, v) =>
+        typeof v === 'bigint' ? v.toString() : v,
+      ),
+    );
+    const txToDryRun = palletXcm.transferAssets(
+      destination,
+      beneficiary,
+      assetsBalances,
+      preparedParams.feeAssetIndex,
+      noXcmWeightLimit,
+    );
 
-      estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
-        preparedParams.origin,
-        txToDryRun,
-        preparedParams.feeAssetId,
-      );
-
-      if ('error' in estimatedFees) {
-        preparedParams.feeAnyAssetRef.fun.fungible +=
-          estimatedFees.error.missingAmount;
-      } else {
-        preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.value;
-      }
-    } while ('error' in estimatedFees);
+    const estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
+      preparedParams.origin,
+      txToDryRun,
+      preparedParams.feeAssetId,
+    );
+    preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees;
 
     const tx = palletXcm.transferAssets(
       destination,
@@ -592,10 +577,7 @@ class XTokensBackend implements TransferBackend {
       txToDryRun,
       preparedParams.feeAssetId,
     );
-
-    if ('value' in estimatedFees) {
-      preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.value;
-    }
+    preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees;
 
     const tx = xTokens.transferMultiassets(
       preparedParams.assets,
@@ -618,16 +600,11 @@ export async function prepareTransferParams(
   simpleXcm: SimpleXcm,
   transferParams: TransferParams,
 ): Promise<PreparedTransferParams> {
-  let origin: Origin;
-  if (typeof transferParams.origin === 'string') {
-    origin = {
-      System: {
-        Signed: await simpleXcm.locationToAccountId(transferParams.origin),
-      },
-    };
-  } else {
-    origin = transferParams.origin;
-  }
+  const origin: Origin = {
+    System: {
+      Signed: await simpleXcm.locationToAccountId(transferParams.origin),
+    },
+  };
 
   sanitizeTransferParams(transferParams);
 

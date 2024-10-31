@@ -12,6 +12,8 @@ import {
   XcmVersion,
   Origin,
   Location,
+  RegistryLookup,
+  AnyAsset,
 } from '@open-xcm-tools/xcm-types';
 import {SubmittableExtrinsic} from '@polkadot/api/types';
 import {Result, Vec} from '@polkadot/types-codec';
@@ -28,6 +30,7 @@ import {
   compareLocation,
   convertAssetIdVersion,
   convertLocationVersion,
+  extractVersion,
   findAssetIdIndex,
   findPalletXcm,
   locationIntoCurrentVersion,
@@ -36,6 +39,11 @@ import {
   relativeLocationToUniversal,
   sortAndDeduplicateAssets,
 } from '@open-xcm-tools/xcm-util';
+import {
+  convertAssetsVersion,
+  unwrapVersionedAssets,
+} from '@open-xcm-tools/xcm-util/convert-xcm-version/convert-xcm-version';
+import {compareAnyAssetId} from '@open-xcm-tools/xcm-util/asset-sort/compare-assets';
 
 export type EstimatorResolver = (
   universalLocation: InteriorLocation,
@@ -102,6 +110,12 @@ export class Estimator {
     if (this.api.call.xcmPaymentApi === undefined) {
       throw new Error(
         `${this.chainIdentity.name} doesn't implement XCM payment Runtime API`,
+      );
+    }
+
+    if (this.api.call.fungiblesApi === undefined) {
+      throw new Error(
+        `${this.chainIdentity.name} doesn't implement fungibles Runtime API`,
       );
     }
   }
@@ -249,6 +263,46 @@ export class Estimator {
       ) as VersionedAssetId;
       return assetIdIntoCurrentVersion(versionedAssetId);
     });
+  }
+
+  /**
+   * Collects fungible asset balances for a given account.
+   *
+   * @param account - The account address for which to collect balances.
+   * @param assets - The versioned assets to check against the account's balances.
+   * @returns A promise that resolves to an object containing the versioned assets with their fungible information.
+   * @throws Error if the balance query fails or if the user does not have a required asset.
+   */
+  async collectFungiblesBalances(
+    account: string,
+    assets: VersionedAssets,
+  ): Promise<VersionedAssets> {
+    const balancesResult: Result<Codec, Codec> =
+      await this.api.call.fungiblesApi.queryAccountBalances(account);
+
+    if (balancesResult.isErr) {
+      throw new Error(`${this.chainIdentity.name}: failed to get the balances`);
+    }
+    const versionedAssets = normalizedJsonUnitVariants(
+      balancesResult.asOk.toJSON(),
+    ) as VersionedAssets;
+    const assetXcmVersion = extractVersion(assets);
+    const neededFungibles = unwrapVersionedAssets(versionedAssets);
+    const unwrappedAssets = unwrapVersionedAssets(assets);
+
+    unwrappedAssets.forEach(asset => {
+      console.log(asset);
+      const matchingAsset = neededFungibles.find(
+        fungible =>
+          compareAnyAssetId(assetXcmVersion, asset.id, fungible.id) === 0,
+      );
+      if (!matchingAsset) {
+        throw new Error(`User doesn't have ${asset.id} asset.`);
+      }
+      asset.fun.fungible = matchingAsset.fun.fungible - 30n;
+    });
+
+    return <VersionedAssets>{[`v${assetXcmVersion}`]: unwrappedAssets};
   }
 
   /**

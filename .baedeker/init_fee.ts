@@ -12,101 +12,31 @@ async function retry(fn, ...args) {
   }
 }
 
-void (async () => {
-  await new Promise(f => setTimeout(f, 60000));
-  const BDK_URL = process.env.BDK_BALANCER!.replace('http', 'ws');
-  const INTERVAL = 10000;
-  const INTERVAL_ASHB = 15000;
-
-  const providerRelay = new WsProvider(`${BDK_URL}/relay/`);
-  const providerAssetHubA = new WsProvider(`${BDK_URL}/relay-assethubA/`);
-  const providerAssetHubB = new WsProvider(`${BDK_URL}/relay-assethubB/`);
-  const providerAssetHubC = new WsProvider(`${BDK_URL}/relay-assethubC/`);
-
-  const apiRelay = await ApiPromise.create({provider: providerRelay});
-  const apiAssetHubA = await ApiPromise.create({provider: providerAssetHubA});
-  const apiAssetHubB = await ApiPromise.create({provider: providerAssetHubB});
-  const apiAssetHubC = await ApiPromise.create({provider: providerAssetHubC});
-
-  const keyring = new Keyring({type: 'sr25519'});
-
-  const alice = keyring.addFromUri('//Alice');
-
+async function openHrmpChannel(api, alice, para1, para2) {
   await retry(() =>
-    apiRelay.tx.sudo
-      .sudo(apiRelay.tx.hrmp.forceOpenHrmpChannel(2001, 2002, 8, 8192))
+    api.tx.sudo
+      .sudo(api.tx.hrmp.forceOpenHrmpChannel(para1, para2, 8, 8192))
       .signAndSend(alice),
   );
+  console.log(`Hrmp channel for ${para1} and ${para2} opened!`);
+}
 
-  console.log('Hrmp channel for 2001 and 2002 opened!');
-  await new Promise(f => setTimeout(f, INTERVAL));
-
+async function sendTransaction(api, alice, callHex) {
   await retry(() =>
-    apiRelay.tx.sudo
-      .sudo(apiRelay.tx.hrmp.forceOpenHrmpChannel(2002, 2001, 8, 8192))
-      .signAndSend(alice),
-  );
-
-  console.log('Hrmp channel for 2002 and 2001 opened!');
-  await new Promise(f => setTimeout(f, INTERVAL));
-
-  await retry(() =>
-    apiRelay.tx.sudo
-      .sudo(apiRelay.tx.hrmp.forceOpenHrmpChannel(2001, 2003, 8, 8192))
-      .signAndSend(alice),
-  );
-
-  console.log('Hrmp channel for 2001 and 2003 opened!');
-  await new Promise(f => setTimeout(f, INTERVAL));
-
-  await retry(() =>
-    apiRelay.tx.sudo
-      .sudo(apiRelay.tx.hrmp.forceOpenHrmpChannel(2003, 2001, 8, 8192))
-      .signAndSend(alice),
-  );
-
-  console.log('Hrmp channel for 2003 and 2001 opened!');
-  await new Promise(f => setTimeout(f, INTERVAL));
-  await retry(() =>
-    apiRelay.tx.sudo
-      .sudo(apiRelay.tx.hrmp.forceOpenHrmpChannel(2003, 2002, 8, 8192))
-      .signAndSend(alice),
-  );
-
-  console.log('Hrmp channel for 2003 and 2002 opened!');
-  await new Promise(f => setTimeout(f, INTERVAL));
-  await retry(() =>
-    apiRelay.tx.sudo
-      .sudo(apiRelay.tx.hrmp.forceOpenHrmpChannel(2002, 2003, 8, 8192))
-      .signAndSend(alice),
-  );
-
-  console.log('Hrmp channel for 2002 and 2003 opened!');
-  await new Promise(f => setTimeout(f, 60000));
-
-  await retry(() =>
-    apiRelay.tx.sudo
+    api.tx.sudo
       .sudo(
-        apiRelay.tx.xcmPallet.send(
+        api.tx.xcmPallet.send(
           {
             V4: {
               parents: 0,
               interior: {
-                X1: [
-                  {
-                    Parachain: 2001,
-                  },
-                ],
+                X1: [{Parachain: api.parachainId}],
               },
             },
           },
           {
             V4: [
-              {
-                UnpaidExecution: {
-                  weightLimit: 'Unlimited',
-                },
-              },
+              {UnpaidExecution: {weightLimit: 'Unlimited'}},
               {
                 Transact: {
                   originKind: 'Superuser',
@@ -114,10 +44,7 @@ void (async () => {
                     refTime: 8000000000,
                     proofSize: 8000,
                   },
-                  call: {
-                    encoded:
-                      '0x3201011f00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0104',
-                  },
+                  call: {encoded: callHex},
                 },
               },
             ],
@@ -126,9 +53,54 @@ void (async () => {
       )
       .signAndSend(alice),
   );
+}
 
+void (async () => {
+  await new Promise(f => setTimeout(f, 60000));
+  const BDK_URL = process.env.BDK_BALANCER!.replace('http', 'ws');
+  const INTERVAL = 10000;
+  const INTERVAL_ASHB = 15000;
+
+  const providers = [
+    new WsProvider(`${BDK_URL}/relay/`),
+    new WsProvider(`${BDK_URL}/relay-assethubA/`),
+    new WsProvider(`${BDK_URL}/relay-assethubB/`),
+    new WsProvider(`${BDK_URL}/relay-assethubC/`),
+  ];
+
+  const apis = await Promise.all(
+    providers.map(provider => ApiPromise.create({provider})),
+  );
+  const [apiRelay, apiAssetHubA, apiAssetHubB, apiAssetHubC] = apis;
+
+  const keyring = new Keyring({type: 'sr25519'});
+  const alice = keyring.addFromUri('//Alice');
+
+  const channels = [
+    [2001, 2002],
+    [2002, 2001],
+    [2001, 2003],
+    [2003, 2001],
+    [2003, 2002],
+    [2002, 2003],
+  ];
+
+  for (const [para1, para2] of channels) {
+    await openHrmpChannel(apiRelay, alice, para1, para2);
+    await new Promise(f => setTimeout(f, INTERVAL));
+  }
+
+  const forceCreateHex = apiAssetHubA.tx.assets
+    .forceCreate(
+      1984,
+      {Id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'},
+      true,
+      1,
+    )
+    .toHex();
+
+  await sendTransaction(apiRelay, alice, forceCreateHex);
   console.log('Asset created on AssetHubA');
-
   await new Promise(f => setTimeout(f, INTERVAL));
 
   await retry(() =>
@@ -136,54 +108,20 @@ void (async () => {
       .setMetadata(1984, 'USDT', 'USDT', 6)
       .signAndSend(alice),
   );
-
   console.log('Asset metadata on AssetHubA');
-
   await new Promise(f => setTimeout(f, INTERVAL));
 
-  await retry(() =>
-    apiRelay.tx.sudo
-      .sudo(
-        apiRelay.tx.xcmPallet.send(
-          {
-            V4: {
-              parents: 0,
-              interior: {
-                X1: [
-                  {
-                    Parachain: 2002,
-                  },
-                ],
-              },
-            },
-          },
-          {
-            V4: [
-              {
-                UnpaidExecution: {
-                  weightLimit: 'Unlimited',
-                },
-              },
-              {
-                Transact: {
-                  originKind: 'Superuser',
-                  requireWeightAtMost: {
-                    refTime: 8000000000,
-                    proofSize: 8000,
-                  },
-                  call: {
-                    encoded:
-                      '0x3501010300451f043205011f00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0104',
-                  },
-                },
-              },
-            ],
-          },
-        ),
-      )
-      .signAndSend(alice),
-  );
+  const foreignAssetsForceCreateHex = apiAssetHubB.tx.foreignAssets
+    .forceCreate(
+      1,
+      {X3: [{Parachain: 2001}, {PalletInstance: 50}, {GeneralIndex: 1984}]},
+      '5Grwva  EF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+      true,
+      1,
+    )
+    .toHex();
 
+  await sendTransaction(apiRelay, alice, foreignAssetsForceCreateHex);
   console.log('Asset created on AssetHubB');
   await new Promise(f => setTimeout(f, INTERVAL));
 
@@ -202,56 +140,11 @@ void (async () => {
       )
       .signAndSend(alice),
   );
-
   console.log('Asset metadata on AssetHubB');
-
   await new Promise(f => setTimeout(f, INTERVAL));
 
-  await retry(() =>
-    apiRelay.tx.sudo
-      .sudo(
-        apiRelay.tx.xcmPallet.send(
-          {
-            V4: {
-              parents: 0,
-              interior: {
-                X1: [
-                  {
-                    Parachain: 2003,
-                  },
-                ],
-              },
-            },
-          },
-          {
-            V4: [
-              {
-                UnpaidExecution: {
-                  weightLimit: 'Unlimited',
-                },
-              },
-              {
-                Transact: {
-                  originKind: 'Superuser',
-                  requireWeightAtMost: {
-                    refTime: 8000000000,
-                    proofSize: 8000,
-                  },
-                  call: {
-                    encoded:
-                      '0x3501010300451f043205011f00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0104',
-                  },
-                },
-              },
-            ],
-          },
-        ),
-      )
-      .signAndSend(alice),
-  );
-
+  await sendTransaction(apiRelay, alice, foreignAssetsForceCreateHex);
   console.log('Asset created on AssetHubC');
-
   await new Promise(f => setTimeout(f, INTERVAL));
 
   await retry(() =>
@@ -269,18 +162,16 @@ void (async () => {
       )
       .signAndSend(alice),
   );
-
   console.log('Asset metadata on AssetHubC');
-
   await new Promise(f => setTimeout(f, INTERVAL_ASHB));
+
+  const mintAmount1 = 150000000;
+  const mintAmount2 = 250000000;
+  const mintId = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
 
   await retry(() =>
     apiAssetHubA.tx.assets
-      .mint(
-        1984,
-        {id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'},
-        150000000,
-      )
+      .mint(1984, {id: mintId}, mintAmount1)
       .signAndSend(alice),
   );
   console.log('Tokens minted for AssetHubA');
@@ -289,84 +180,10 @@ void (async () => {
 
   await retry(() =>
     apiAssetHubA.tx.assets
-      .mint(
-        1984,
-        {id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'},
-        250000000,
-      )
+      .mint(1984, {id: mintId}, mintAmount2)
       .signAndSend(alice),
   );
   console.log('Tokens minted for AssetHubA');
-
-  await retry(() =>
-    apiAssetHubB.tx.foreignAssets
-      .mint(
-        {
-          parents: 1,
-          interior: {
-            X3: [{Parachain: 2001}, {PalletInstance: 50}, {GeneralIndex: 1984}],
-          },
-        },
-        {id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'},
-        50000000,
-      )
-      .signAndSend(alice),
-  );
-
-  console.log('Tokens minted for AssetHubB');
-
-  await new Promise(f => setTimeout(f, INTERVAL_ASHB));
-
-  await retry(() =>
-    apiAssetHubB.tx.foreignAssets
-      .mint(
-        {
-          parents: 1,
-          interior: {
-            X3: [{Parachain: 2001}, {PalletInstance: 50}, {GeneralIndex: 1984}],
-          },
-        },
-        {id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'},
-        150000000,
-      )
-      .signAndSend(alice),
-  );
-
-  console.log('Tokens minted for AssetHubB');
-
-  await retry(() =>
-    apiAssetHubC.tx.foreignAssets
-      .mint(
-        {
-          parents: 1,
-          interior: {
-            X3: [{Parachain: 2001}, {PalletInstance: 50}, {GeneralIndex: 1984}],
-          },
-        },
-        {id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'},
-        50000000,
-      )
-      .signAndSend(alice),
-  );
-  console.log('Tokens minted for AssetHubC');
-
-  await new Promise(f => setTimeout(f, INTERVAL_ASHB));
-
-  await retry(() =>
-    apiAssetHubC.tx.foreignAssets
-      .mint(
-        {
-          parents: 1,
-          interior: {
-            X3: [{Parachain: 2001}, {PalletInstance: 50}, {GeneralIndex: 1984}],
-          },
-        },
-        {id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'},
-        150000000,
-      )
-      .signAndSend(alice),
-  );
-  console.log('Tokens minted for AssetHubC');
 
   exit(0);
 })();

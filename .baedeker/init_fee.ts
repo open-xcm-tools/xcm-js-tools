@@ -300,6 +300,8 @@ void (async () => {
   );
   console.log('Tokens minted for AssetHubA');
 
+  await new Promise(f => setTimeout(f, INTERVAL_ASHB));
+
   await retry(() =>
     apiAssetHubA.tx.polkadotXcm
       .transferAssets(
@@ -347,6 +349,8 @@ void (async () => {
       )
       .signAndSend(alice),
   );
+
+  console.log('The money transferred to AssetHubB');
 
   await new Promise(f => setTimeout(f, INTERVAL_ASHB));
 
@@ -397,5 +401,8 @@ void (async () => {
       )
       .signAndSend(alice),
   );
+
+  console.log('The money transferred to AssetHubC');
+
   exit(0);
 })();

@@ -77,14 +77,14 @@ describe('fee estimation tests', async () => {
 
   test('correct composeTransfer: A -> C', async () => {
     expect(
-      console.log((await xcmAssetHubA.composeTransfer({
+      await xcmAssetHubA.composeTransfer({
         origin: 'Alice',
         assets: [xcmAssetHubA.adjustedFungible('USDT', '30')],
         feeAssetId: 'USDT',
         destination: 'AssetHubC',
         beneficiary: 'Alice',
-      })
-    ).toHex()));
+      }),
+    );
   });
 
   test('correct composeTransfer: B -> A', async () => {

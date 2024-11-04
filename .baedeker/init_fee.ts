@@ -1,7 +1,7 @@
 import {ApiPromise, Keyring, WsProvider} from '@polkadot/api';
 import {exit} from 'process';
 import {decodeAddress} from '@polkadot/keyring';
-
+import {u8aToString} from '@polkadot/util';
 
 async function retry(fn, ...args) {
   while (true) {
@@ -15,7 +15,7 @@ async function retry(fn, ...args) {
 }
 
 void (async () => {
-  // await new Promise(f => setTimeout(f, 60000));
+  await new Promise(f => setTimeout(f, 60000));
   const BDK_URL = process.env.BDK_BALANCER!.replace('http', 'ws');
   const INTERVAL = 10000;
   const INTERVAL_ASHB = 15000;
@@ -300,91 +300,102 @@ void (async () => {
   );
   console.log('Tokens minted for AssetHubA');
 
-
-  await retry(() => 
-    apiAssetHubA.tx.polkadotXcm.transferAssets(
-      {V4: {
-        parents: 1,
-        interior: {
-          X1: {
-            Parachain: 2002
-          }
-        }
-      }},
-      {
-        V4: {
-          parents: 0,
-          interior: {
-            X1: {
-              AccountId32: {
-                id: decodeAddress(alice.address)
-              }
-            }
-          }
-        }
-      },
-      {
-        V4: [
-          {
-            id: {
-              parents: 0,
-              interior: { X2: [
-                {PalletInstance: 50}, {GeneralIndex: 1984}]
-              }
+  await retry(() =>
+    apiAssetHubA.tx.polkadotXcm
+      .transferAssets(
+        {
+          V4: {
+            parents: 1,
+            interior: {
+              X1: [
+                {
+                  Parachain: 2002,
+                },
+              ],
             },
-            fun: {
-              Fungible: 100000000
-            }
-          }
-        ]
-      },
-      0,
-      'Unlimited'
-    )
-  
-  )
-
-  await retry(() => 
-    apiAssetHubA.tx.polkadotXcm.transferAssets(
-      {V4: {
-        parents: 1,
-        interior: {
-          X1: {
-            Parachain: 2003
-          }
-        }
-      }},
-      {
-        V4: {
-          parents: 0,
-          interior: {
-            X1: {
-              AccountId32: {
-                id: decodeAddress(alice.address)
-              }
-            }
-          }
-        }
-      },
-      {
-        V4: [
-          {
-            id: {
-              parents: 0,
-              interior: { X2: [
-                {PalletInstance: 50}, {GeneralIndex: 1984}]
-              }
+          },
+        },
+        {
+          V4: {
+            parents: 0,
+            interior: {
+              X1: [
+                {
+                  AccountId32: {
+                    id: `0x${Buffer.from(decodeAddress(alice.address)).toString('hex')}`,
+                  },
+                },
+              ],
             },
-            fun: {
-              Fungible: 100000000
-            }
-          }
-        ]
-      },
-      0,
-      'Unlimited'
-    )
-  
-  )
+          },
+        },
+        {
+          V4: [
+            {
+              id: {
+                parents: 0,
+                interior: {X2: [{PalletInstance: 50}, {GeneralIndex: 1984}]},
+              },
+              fun: {
+                Fungible: 100000000,
+              },
+            },
+          ],
+        },
+        0,
+        'Unlimited',
+      )
+      .signAndSend(alice),
+  );
+
+  await new Promise(f => setTimeout(f, INTERVAL_ASHB));
+
+  await retry(() =>
+    apiAssetHubA.tx.polkadotXcm
+      .transferAssets(
+        {
+          V4: {
+            parents: 1,
+            interior: {
+              X1: [
+                {
+                  Parachain: 2003,
+                },
+              ],
+            },
+          },
+        },
+        {
+          V4: {
+            parents: 0,
+            interior: {
+              X1: [
+                {
+                  AccountId32: {
+                    id: `0x${Buffer.from(decodeAddress(alice.address)).toString('hex')}`,
+                  },
+                },
+              ],
+            },
+          },
+        },
+        {
+          V4: [
+            {
+              id: {
+                parents: 0,
+                interior: {X2: [{PalletInstance: 50}, {GeneralIndex: 1984}]},
+              },
+              fun: {
+                Fungible: 100000000,
+              },
+            },
+          ],
+        },
+        0,
+        'Unlimited',
+      )
+      .signAndSend(alice),
+  );
   exit(0);
 })();

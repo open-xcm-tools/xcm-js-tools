@@ -3,12 +3,7 @@ import {
   Registry,
   relaychainUniversalLocation,
 } from '@open-xcm-tools/simple-xcm';
-import {
-  universalLocation,
-  location,
-  asset,
-  fungible,
-} from '@open-xcm-tools/xcm-util';
+import {universalLocation, location} from '@open-xcm-tools/xcm-util';
 import {describe, expect, test} from 'vitest';
 
 describe('fee estimation tests', async () => {
@@ -72,7 +67,7 @@ describe('fee estimation tests', async () => {
     expect(
       await xcmAssetHubA.composeTransfer({
         origin: 'Alice',
-        assets: [xcmAssetHubA.adjustedFungible('USDT', '5')],
+        assets: [xcmAssetHubA.adjustedFungible('USDT', '30')],
         feeAssetId: 'USDT',
         destination: 'AssetHubB',
         beneficiary: 'Alice',
@@ -80,36 +75,25 @@ describe('fee estimation tests', async () => {
     );
   });
 
-  test('correct composeTransfer: B -> C', async () => {
+  test('correct composeTransfer: A -> C', async () => {
+    expect(
+      console.log((await xcmAssetHubA.composeTransfer({
+        origin: 'Alice',
+        assets: [xcmAssetHubA.adjustedFungible('USDT', '30')],
+        feeAssetId: 'USDT',
+        destination: 'AssetHubC',
+        beneficiary: 'Alice',
+      })
+    ).toHex()));
+  });
+
+  test('correct composeTransfer: B -> A', async () => {
     expect(
       await xcmAssetHubB.composeTransfer({
         origin: 'Alice',
-        assets: [
-          asset(
-            {
-              parents: 1n,
-              interior: {
-                x3: [
-                  {parachain: 2001n},
-                  {palletInstance: 50n},
-                  {generalIndex: 1984n},
-                ],
-              },
-            },
-            fungible(5n),
-          ),
-        ],
-        feeAssetId: {
-          parents: 1n,
-          interior: {
-            x3: [
-              {parachain: 2001n},
-              {palletInstance: 50n},
-              {generalIndex: 1984n},
-            ],
-          },
-        },
-        destination: 'AssetHubC',
+        assets: [xcmAssetHubB.adjustedFungible('USDT', '30')],
+        feeAssetId: 'USDT',
+        destination: 'AssetHubA',
         beneficiary: 'Alice',
       }),
     );
@@ -119,7 +103,7 @@ describe('fee estimation tests', async () => {
     expect(
       await xcmAssetHubC.composeTransfer({
         origin: 'Alice',
-        assets: [xcmAssetHubC.adjustedFungible('USDT', '5')],
+        assets: [xcmAssetHubC.adjustedFungible('USDT', '30')],
         feeAssetId: 'USDT',
         destination: 'AssetHubA',
         beneficiary: 'Alice',
@@ -151,36 +135,13 @@ describe('fee estimation tests', async () => {
     );
   });
 
-  test('tooExpensive error handling: B -> C', async () => {
+  test('tooExpensive error handling: B -> A', async () => {
     expect(
       await xcmAssetHubB.composeTransfer({
         origin: 'Alice',
-        assets: [
-          asset(
-            {
-              parents: 1n,
-              interior: {
-                x3: [
-                  {parachain: 2001n},
-                  {palletInstance: 50n},
-                  {generalIndex: 1984n},
-                ],
-              },
-            },
-            fungible(5n),
-          ),
-        ],
-        feeAssetId: {
-          parents: 1n,
-          interior: {
-            x3: [
-              {parachain: 2001n},
-              {palletInstance: 50n},
-              {generalIndex: 1984n},
-            ],
-          },
-        },
-        destination: 'AssetHubC',
+        assets: [xcmAssetHubB.adjustedFungible('USDT', '0.000001')],
+        feeAssetId: 'USDT',
+        destination: 'AssetHubA',
         beneficiary: 'Alice',
       }),
     );

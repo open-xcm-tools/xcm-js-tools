@@ -14,10 +14,11 @@ import {
   Location,
   RegistryLookup,
   AnyAsset,
+  AnyAssetId,
 } from '@open-xcm-tools/xcm-types';
 import {SubmittableExtrinsic} from '@polkadot/api/types';
 import {Result, Vec} from '@polkadot/types-codec';
-import {Codec} from '@polkadot/types-codec/types';
+import {AnyJson, Codec} from '@polkadot/types-codec/types';
 import {stringify} from '@polkadot/util';
 import {
   FeeEstimationError,
@@ -33,6 +34,7 @@ import {
   extractVersion,
   findAssetIdIndex,
   findPalletXcm,
+  interiorToArray,
   locationIntoCurrentVersion,
   locationRelativeToPrefix,
   reanchorAssetId,
@@ -265,6 +267,34 @@ export class Estimator {
     });
   }
 
+  async getExistentialDeposit(xcmVersion: XcmVersion, assetId: AnyAssetId) {
+    let assetIndex, assetInformation;
+    if ('concrete' in assetId) {
+      assetIndex = interiorToArray(xcmVersion, assetId.concrete.interior).find(
+        junction => 'generalIndex' in junction,
+      ).generalIndex;
+    } else if ('abstract' in assetId) {
+      throw new Error('Unsupported asset version!');
+    } else {
+      assetIndex = interiorToArray(xcmVersion, assetId.interior).find(
+        junction => 'generalIndex' in junction,
+      ).generalIndex;
+      if (assetId.parents === 0n) {
+        assetInformation = (
+          await this.api.query.assets.asset(assetIndex)
+        ).toJSON();
+      } else {
+        assetInformation = (
+          await this.api.query.foreignAssets.asset(assetId)
+        ).toJSON();
+      }
+    }
+    console.log(assetInformation);
+    return assetInformation['isSufficient']
+      ? BigInt(assetInformation['minBalance'])
+      : 0n;
+  }
+
   /**
    * Collects fungible asset balances for a given account.
    *
@@ -290,7 +320,7 @@ export class Estimator {
     const neededFungibles = unwrapVersionedAssets(versionedAssets);
     const unwrappedAssets = unwrapVersionedAssets(assets);
 
-    unwrappedAssets.forEach(asset => {
+    unwrappedAssets.forEach(async asset => {
       console.log(asset);
       const matchingAsset = neededFungibles.find(
         fungible =>
@@ -299,7 +329,12 @@ export class Estimator {
       if (!matchingAsset) {
         throw new Error(`User doesn't have ${asset.id} asset.`);
       }
-      asset.fun.fungible = matchingAsset.fun.fungible - 30n;
+      if ('fungible' in asset.fun && 'fungible' in matchingAsset.fun) {
+        console.log((await this.getExistentialDeposit(assetXcmVersion, matchingAsset.id)));
+        asset.fun.fungible =
+          matchingAsset.fun.fungible -
+          (await this.getExistentialDeposit(assetXcmVersion, matchingAsset.id)) * 20n;
+      }
     });
 
     return <VersionedAssets>{[`v${assetXcmVersion}`]: unwrappedAssets};

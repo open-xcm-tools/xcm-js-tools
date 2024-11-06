@@ -34,16 +34,21 @@ The XCM JS tools contain utilities to convert XCM objects' versions easily. Furt
 ## Structure
 
 The XCM JS tools have a modular structure. It hosts packages of different abstraction levels.
-The most low-level one is the [`xcm-types`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-types) package, which describes the XCM types of all versions.
-Another low-level package is [`xcm-util`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-util), which contains functions to convert objects' XCM versions, sanitize their content, and perform other utility functions, such as sorting the XCM assets.
 
-These low-level packages can be used independently. But they are also used in more high-level packages of this repository, namely, [`xcm-estimate`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-estimate) and [`simple-xcm`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/simple-xcm).
+* [`xcm-types`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-types) - the most low-level package, which describes the XCM types of all versions.
+* [`xcm-util`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-util) - another low-level package, which contains functions to convert objects' XCM versions, sanitize their content, and perform other utility functions, such as sorting the XCM assets.
 
-The `xcm-estimate` package's primary goal is to provide the means to estimate fees on all involved chains in reaction to a given extrinsic, which triggers XCM execution. It also offers additional estimating functions, such as estimating the maximal supported XCM version by the given chain or fetching the chain's list of fee asset IDs.
-
-The `simple-xcm` package is the most high-level one. It provides a simple interface for composing a transfer extrinsic for a given chain with automatic fee estimation. The distinctive feature of its interface is the usage of the most recent XCM version. The package's user can focus on working with an XCM object using the last XCM version. If necessary, the `simple-xcm` package converts to the actual version the chain needs automatically.
+These low-level packages can be used independently. But they are also used in more high-level packages of this repository:
+* [`xcm-estimate`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-estimate) - this package's primary goal is to provide the means to estimate fees on all involved chains in reaction to a given extrinsic, which triggers XCM execution. It also offers additional estimating functions, such as estimating the maximal supported XCM version by the given chain or fetching the chain's list of fee asset IDs.
+* [`simple-xcm`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/simple-xcm) - this package is the most high-level one. It provides a simple interface for composing a transfer extrinsic for a given chain with automatic fee estimation. The distinctive feature of its interface is the usage of the most recent XCM version. The package's user can focus on working with an XCM object using the last XCM version. If necessary, the `simple-xcm` package converts to the actual version the chain needs automatically.
 
 ## Documentation and examples
 
 You can find the docs and examples in the packages' README files and inside the doc comments in their code.
 You can also check out the runnable examples in the [examples repository](https://github.com/open-xcm-tools/xcm-js-examples). This repository exhibits an example project setup and several runnable examples that use the XCM JS tools of different abstraction levels.
+
+## Future improvements
+
+Currently, there is a limitation on estimating fees. If the encoded transfer extrinsic doesn't have enough fee-asset fungibles, it will fail during dry-running. This is inconvenient, as the user still needs to ensure the minimal amount of fungibles by themselves. However, since the error is found during dry-running, the user avoids paying for the erroneous XCM execution (for instance, if the execution failed on the reserve chain, i.e., on the intermediate chain, and the assets got trapped).
+
+In the future, when appropriate XCM Runtime APIs are available, this limitation should be lifted. The user would ask the `SimpleXcm` object to estimate fees, and the estimation would be completely independent of the assets embedded in the provided extrinsic.

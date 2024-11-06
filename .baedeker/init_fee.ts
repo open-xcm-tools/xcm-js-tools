@@ -117,8 +117,9 @@ void (async () => {
                     proofSize: 8000,
                   },
                   call: {
-                    encoded:
-                      '0x3201011f00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0104',
+                    encoded: apiAssetHubA.tx.assets
+                      .forceCreate(1984, alice.address, true, 10000)
+                      .method.toHex(),
                   },
                 },
               },
@@ -174,8 +175,22 @@ void (async () => {
                     proofSize: 8000,
                   },
                   call: {
-                    encoded:
-                      '0x3501010300451f043205011f00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0104',
+                    encoded: apiAssetHubB.tx.foreignAssets
+                      .forceCreate(
+                        {
+                          parents: 1,
+                          interior: {
+                            X3: [
+                              {Parachain: 2001},
+                              {PalletInstance: 50, GeneralIndex: 1984},
+                            ],
+                          },
+                        },
+                        alice.address,
+                        true,
+                        10000,
+                      )
+                      .method.toHex(),
                   },
                 },
               },
@@ -240,8 +255,22 @@ void (async () => {
                     proofSize: 8000,
                   },
                   call: {
-                    encoded:
-                      '0x3501010300451f043205011f00d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0104',
+                    encoded: apiAssetHubC.tx.foreignAssets
+                      .forceCreate(
+                        {
+                          parents: 1,
+                          interior: {
+                            X3: [
+                              {Parachain: 2001},
+                              {PalletInstance: 50, GeneralIndex: 1984},
+                            ],
+                          },
+                        },
+                        alice.address,
+                        true,
+                        10000,
+                      )
+                      .method.toHex(),
                   },
                 },
               },
@@ -278,11 +307,7 @@ void (async () => {
 
   await retry(() =>
     apiAssetHubA.tx.assets
-      .mint(
-        1984,
-        {id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'},
-        150000000,
-      )
+      .mint(1984, {id: alice.address}, 150000000)
       .signAndSend(alice),
   );
   console.log('Tokens minted for AssetHubA');
@@ -291,11 +316,7 @@ void (async () => {
 
   await retry(() =>
     apiAssetHubA.tx.assets
-      .mint(
-        1984,
-        {id: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY'},
-        250000000,
-      )
+      .mint(1984, {id: alice.address}, 250000000)
       .signAndSend(alice),
   );
   console.log('Tokens minted for AssetHubA');
@@ -324,7 +345,7 @@ void (async () => {
               X1: [
                 {
                   AccountId32: {
-                    id: `0x${Buffer.from(decodeAddress(alice.address)).toString('hex')}`,
+                    id: alice.addressRaw,
                   },
                 },
               ],
@@ -376,7 +397,7 @@ void (async () => {
               X1: [
                 {
                   AccountId32: {
-                    id: `0x${Buffer.from(decodeAddress(alice.address)).toString('hex')}`,
+                    id: alice.addressRaw,
                   },
                 },
               ],

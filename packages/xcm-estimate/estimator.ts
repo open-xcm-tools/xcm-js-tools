@@ -293,7 +293,6 @@ export class Estimator {
     );
 
     if (errors.length > 0) {
-      console.log(errors);
       throw new FeeEstimationErrors(errors);
     }
 

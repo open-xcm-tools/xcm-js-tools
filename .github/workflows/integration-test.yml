@@ -48,11 +48,6 @@ jobs:
             snippet:(import 'baedeker-library/ops/rewrites.libsonnet').rewriteNodePaths({'bin/polkadot':{dockerImage:'uniquenetwork/ci-unique-assethub:polkadot'}})
             snippet:(import 'baedeker-library/ops/rewrites.libsonnet').rewriteNodePaths({'bin/assethub':{dockerImage:'uniquenetwork/ci-unique-assethub:polkadot-parachain'}})
       
-      - name: Setup node settings
-        run: |
-          tsc ./.baedeker/init_fee.ts || true
-          node ./.baedeker/init_fee.js
-      
       - name: Run tests
         run: |
           yarn test tests/integration

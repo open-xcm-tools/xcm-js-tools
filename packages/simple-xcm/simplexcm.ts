@@ -33,6 +33,7 @@ import {
   relativeLocationToUniversal,
   sanitizeInterior,
   sanitizeLookup,
+  toInterior,
   toJunctions,
 } from '@open-xcm-tools/xcm-util';
 import {Estimator, findFeeAssetById} from '@open-xcm-tools/xcm-estimate';
@@ -397,13 +398,9 @@ export class SimpleXcm {
       const palletRuntimeName = pallet.name.toPrimitive();
       palletName = palletApiTxName(palletRuntimeName);
 
-      switch (palletName) {
-        // TODO test XTokensBackend
-        // case 'xTokens':
-        //   backend = new XTokensBackend(this);
-        //   break loop;
-
-        default:
+      if (palletName === 'xTokens') {
+        backend = new XTokensBackend(this);
+        break;
       }
     }
 
@@ -528,9 +525,27 @@ class XTokensBackend implements TransferBackend {
   async composeTransfer(
     transferParams: TransferParams,
   ): Promise<SubmittableExtrinsic<'promise'>> {
+    // xTokens used only by parachains, so it is safe to query para ID.
+    const paraId = await this.simpleXcm.api.query.parachainInfo
+      .parachainId()
+      .then(id => id.toJSON() as number);
+
     const preparedParams = await prepareTransferParams(
       this.simpleXcm,
       transferParams,
+      assetId => {
+        if (assetId.parents === 0n) {
+          return {
+            parents: 1n,
+            interior: toInterior([
+              {parachain: BigInt(paraId)},
+              ...toJunctions(assetId.interior),
+            ]),
+          };
+        } else {
+          return assetId;
+        }
+      },
     );
 
     if (preparedParams.beneficiary.parents !== 0n) {
@@ -599,6 +614,7 @@ class XTokensBackend implements TransferBackend {
 export async function prepareTransferParams(
   simpleXcm: SimpleXcm,
   transferParams: TransferParams,
+  transformAssetId: (assetId: AssetId) => AssetId = assetId => assetId,
 ): Promise<PreparedTransferParams> {
   let origin: Origin;
   if (typeof transferParams.origin === 'string') {
@@ -619,13 +635,18 @@ export async function prepareTransferParams(
   const beneficiary = simpleXcm.resolveRelativeLocation(
     transferParams.beneficiary,
   );
-  const feeAssetId = simpleXcm.resolveRelativeLocation(
-    transferParams.feeAssetId,
+  const feeAssetId = transformAssetId(
+    simpleXcm.resolveRelativeLocation(transferParams.feeAssetId),
   );
 
-  const resolvedAssets = transferParams.assets.map(asset =>
-    simpleXcm.resolveRelativeAsset(asset),
-  );
+  const resolvedAssets = transferParams.assets.map(asset => {
+    const resolvedAsset = simpleXcm.resolveRelativeAsset(asset);
+
+    return {
+      id: transformAssetId(resolvedAsset.id),
+      fun: resolvedAsset.fun,
+    };
+  });
 
   const assets = prepareAssetsForEncoding(simpleXcm.xcmVersion, resolvedAssets);
 

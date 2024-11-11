@@ -34,7 +34,7 @@ export async function finalize(
   const promise: Promise<any> = new Promise((resolve, reject) => {
     const timer = setTimeout(
       () => reject(new Error('finalization timeout')),
-      60000,
+      120000,
     );
 
     const unsubPromise = tx.signAndSend(signer, result => {

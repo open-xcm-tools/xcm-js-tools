@@ -130,7 +130,7 @@ registry.universalLocation('SomeChainLocation');
 registry.relativeLocation('MyAccountLocation');
 ```
 
-After completing the setup, the library can interact with an XCM-capable parachain pallet (`pallet-xcm` at the moment; `pallet-xtokens` support is coming in a future release). The library provides functionality to connect to a parachain using its in-registry name.
+After completing the setup, the library can interact with an XCM-capable parachain pallet (preferably `pallet-xcm` if present or `pallet-xtokens` as an experimental fallback). The library provides functionality to connect to a parachain using its in-registry name.
 For example, using the chain's in-registry name:
 
 ```typescript

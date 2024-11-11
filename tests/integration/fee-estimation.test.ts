@@ -146,7 +146,6 @@ describe('fee estimation tests', async () => {
 
   const xcTransferAndCheckBalanceIncrease = async (params: {
     transferAmount: number;
-    withNft?: number;
     fromXcm: SimpleXcm;
     destXcm: SimpleXcm;
     destAssetsPalletName: AssetsPalletName;

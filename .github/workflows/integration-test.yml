@@ -60,7 +60,6 @@ jobs:
           RPC_URL: ${{ env.RELAY_ASSETHUBA_HTTP_URL }}
 
       - name: Run tests
-        working-directory: tests/integration
         if: ${{ !cancelled() && steps.alive.outcome == 'success' }}        
         run: |
-          yarn test
+          yarn test tests/integration

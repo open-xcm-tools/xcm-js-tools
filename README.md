@@ -27,7 +27,7 @@ The fee estimation greatly mitigates the problem, possibly even solving it if th
 
 ### Handling different XCM versions
 
-Different chains might support different XCM versions. Dealing with various XCM versions on JS is challenging, especially if complex manipulations are needed, such as XCM location re-anchoring. Also, it is difficult to maintain complex logic for every possible XCM version; it is easier to work with only one and convert an object's version when necessary. Moreover, focusing on working with the most recent XCM version makes sense since most chains will gradually adopt it. Thus, even if some chains require XCM version conversions, it is temporary. 
+Different chains might support different XCM versions. Dealing with various XCM versions on JS is challenging, especially if complex manipulations are needed, such as XCM location re-anchoring. Also, it is difficult to maintain complex logic for every possible XCM version; it is easier to work with only one and convert an object's version when necessary. Moreover, focusing on working with the most recent XCM version makes sense since most chains will gradually adopt it. Thus, even if some chains require XCM version conversions, it is temporary.
 
 The XCM JS tools contain utilities to convert XCM objects' versions easily. Furthermore, a more high-level package called `simple-xcm` provides interfaces using the most modern XCM version while automatically converting to the version the connected chain needs without any hustle.
 
@@ -35,12 +35,13 @@ The XCM JS tools contain utilities to convert XCM objects' versions easily. Furt
 
 The XCM JS tools have a modular structure. It hosts packages of different abstraction levels.
 
-* [`xcm-types`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-types) - the most low-level package, which describes the XCM types of all versions.
-* [`xcm-util`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-util) - another low-level package, which contains functions to convert objects' XCM versions, sanitize their content, and perform other utility functions, such as sorting the XCM assets.
+- [`xcm-types`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-types) - the most low-level package, which describes the XCM types of all versions.
+- [`xcm-util`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-util) - another low-level package, which contains functions to convert objects' XCM versions, sanitize their content, and perform other utility functions, such as sorting the XCM assets.
 
 These low-level packages can be used independently. But they are also used in more high-level packages of this repository:
-* [`xcm-estimate`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-estimate) - this package's primary goal is to provide the means to estimate fees on all involved chains in reaction to a given extrinsic, which triggers XCM execution. It also offers additional estimating functions, such as estimating the maximal supported XCM version by the given chain or fetching the chain's list of fee asset IDs.
-* [`simple-xcm`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/simple-xcm) - this package is the most high-level one. It provides a simple interface for composing a transfer extrinsic for a given chain with automatic fee estimation. The distinctive feature of its interface is the usage of the most recent XCM version. The package's user can focus on working with an XCM object using the last XCM version. If necessary, the `simple-xcm` package converts to the actual version the chain needs automatically.
+
+- [`xcm-estimate`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/xcm-estimate) - this package's primary goal is to provide the means to estimate fees on all involved chains in reaction to a given extrinsic, which triggers XCM execution. It also offers additional estimating functions, such as estimating the maximal supported XCM version by the given chain or fetching the chain's list of fee asset IDs.
+- [`simple-xcm`](https://github.com/open-xcm-tools/xcm-js-tools/tree/master/packages/simple-xcm) - this package is the most high-level one. It provides a simple interface for composing a transfer extrinsic for a given chain with automatic fee estimation. The distinctive feature of its interface is the usage of the most recent XCM version. The package's user can focus on working with an XCM object using the last XCM version. If necessary, the `simple-xcm` package converts to the actual version the chain needs automatically.
 
 ## Documentation and examples
 

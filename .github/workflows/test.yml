@@ -22,4 +22,4 @@ jobs:
 
       - name: Run tests
         run: |
-          yarn test
+          yarn test tests/unit

@@ -1,0 +1,65 @@
+name: integration-tests
+
+on:
+  workflow_call:
+
+jobs:
+  integration-tests:
+    runs-on: [self-hosted]
+
+    steps:
+      - uses: actions/checkout@v4.1.7
+        with:
+          ref: ${{ github.head_ref }} #Checking out head commit
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '21'
+
+      - name: Install dependencies
+        run: |
+          npm i -g yarn typescript
+          yarn install
+          
+      - name: Install baedeker
+        uses: UniqueNetwork/baedeker-action/setup@v1-no-debug-output
+        with:
+          version: 'v0.1.5'
+          useCache: false
+
+      - name: Setup library
+        run: mkdir -p .baedeker/vendor/ && git clone https://github.com/UniqueNetwork/baedeker-library .baedeker/vendor/baedeker-library
+
+      - name: Pull polkadot docker image
+        run: docker pull uniquenetwork/ci-unique-assethub:polkadot
+
+      - name: Pull asset-hub docker image
+        run: docker pull uniquenetwork/ci-unique-assethub:polkadot-parachain
+
+      - name: Start network
+        uses: UniqueNetwork/baedeker-action@built
+        id: bdk
+        with:
+          jpath: |
+            .baedeker/vendor
+          tla-str: |
+            relay_spec=rococo-local
+          inputs: |
+            .baedeker/multiple-assethub.jsonnet
+            snippet:(import 'baedeker-library/ops/rewrites.libsonnet').rewriteNodePaths({'bin/polkadot':{dockerImage:'uniquenetwork/ci-unique-assethub:polkadot'}})
+            snippet:(import 'baedeker-library/ops/rewrites.libsonnet').rewriteNodePaths({'bin/assethub':{dockerImage:'uniquenetwork/ci-unique-assethub:polkadot-parachain'}})
+
+      - name: Ensure network is alive
+        working-directory: tests
+        id: alive
+        if: ${{ !cancelled() && steps.bdk.outcome == 'success' }}
+        run: |
+          ./scripts/wait_for_first_block.sh
+        env:
+          RPC_URL: ${{ env.RELAY_ASSETHUBA_HTTP_URL }}
+
+      - name: Run tests
+        if: ${{ !cancelled() && steps.alive.outcome == 'success' }}        
+        run: |
+          yarn test tests/integration

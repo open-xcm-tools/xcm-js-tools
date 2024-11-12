@@ -58,6 +58,7 @@ local assethubA = {
         [name]: {
             bin: $.bin,
             wantedKeys: 'para',
+            parentConnection: 'internal-samedir',
             expectedDataPath: '/parity',    
             extraArgs: [
                 '-lxcm=trace',

@@ -55,7 +55,7 @@ jobs:
         id: alive
         if: ${{ !cancelled() && steps.bdk.outcome == 'success' }}
         run: |
-          ../scripts/wait_for_first_block.sh
+          ./scripts/wait_for_first_block.sh
         env:
           RPC_URL: ${{ env.RELAY_ASSETHUBA_HTTP_URL }}
 

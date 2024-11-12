@@ -1,15 +1,16 @@
-name: test
+name: integration-tests
 
 on:
   workflow_call:
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  integration-tests:
+    runs-on: [self-hosted]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v4.1.7
+        with:
+          ref: ${{ github.head_ref }} #Checking out head commit
 
       - name: Setup Node.js
         uses: actions/setup-node@v2
@@ -20,6 +21,7 @@ jobs:
         run: |
           npm i -g yarn typescript
           yarn install
+          
       - name: Install baedeker
         uses: UniqueNetwork/baedeker-action/setup@v1-no-debug-output
         with:
@@ -47,7 +49,18 @@ jobs:
             .baedeker/multiple-assethub.jsonnet
             snippet:(import 'baedeker-library/ops/rewrites.libsonnet').rewriteNodePaths({'bin/polkadot':{dockerImage:'uniquenetwork/ci-unique-assethub:polkadot'}})
             snippet:(import 'baedeker-library/ops/rewrites.libsonnet').rewriteNodePaths({'bin/assethub':{dockerImage:'uniquenetwork/ci-unique-assethub:polkadot-parachain'}})
-      
-      - name: Run tests
+
+      - name: Ensure network is alive
+        working-directory: tests
+        id: alive
+        if: ${{ !cancelled() && steps.bdk.outcome == 'success' }}
         run: |
-          yarn test tests/integration
+          ../scripts/wait_for_first_block.sh
+        env:
+          RPC_URL: ${{ env.RELAY_ASSETHUBA_HTTP_URL }}
+
+      - name: Run tests
+        working-directory: tests/integration
+        if: ${{ !cancelled() && steps.alive.outcome == 'success' }}        
+        run: |
+          yarn test

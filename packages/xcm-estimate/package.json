@@ -14,9 +14,6 @@
     "@polkadot/util": "^13.0.2",
     "@polkadot/wasm-util": "*",
     "@types/node": "*",
-    "react": "*",
-    "react-dom": "*",
-    "react-is": "*",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },

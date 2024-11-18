@@ -13,13 +13,7 @@
     "@polkadot/keyring": "^13.0.2",
     "@polkadot/typegen": "^13.2.1",
     "@polkadot/util": "^13.0.2",
-    "@polkadot/wasm-util": "*",
-    "@types/node": "*",
-    "react": "*",
-    "react-dom": "*",
-    "react-is": "*",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "@polkadot/wasm-util": "*"
   },
   "resolutions": {
     "@polkadot/api": "^13.2.1",

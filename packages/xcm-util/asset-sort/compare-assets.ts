@@ -43,18 +43,22 @@ import {interiorToArray} from '../common';
  * Compares two assets of any version based on their asset IDs and fungibility.
  *
  * @param xcmVersion - The version of the XCM protocol being used.
- * @param a - The first asset to compare.
- * @param b - The second asset to compare.
- * @returns A negative number if `a` is less than `b`, a positive number if `a` is greater than `b`, or zero if they are equal.
+ * @param asset1 - The first asset to compare.
+ * @param asset2 - The second asset to compare.
+ * @returns A negative number if `asset1` is less than `asset2`, a positive number if `asset1` is greater than `asset2`, or zero if they are equal.
  */
 export function compareAnyAsset(
   xcmVersion: XcmVersion,
-  a: AnyAsset,
-  b: AnyAsset,
+  asset1: AnyAsset,
+  asset2: AnyAsset,
 ) {
-  const assetIdCompareResult = compareAnyAssetId(xcmVersion, a.id, b.id);
+  const assetIdCompareResult = compareAnyAssetId(
+    xcmVersion,
+    asset1.id,
+    asset2.id,
+  );
   return assetIdCompareResult === 0
-    ? compareAnyFungibility(xcmVersion, a.fun, b.fun)
+    ? compareAnyFungibility(xcmVersion, asset1.fun, asset2.fun)
     : assetIdCompareResult;
 }
 

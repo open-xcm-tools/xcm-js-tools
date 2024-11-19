@@ -30,15 +30,13 @@ import {
 } from '@open-xcm-tools/xcm-util';
 
 /**
- * Information about a currency stored in the `Registry`.
- * @example
- * ```typescript
- * {
- *    symbol: 'DOT',
- *    decimals: 12,
- *    universalLocation: parachainUniversalLocation('polkadot', 2001n),
- * }
- * ```
+ * A `Registry` object can store and then provide information about chains, currencies, and locations.
+ *
+ * Each set method has at least one get method.
+ * The different get methods use different types as keys.
+ *
+ * For example, the `chainInfoByName` gets the chain info by its in-registry name,
+ * while the `chainInfoByUniversalLocation` fetches the information by the chain's universal location.
  */
 export class Registry {
   chainInfos: Map<string, ChainInfo>;
@@ -55,15 +53,15 @@ export class Registry {
 
   /**
    * Connects to the XCM pallet of a chain.
-   * @param chainId - The ID of the chain to connect.
+   * @param chainName - The name of the chain to connect.
    * @returns A promise that resolves to a SimpleXcm instance.
    * @example
    * ```typescript
    * const xcm: SimpleXcm = await registry.connectXcm('Unique Network');
    * ```
    */
-  connectXcm(chainId: string): Promise<SimpleXcm> {
-    return SimpleXcm.connect(chainId, this);
+  connectXcm(chainName: string): Promise<SimpleXcm> {
+    return SimpleXcm.connect(chainName, this);
   }
 
   /**
@@ -73,8 +71,8 @@ export class Registry {
    * @example
    * ```typescript
    * registry.addChain(<ChainInfo>{
-   *   chainId: 'AssetHub',
-   *   universalLocation: parachainUniversalLocation('polkadot', 2001n),
+   *   chainName: 'AssetHub',
+   *   universalLocation: parachainUniversalLocation('polkadot', 1000n),
    *   endpoints: [
    *     'wss://asset-hub-polkadot-rpc.dwellir.com',
    *     'wss://sys.ibp.network/asset-hub-polkadot',
@@ -111,6 +109,9 @@ export class Registry {
 
   /**
    * Adds chains from the specified ecosystem to the Registry.
+   * This method populates the Registry using the PolkadotJS Apps information
+   * about the Polkadot and Kusama blockchains (including the relay chain).
+   *
    * @param ecosystem - The name of the ecosystem (e.g., 'Polkadot').
    * @returns The current instance of the Registry.
    * @example
@@ -147,8 +148,12 @@ export class Registry {
    * ```typescript
    * registry.addCurrency(<CurrencyInfo>{
    *    symbol: 'USDT',
-   *    decimals: 12,
-   *    universalLocation: parachainUniversalLocation('polkadot', 2001n),
+   *    decimals: 6,
+   *    universalLocation: universalLocation('polkadot', [
+   *      {parachain: 1000n},
+   *      {palletInstance: 50n},
+   *      {generalIndex: 1984n},
+   *    ]),
    * });
    * ```
    */
@@ -164,16 +169,21 @@ export class Registry {
   }
 
   /**
-   * Adds the native currency from the ecosystem connected to the Registry storage.
-   * @param chainId - The name of the native currency chain from the ecosystem.
+   * Adds the native currency of the given chain.
+   * The currency's info will be fetched from the chain's metadata.
+   *
+   * The currency will be stored with two symbols:
+   * the actual symbol from the chain's metadata
+   * and an alternative symbol coinciding with the chain's name.
+   * @param chainName - The name of the chain.
    * @returns A promise that resolves when the currency is added.
    * @example
    * ```typescript
    * await registry.addNativeCurrency('Unique Network');
    * ```
    */
-  async addNativeCurrency(chainId: string): Promise<void> {
-    const chainInfo = this.chainInfoById(chainId);
+  async addNativeCurrency(chainName: string): Promise<void> {
+    const chainInfo = this.chainInfoByName(chainName);
 
     const provider = new WsProvider(chainInfo.endpoints);
     const api = await ApiPromise.create({provider});
@@ -192,12 +202,12 @@ export class Registry {
       });
 
       this.addCurrency({
-        symbol: chainId,
+        symbol: chainName,
         decimals,
         universalLocation,
       });
     } else {
-      console.warn(`${chainId}: no chain tokens found, skip`);
+      console.warn(`${chainName}: no chain tokens found, skip`);
     }
 
     await api.disconnect();
@@ -211,8 +221,8 @@ export class Registry {
    * @example
    * ```typescript
    * registry.addUniversalLocation(
-   *  'SomeChainLocation',
-   *  parachainUniversalLocation('polkadot', 2001n),
+   *  'Unique Network Chain Location',
+   *  parachainUniversalLocation('polkadot', 2037n),
    * );
    * ```
    */
@@ -289,15 +299,15 @@ export class Registry {
   }
 
   /**
-   * Returns information about a chain by its name.
+   * Returns information about a chain by its in-registry name.
    * @param chainName - The name of the chain.
    * @returns The ChainInfo object.
    * @example
    * ```typescript
-   * registry.chainInfoById('Unique Network');
+   * registry.chainInfoByName('Unique Network');
    * ```
    */
-  chainInfoById(chainName: string): ChainInfo {
+  chainInfoByName(chainName: string): ChainInfo {
     const chainLocation = this.universalLocation(chainName);
 
     if (!chainLocation) {
@@ -313,7 +323,7 @@ export class Registry {
    * @returns The ChainInfo object.
    * @example
    * ```typescript
-   * registry.chainInfoByLocation(parachainUniversalLocation('polkadot', 2001n));
+   * registry.chainInfoByLocation(parachainUniversalLocation('polkadot', 2037n));
    * ```
    */
   chainInfoByUniversalLocation(universalLocation: InteriorLocation): ChainInfo {
@@ -353,7 +363,7 @@ export class Registry {
    * @returns The CurrencyInfo object.
    * @example
    * ```typescript
-   * registry.currencyInfoByLocation(parachainUniversalLocation('polkadot', 2001n));
+   * registry.currencyInfoByLocation(parachainUniversalLocation('polkadot', 2037n));
    * ```
    */
   currencyInfoByUniversalLocation(
@@ -371,8 +381,8 @@ export class Registry {
   }
 
   /**
-   * Adds an ecosystem to the `Registry` and retrieves its parachains.
-   * @param relayUniversalLocation - The universal relay location.
+   * Adds all blockchains from an ecosystem to the `Registry`.
+   * @param relayUniversalLocation - The relay's universal location.
    * @param relayEndpointOption - Relay details.
    * @param paraEndpointOptions - Parachain details.
    * @returns The current instance of the Registry.

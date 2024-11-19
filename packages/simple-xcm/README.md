@@ -100,8 +100,8 @@ You can add information about universal or relative locations to your Registry o
 
 ```typescript
 registry.addUniversalLocation(
-  'SomeChainLocation',
-  parachainUniversalLocation('polkadot', 2001n),
+  'Unique Network Chain Location',
+  parachainUniversalLocation('polkadot', 2037n),
 );
 registry.addRelativeLocation(
   'MyAccountLocation',
@@ -122,7 +122,7 @@ registry.addRelativeLocation(
 The `Registry` class provides several functions to retrieve information about the stored data. For example:
 
 ```typescript
-registry.chainInfoById('Unique Network');
+registry.chainInfoByName('Unique Network');
 registry.chainInfoByLocation(parachainUniversalLocation('polkadot', 2037n)); // will return the same as above since it's the Unique's universal location
 registry.currencyInfoBySymbol('DOT');
 registry.currencyInfoByLocation(relaychainUniversalLocation('polkadot')); // will return the same as above

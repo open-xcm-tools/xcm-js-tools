@@ -21,6 +21,7 @@ import {
   RegistryLookup,
   FungibleAnyAsset,
   VersionedAssets,
+  CURRENT_XCM_VERSION,
 } from '@open-xcm-tools/xcm-types';
 import {
   convertAssetIdVersion,
@@ -102,14 +103,14 @@ export class SimpleXcm {
   }
 
   /**
-   * Enforces the specified XCM version for the transfer.
+   * Enforces the specified XCM version to be used when interacting with the connected chain.
    * @param version - The XCM version to enforce.
-   * @throws Will throw an error if the requested version exceeds the maximum supported version.
+   * @throws Throws an error if the requested version exceeds the maximum supported version for the connected chain.
    */
   enforceXcmVersion(version: XcmVersion) {
     if (version > this.estimator.xcmVersion) {
       throw new Error(
-        `The requested XCM version ${version} is greater than the chain supports (= ${this.estimator.xcmVersion})`,
+        `${this.chainInfo.identity.name}: The requested XCM version ${version} is greater than the maximum supported one for this chain (= ${this.estimator.xcmVersion})`,
       );
     }
 
@@ -117,8 +118,12 @@ export class SimpleXcm {
   }
 
   /**
-   * Adjusts the fungible asset amount based on the asset ID and amount.
-   * @param assetId - The ID of the asset.
+   * Converts the `amount` to the absolute number of tokens of the given currency.
+   * For example, if the given currency has `decimals = 6` and we passed `amount = 1.3`,
+   * then this function will convert the `amount` to `1300000n`.
+   *
+   * The currency's `decimals` value is looked up from the registry.
+   * @param assetId - The asset ID of the currency.
    * @param amount - The amount of the asset as a string.
    * @returns The adjusted asset lookup object.
    */
@@ -160,7 +165,7 @@ export class SimpleXcm {
    * @param registry - The registry instance.
    * @param chainInfo - Information about the connected chain.
    * @param palletXcm - The name of the XCM pallet.
-   * @param maxXcmVersion - The maximum supported XCM version.
+   * @param estimator - The estimator connected to the given chain.
    */
   private constructor(
     apiPromise: ApiPromise,
@@ -179,36 +184,40 @@ export class SimpleXcm {
 
   /**
    * Creates and connects a new SimpleXcm instance.
-   * @param chainId - The ID of the chain to connect to.
+   * @param chainName - The in-registry name of the chain to connect to.
    * @param registry - The registry instance.
    * @returns A promise that resolves to a SimpleXcm instance.
    * @throws Will throw an error if no pallet-xcm is found in the runtime.
    */
-  static async connect(chainId: string, registry: Registry) {
-    const chainInfo = registry.chainInfoById(chainId);
+  static async connect(chainName: string, registry: Registry) {
+    const chainInfo = registry.chainInfoByName(chainName);
 
     const provider = new WsProvider(chainInfo.endpoints);
     const api = await ApiPromise.create({provider});
 
     const palletXcm = findPalletXcm(api);
     if (!palletXcm) {
-      throw new Error(`${chainId}: no pallet-xcm found in the runtime`);
+      throw new Error(`${chainName}: no pallet-xcm found in the runtime`);
     }
 
-    const xcmVersion = await Estimator.estimateMaxXcmVersion(
+    const maxXcmVersion = await Estimator.estimateMaxXcmVersion(
       api,
       chainInfo.identity.name,
       palletXcm,
     );
-    const estimator = new Estimator(api, chainInfo.identity, xcmVersion);
+    const xcmVersionToUse = Math.min(
+      CURRENT_XCM_VERSION,
+      maxXcmVersion,
+    ) as XcmVersion;
+    const estimator = new Estimator(api, chainInfo.identity, xcmVersionToUse);
 
     return new SimpleXcm(api, registry, chainInfo, palletXcm, estimator);
   }
 
   /**
-   * Resolves a relative location to an absolute location.
+   * Resolves a relative location (it's relative to the connected chain's universal location) to a corresponding universal location.
    * @param lookup - The relative location or location lookup.
-   * @returns The resolved absolute location.
+   * @returns The resolved universal location.
    * @throws Will throw an error if the location is unknown.
    */
   resolveRelativeLocation(lookup: InteriorLocation | LocationLookup): Location {
@@ -240,7 +249,7 @@ export class SimpleXcm {
   }
 
   /**
-   * Resolves a location lookup to an absolute universal location.
+   * Resolves an interior location lookup to a universal location.
    * @param lookup - The location lookup.
    * @returns The resolved universal location.
    * @throws Will throw an error if the location is unknown.
@@ -268,11 +277,11 @@ export class SimpleXcm {
   }
 
   /**
-   * Estimates the extrinsic XCM fees for a given transfer.
+   * Estimates the XCM fees for an extrinsic that encodes a transfer.
    *
    * @param origin - The origin of the transfer.
    * @param xt - The extrinsic to estimate fees for.
-   * @param feeAssetId - The asset ID used for the transfer fee.
+   * @param feeAssetId - The ID of the asset that is used to cover the transfer fee.
    * @returns A promise that resolves to an object containing the estimated fees or an error.
    */
   async estimateExtrinsicXcmFees(
@@ -310,7 +319,7 @@ export class SimpleXcm {
   }
 
   /**
-   * Resolves a relative asset lookup to an absolute asset.
+   * Resolves a relative asset lookup to a plain XCM asset object.
    * @param lookup - The asset lookup.
    * @returns The resolved asset.
    */
@@ -626,6 +635,7 @@ class XTokensBackend implements TransferBackend {
  * Prepares the transfer parameters for the transfer.
  * @param simpleXcm - The SimpleXcm instance.
  * @param transferParams - The parameters for the transfer.
+ * @param transformAssetId - A callback to transform each asset Id into something else. An identity transformation by default.
  * @returns A promise that resolves to the prepared transfer parameters.
  */
 export async function prepareTransferParams(

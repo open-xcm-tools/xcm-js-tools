@@ -70,7 +70,11 @@ export type XcmExecutionEffect = {
 };
 
 /**
- * Class representing an Estimator for XCM operations.
+ * An `Estimator` object can estimate different properties of the connected chain.
+ *
+ * The primary purpose of the `Estimator` is to estimate the effects of XCM programs and estimate XCM fees.
+ * Besides that, it can also estimate the maximum supported XCM version of the chain,
+ * the list of acceptable XCM fee assets, etc.
  */
 export class Estimator {
   chainIdentity: ChainIdentity; // The identity of the chain associated with this estimator.
@@ -81,7 +85,7 @@ export class Estimator {
    * Creates an instance of Estimator.
    * @param api - The API instance for the blockchain.
    * @param chainIdentity - The identity of the chain.
-   * @param xcmVersion - The version of XCM.
+   * @param xcmVersion - The version of XCM to use.
    * @throws If the dry-run or XCM payment APIs are not implemented.
    */
   constructor(
@@ -117,12 +121,16 @@ export class Estimator {
     const api = await ApiPromise.create({
       provider: new WsProvider(chainInfo.endpoints),
     });
-    const xcmVersion = await Estimator.estimateMaxXcmVersion(
+    const maxXcmVersion = await Estimator.estimateMaxXcmVersion(
       api,
       chainInfo.identity.name,
     );
+    const xcmVersionToUse = Math.min(
+      CURRENT_XCM_VERSION,
+      maxXcmVersion,
+    ) as XcmVersion;
 
-    return new Estimator(api, chainInfo.identity, xcmVersion);
+    return new Estimator(api, chainInfo.identity, xcmVersionToUse);
   }
 
   /**
@@ -484,7 +492,7 @@ export class Estimator {
 
   /**
    * Estimates the delivery fees to a specific destination for a set of XCM programs.
-   * @param destination - The destination location for the delivery fees.
+   * @param destination - The destination location.
    * @param programs - The XCM programs for which to estimate delivery fees.
    * @returns A promise that resolves to an array of assets representing the delivery fees.
    * @throws If the estimation fails.
@@ -629,6 +637,7 @@ export class Estimator {
 
 /**
  * Converts an extrinsic to a string representation for logging.
+ * The `xt` will be converted to a string of the form `${palletName}.${extrinsicName}`.
  * @param xt - The extrinsic to convert.
  * @returns A string representation of the extrinsic.
  */
@@ -640,6 +649,7 @@ function extrinsicStrId(xt: SubmittableExtrinsic<'promise'>) {
 
 /**
  * Stringifies a dispatch error for logging.
+ * The error string will be of the form `${palletName}.${errorName}`.
  * @param api - The API instance for the blockchain.
  * @param error - The error to stringify.
  * @returns A string representation of the error.
@@ -656,7 +666,7 @@ function stringifyDispatchError(api: ApiPromise, error: any) {
 }
 
 /**
- * Logs the required fees for a chain.
+ * Logs the fees required by the chain.
  * @param chainIdentity - The identity of the chain.
  * @param requiredFees - The required fees to log.
  */
@@ -667,7 +677,7 @@ function logRequiredFees(chainIdentity: ChainIdentity, requiredFees: bigint) {
 }
 
 /**
- * Logs the sent XCM programs for a given origin chain.
+ * Logs the sent XCM programs from the origin chain.
  * @param originChainIdentity - The identity of the origin chain.
  * @param sentPrograms - The sent XCM programs to log.
  */

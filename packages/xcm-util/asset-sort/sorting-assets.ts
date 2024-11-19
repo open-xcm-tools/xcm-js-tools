@@ -33,7 +33,7 @@ export function sortAndDeduplicateAssets(assets: Asset[]) {
 }
 
 /**
- * Sorts and deduplicates versioned assets based on their XCM version.
+ * Sorts and deduplicates versioned assets.
  *
  * @param assets - The versioned assets to be sorted and deduplicated.
  * @throws Error if the XCM version is unknown.

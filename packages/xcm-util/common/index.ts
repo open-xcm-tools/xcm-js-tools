@@ -35,7 +35,7 @@ import {
 } from '../convert-xcm-version/convert-xcm-version';
 
 /**
- * Converts an interior representation into an array of junctions.
+ * Converts the interior `x[1-8]` representation into an array of junctions.
  *
  * @param interiorVersion - The version of the XCM protocol being used.
  * @param interior - The interior representation, which can be an object with a field `x[1-8]` or the string 'here'.
@@ -74,11 +74,11 @@ export function interiorToArray(
 }
 
 /**
- * Converts an array of junctions into an interior representation.
+ * Converts an array of junctions into the interior `x[1-8]` representation.
  *
  * @param interiorVersion - The version of the XCM protocol being used.
  * @param junctions - An array of junctions.
- * @returns An interior representation based on the provided junctions.
+ * @returns The interior `x[1-8]` representation based on the provided junctions.
  * @throws Error if the length of the junctions array exceeds the maximum allowed length.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,19 +116,19 @@ export function arrayToInterior(
 }
 
 /**
- * Converts an array of junctions to an interior representation using the current XCM version.
+ * Converts an array of junctions to the interior `x[1-8]` representation using the current XCM version.
  *
  * @param junctions - An array of junctions.
- * @returns An interior representation.
+ * @returns The interior `x[1-8]` representation.
  */
 export function toInterior(junctions: Junction[]): Interior {
   return arrayToInterior(CURRENT_XCM_VERSION, junctions);
 }
 
 /**
- * Converts an interior representation back into an array of junctions using the current XCM version.
+ * Converts the interior `x[1-8]` representation into an array of junctions using the current XCM version.
  *
- * @param interior - The interior representation.
+ * @param interior - The interior `x[1-8]` representation.
  * @returns An array of junctions.
  */
 export function toJunctions(interior: Interior): Junction[] {
@@ -138,7 +138,7 @@ export function toJunctions(interior: Interior): Junction[] {
 /**
  * Creates an asset lookup object.
  *
- * @param id - The identifier for the asset.
+ * @param id - The identifier for the asset (in-registry name or location).
  * @param fun - The fungibility type of the asset.
  * @returns An object representing the asset lookup.
  */
@@ -174,7 +174,7 @@ export function universalLocation(
 /**
  * Creates a location object based on the number of parents and junctions.
  *
- * @param parents - The number of parent blocks.
+ * @param parents - The number of parents.
  * @param junctions - Either the string 'here' or an array of junctions.
  * @returns A location object.
  */
@@ -201,7 +201,7 @@ export function location(
 }
 
 /**
- * Creates a fungible asset representation.
+ * Creates the fungible variant of a `Fungibility` object.
  *
  * @param amount - The amount of the fungible asset.
  * @returns An object representing the fungible asset.
@@ -213,11 +213,11 @@ export function fungible(amount: bigint) {
 }
 
 /**
- * Creates a non-fungible asset representation.
+ * Creates the non-fungible variant of a `Fungibility` object.
  *
  * @param id - The identifier for the non-fungible asset, which can be a bigint or a string.
  *        If the `id` is a `bigint`, it will be represented as `{ index: bigint }`.
- *        If the `id` is a `string`, it will be assigned to the corresponding array* variant
+ *        If the `id` is a `string`, it will be assigned to the corresponding `array4 | array8 | array16 | array32` variant
  * @returns An object representing the non-fungible asset.
  * @throws Error if the identifier's byte length is invalid.
  */
@@ -350,7 +350,7 @@ export function findPalletXcm(api: ApiPromise) {
 /**
  * Converts a pallet runtime name to a camelCase name as in the `api.tx.<palletName>`.
  * @param palletRuntimeName - The runtime name of the pallet.
- * @returns The camelCase transaction name.
+ * @returns The camelCase name that is suitable to use as an index to `api.tx`.
  */
 export function palletApiTxName(palletRuntimeName: string) {
   const palletPascalCaseName = palletRuntimeName;
@@ -360,11 +360,11 @@ export function palletApiTxName(palletRuntimeName: string) {
 }
 
 /**
- * Concatenates two interior representations into one.
+ * Concatenates two interior `x[1-8]` representations into one.
  *
- * @param a - The first interior representation.
- * @param b - The second interior representation.
- * @returns A new interior representation that combines both.
+ * @param a - The first interior `x[1-8]` representation.
+ * @param b - The second interior `x[1-8]` representation.
+ * @returns A new interior `x[1-8]` representation that combines both `a` and `b`.
  * @throws Error if the concatenated length exceeds the maximum allowed.
  */
 export function concatInterior(a: Interior, b: Interior): Interior {
@@ -385,9 +385,9 @@ export function concatInterior(a: Interior, b: Interior): Interior {
  * Converts a relative location to a universal location based on a given context.
  *
  * @param relativeLocation - The relative location to be converted.
- * @param context - The context that provides the necessary information for the conversion.
+ * @param context - The context is a universal location. The relative location represents some universal location relative to the context.
  * @returns A universal interior location that represents the relative location in the context of the provided interior location.
- * @throws Error if the relative location does not have enough context to perform the conversion.
+ * @throws Error if the relative location requires more parents than the context's length.
  */
 export function relativeLocationToUniversal({
   relativeLocation,
@@ -448,8 +448,8 @@ export function locationRelativeToPrefix({
  * Prepares assets for encoding by converting them to the appropriate version and sorting&duplicating them.
  *
  * @param version - The XCM version to which the assets should be converted.
- * @param assets - The assets to be prepared, which can be a single asset or an array of assets.
- * @returns A sorted and deduplicated list of versioned assets.
+ * @param assets - The assets to be prepared.
+ * @returns A sorted and deduplicated list of versioned assets in the desired XCM version.
  */
 export function prepareAssetsForEncoding(
   version: XcmVersion,
@@ -463,6 +463,7 @@ export function prepareAssetsForEncoding(
 
 /**
  * Reanchors an asset ID from an old context to a new context.
+ * A context is an interior (maybe universal) location. The relative location represents some interior location relative to the context.
  *
  * @param assetId - The asset ID to be reanchored.
  * @param oldContext - The previous context of the asset.
@@ -487,6 +488,7 @@ export function reanchorAssetId({
 
 /**
  * Reanchors a relative location from an old context to a new context.
+ * A context is an interior (maybe universal) location. The relative location represents some interior location relative to the context.
  *
  * @param relativeLocation - The relative location to be reanchored.
  * @param oldContext - The previous context of the relative location.

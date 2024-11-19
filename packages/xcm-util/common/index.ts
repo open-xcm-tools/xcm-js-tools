@@ -295,7 +295,9 @@ function sortObjectFields<T extends object>(obj: T): T {
 
   for (const [key, value] of sortedEntries) {
     sortedObj[key] =
-      typeof value === 'object' && value !== null ? sortObjectFields(value) : value;
+      typeof value === 'object' && value !== null
+        ? sortObjectFields(value)
+        : value;
   }
 
   return sortedObj as T;

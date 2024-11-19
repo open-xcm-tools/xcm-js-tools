@@ -287,7 +287,7 @@ export function extractVersion<T extends Record<string, unknown>>(
   throw new Error('extractVersion: failed to extract XCM version');
 }
 
-function sortObjectFields<T extends Record<string, any>>(obj: T): T {
+function sortObjectFields<T extends object>(obj: T): T {
   const sortedObj: Record<string, any> = {};
   const sortedEntries = Object.entries(obj).sort(([key1], [key2]) =>
     key1 > key2 ? 1 : -1,
@@ -295,7 +295,9 @@ function sortObjectFields<T extends Record<string, any>>(obj: T): T {
 
   for (const [key, value] of sortedEntries) {
     sortedObj[key] =
-      value === 'object' && value !== null ? sortObjectFields(value) : value;
+      typeof value === 'object' && value !== null
+        ? sortObjectFields(value)
+        : value;
   }
 
   return sortedObj as T;

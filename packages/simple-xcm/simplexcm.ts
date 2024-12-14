@@ -57,6 +57,14 @@ interface TransferBackend {
   composeTransfer(
     transferParams: TransferParams,
   ): Promise<SubmittableExtrinsic<'promise'>>;
+
+  prepareTransferParams(
+    transferParams: TransferParams,
+  ): Promise<PreparedTransferParams>;
+
+  buildSubmittableExtrinsic(
+    preparedParams: PreparedTransferParams,
+  ): SubmittableExtrinsic<'promise'>;
 }
 
 /**
@@ -153,7 +161,9 @@ export class SimpleXcm {
   }
 
   /**
-   * Disconnects from the API.
+   * Disconnects ApiPromise instance.
+   *
+   * Note: More likely you don't want to call this method if you are using custom ApiPromiseFactory.
    */
   async disconnect() {
     await this.api.disconnect();
@@ -448,6 +458,37 @@ export class SimpleXcm {
 class PalletXcmBackend implements TransferBackend {
   simpleXcm: SimpleXcm;
 
+  prepareTransferParams(
+    transferParams: TransferParams,
+  ): Promise<PreparedTransferParams> {
+    return prepareTransferParams(this.simpleXcm, transferParams);
+  }
+
+  buildSubmittableExtrinsic(
+    preparedParams: PreparedTransferParams,
+  ): SubmittableExtrinsic<'promise'> {
+    const palletXcm = this.simpleXcm.api.tx[this.simpleXcm.palletXcm];
+    const noXcmWeightLimit = 'Unlimited';
+    const xcmVersion = this.simpleXcm.xcmVersion;
+
+    const destination = convertLocationVersion(
+      xcmVersion,
+      preparedParams.destination,
+    );
+    const beneficiary = convertLocationVersion(
+      xcmVersion,
+      preparedParams.beneficiary,
+    );
+
+    return palletXcm.transferAssets(
+      destination,
+      beneficiary,
+      preparedParams.assets,
+      preparedParams.feeAssetIndex,
+      noXcmWeightLimit,
+    );
+  }
+
   /**
    * Constructor for the PalletXcmBackend.
    * @param simpleXcm - The SimpleXcm instance.
@@ -464,34 +505,11 @@ class PalletXcmBackend implements TransferBackend {
   async composeTransfer(
     transferParams: TransferParams,
   ): Promise<SubmittableExtrinsic<'promise'>> {
-    const preparedParams = await prepareTransferParams(
-      this.simpleXcm,
-      transferParams,
-    );
-
-    const xcmVersion = this.simpleXcm.xcmVersion;
-
-    const destination = convertLocationVersion(
-      xcmVersion,
-      preparedParams.destination,
-    );
-    const beneficiary = convertLocationVersion(
-      xcmVersion,
-      preparedParams.beneficiary,
-    );
-
-    const palletXcm = this.simpleXcm.api.tx[this.simpleXcm.palletXcm];
-    const noXcmWeightLimit = 'Unlimited';
+    const preparedParams = await this.prepareTransferParams(transferParams);
 
     let estimatedFees;
     do {
-      const txToDryRun = palletXcm.transferAssets(
-        destination,
-        beneficiary,
-        preparedParams.assets,
-        preparedParams.feeAssetIndex,
-        noXcmWeightLimit,
-      );
+      const txToDryRun = this.buildSubmittableExtrinsic(preparedParams);
 
       estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
         preparedParams.origin,
@@ -507,13 +525,7 @@ class PalletXcmBackend implements TransferBackend {
       }
     } while ('error' in estimatedFees);
 
-    const tx = palletXcm.transferAssets(
-      destination,
-      beneficiary,
-      preparedParams.assets,
-      preparedParams.feeAssetIndex,
-      noXcmWeightLimit,
-    );
+    const tx = this.buildSubmittableExtrinsic(preparedParams);
 
     // This call is necessary to verify the user's sufficient balance for executing the extrinsic,
     // which encompasses the assets and already estimated fees.
@@ -541,15 +553,9 @@ class XTokensBackend implements TransferBackend {
     this.simpleXcm = simpleXcm;
   }
 
-  /**
-   * Composes a transfer extrinsic based on the provided parameters.
-   * @param transferParams - The parameters for the transfer.
-   * @returns A promise that resolves to a SubmittableExtrinsic for the transfer.
-   * @throws Will throw an error if the beneficiary is not an interior location.
-   */
-  async composeTransfer(
+  async prepareTransferParams(
     transferParams: TransferParams,
-  ): Promise<SubmittableExtrinsic<'promise'>> {
+  ): Promise<PreparedTransferParams> {
     // xTokens used only by parachains, so it is safe to query para ID.
     const paraId = await this.simpleXcm.api.query.parachainInfo
       .parachainId()
@@ -580,6 +586,12 @@ class XTokensBackend implements TransferBackend {
       `);
     }
 
+    return preparedParams;
+  }
+
+  buildSubmittableExtrinsic(
+    preparedParams: PreparedTransferParams,
+  ): SubmittableExtrinsic<'promise'> {
     const beneficiaryJunctions = toJunctions(
       preparedParams.beneficiary.interior,
     );
@@ -602,12 +614,26 @@ class XTokensBackend implements TransferBackend {
     const xTokens = this.simpleXcm.api.tx['xTokens'];
     const noXcmWeightLimit = 'Unlimited';
 
-    const txToDryRun = xTokens.transferMultiassets(
+    return xTokens.transferMultiassets(
       preparedParams.assets,
       preparedParams.feeAssetIndex,
       destination,
       noXcmWeightLimit,
     );
+  }
+
+  /**
+   * Composes a transfer extrinsic based on the provided parameters.
+   * @param transferParams - The parameters for the transfer.
+   * @returns A promise that resolves to a SubmittableExtrinsic for the transfer.
+   * @throws Will throw an error if the beneficiary is not an interior location.
+   */
+  async composeTransfer(
+    transferParams: TransferParams,
+  ): Promise<SubmittableExtrinsic<'promise'>> {
+    const preparedParams = await this.prepareTransferParams(transferParams);
+
+    const txToDryRun = this.buildSubmittableExtrinsic(preparedParams);
 
     const estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
       preparedParams.origin,
@@ -619,14 +645,9 @@ class XTokensBackend implements TransferBackend {
       preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.value;
     }
 
-    const tx = xTokens.transferMultiassets(
-      preparedParams.assets,
-      preparedParams.feeAssetIndex,
-      destination,
-      noXcmWeightLimit,
-    );
+    const txWithCorrectFees = this.buildSubmittableExtrinsic(preparedParams);
 
-    return tx;
+    return txWithCorrectFees;
   }
 }
 

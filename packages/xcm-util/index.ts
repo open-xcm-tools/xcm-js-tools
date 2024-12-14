@@ -50,3 +50,6 @@ export {
   sanitizeJunction,
   sanitizeLocation,
 } from './sanitize';
+
+export type {ApiPromiseFactory} from './api-promise';
+export {defaultApiPromiseFactory} from './api-promise';

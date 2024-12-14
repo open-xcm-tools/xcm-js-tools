@@ -49,19 +49,19 @@ import {
  */
 interface TransferBackend {
   /**
-   * Composes a transfer extrinsic based on the provided parameters.
-   *
-   * @param transferParams - The parameters for the transfer.
-   * @returns A promise that resolves to a SubmittableExtrinsic for the transfer.
+   * Prepares the transfer parameters for the transfer with some pallet-specific logic.
+   * @param transferParams
+   * @returns A promise that resolves to the prepared transfer parameters.
    */
-  composeTransfer(
-    transferParams: TransferParams,
-  ): Promise<SubmittableExtrinsic<'promise'>>;
-
   prepareTransferParams(
     transferParams: TransferParams,
   ): Promise<PreparedTransferParams>;
 
+  /**
+   * Builds a submittable extrinsic for the transfer with some pallet-specific logic.
+   * @param preparedParams
+   * @returns A submittable extrinsic for the transfer.
+   */
   buildSubmittableExtrinsic(
     preparedParams: PreparedTransferParams,
   ): SubmittableExtrinsic<'promise'>;
@@ -88,6 +88,12 @@ type PreparedTransferParams = {
   beneficiary: Location;
 };
 
+type ComposedXcmTransfer = {
+  preparedParams: PreparedTransferParams;
+  submittableExtrinsic: SubmittableExtrinsic<'promise'>;
+  estimatedFees: bigint;
+};
+
 /**
  * Class representing a simple XCM interface for cross-chain transfers.
  */
@@ -104,10 +110,36 @@ export class SimpleXcm {
    * @param transferParams - The parameters for the transfer.
    * @returns A promise that resolves to a SubmittableExtrinsic for the transfer.
    */
-  composeTransfer(
+  async composeTransfer(
     transferParams: TransferParams,
-  ): Promise<SubmittableExtrinsic<'promise'>> {
-    return this.#transferBackend().composeTransfer(transferParams);
+  ): Promise<ComposedXcmTransfer> {
+    const preparedParams =
+      await this.#transferBackend().prepareTransferParams(transferParams);
+
+    const txForDryRun =
+      this.#transferBackend().buildSubmittableExtrinsic(preparedParams);
+
+    let estimatedFees: bigint;
+
+    const estimatedFeesResult = await this.estimateExtrinsicXcmFees(
+      preparedParams.origin,
+      txForDryRun,
+      preparedParams.feeAssetId,
+    );
+
+    if ('error' in estimatedFeesResult) {
+      preparedParams.feeAnyAssetRef.fun.fungible +=
+        estimatedFeesResult.error.missingAmount;
+
+      estimatedFees = preparedParams.feeAnyAssetRef.fun.fungible;
+    } else {
+      estimatedFees = estimatedFeesResult.value;
+    }
+
+    const submittableExtrinsic =
+      this.#transferBackend().buildSubmittableExtrinsic(preparedParams);
+
+    return {submittableExtrinsic, preparedParams, estimatedFees};
   }
 
   /**
@@ -288,19 +320,19 @@ export class SimpleXcm {
    * Estimates the XCM fees for an extrinsic that encodes a transfer.
    *
    * @param origin - The origin of the transfer.
-   * @param xt - The extrinsic to estimate fees for.
+   * @param tx - The extrinsic to estimate fees for.
    * @param feeAssetId - The ID of the asset that is used to cover the transfer fee.
    * @returns A promise that resolves to an object containing the estimated fees or an error.
    */
   async estimateExtrinsicXcmFees(
     origin: Origin,
-    xt: SubmittableExtrinsic<'promise'>,
+    tx: SubmittableExtrinsic<'promise'>,
     feeAssetId: AssetId,
   ): Promise<{value: bigint} | {error: TooExpensiveFeeError}> {
     try {
       const estimatedFees = await this.estimator.tryEstimateExtrinsicFees(
         origin,
-        xt,
+        tx,
         feeAssetId,
         {
           estimatorResolver: (universalLocation: InteriorLocation) =>
@@ -313,16 +345,19 @@ export class SimpleXcm {
       return {value: estimatedFees};
     } catch (errors) {
       if (errors instanceof FeeEstimationErrors) {
-        const totalValue = errors.errors.reduce((sum, error) => {
+        const totalMissingValue = errors.errors.reduce((sum, error) => {
           if (error.cause instanceof TooExpensiveFeeError) {
-            return sum + error.cause.missingAmount;
+            sum += error.cause.missingAmount;
           }
+
           return sum;
         }, BigInt(0));
-        if (totalValue > 0) {
-          return {error: new TooExpensiveFeeError(totalValue)};
+
+        if (totalMissingValue > 0) {
+          return {error: new TooExpensiveFeeError(totalMissingValue)};
         }
       }
+
       throw errors;
     }
   }
@@ -496,47 +531,6 @@ class PalletXcmBackend implements TransferBackend {
   constructor(simpleXcm: SimpleXcm) {
     this.simpleXcm = simpleXcm;
   }
-
-  /**
-   * Composes a transfer extrinsic based on the provided parameters.
-   * @param transferParams - The parameters for the transfer.
-   * @returns A promise that resolves to a SubmittableExtrinsic for the transfer.
-   */
-  async composeTransfer(
-    transferParams: TransferParams,
-  ): Promise<SubmittableExtrinsic<'promise'>> {
-    const preparedParams = await this.prepareTransferParams(transferParams);
-
-    let estimatedFees;
-    do {
-      const txToDryRun = this.buildSubmittableExtrinsic(preparedParams);
-
-      estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
-        preparedParams.origin,
-        txToDryRun,
-        preparedParams.feeAssetId,
-      );
-
-      if ('error' in estimatedFees) {
-        preparedParams.feeAnyAssetRef.fun.fungible +=
-          estimatedFees.error.missingAmount;
-      } else {
-        preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.value;
-      }
-    } while ('error' in estimatedFees);
-
-    const tx = this.buildSubmittableExtrinsic(preparedParams);
-
-    // This call is necessary to verify the user's sufficient balance for executing the extrinsic,
-    // which encompasses the assets and already estimated fees.
-    await Estimator.dryRunExtrinsic(
-      this.simpleXcm.api,
-      preparedParams.origin,
-      tx,
-    );
-
-    return tx;
-  }
 }
 
 /**
@@ -620,34 +614,6 @@ class XTokensBackend implements TransferBackend {
       destination,
       noXcmWeightLimit,
     );
-  }
-
-  /**
-   * Composes a transfer extrinsic based on the provided parameters.
-   * @param transferParams - The parameters for the transfer.
-   * @returns A promise that resolves to a SubmittableExtrinsic for the transfer.
-   * @throws Will throw an error if the beneficiary is not an interior location.
-   */
-  async composeTransfer(
-    transferParams: TransferParams,
-  ): Promise<SubmittableExtrinsic<'promise'>> {
-    const preparedParams = await this.prepareTransferParams(transferParams);
-
-    const txToDryRun = this.buildSubmittableExtrinsic(preparedParams);
-
-    const estimatedFees = await this.simpleXcm.estimateExtrinsicXcmFees(
-      preparedParams.origin,
-      txToDryRun,
-      preparedParams.feeAssetId,
-    );
-
-    if ('value' in estimatedFees) {
-      preparedParams.feeAnyAssetRef.fun.fungible += estimatedFees.value;
-    }
-
-    const txWithCorrectFees = this.buildSubmittableExtrinsic(preparedParams);
-
-    return txWithCorrectFees;
   }
 }
 

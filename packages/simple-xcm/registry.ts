@@ -7,7 +7,6 @@ import {
   prodParasKusamaCommon,
   prodParasKusama,
 } from '@polkadot/apps-config';
-import {ApiPromise, WsProvider} from '@polkadot/api';
 import {
   ChainInfo,
   CurrencyInfo,
@@ -28,6 +27,14 @@ import {
   sanitizeInterior,
   sanitizeLocation,
 } from '@open-xcm-tools/xcm-util';
+import {
+  ApiPromiseFactory,
+  defaultApiPromiseFactory,
+} from '@open-xcm-tools/xcm-util/api-promise';
+
+export type RegistryOptions = {
+  apiPromiseFactory?: ApiPromiseFactory;
+};
 
 /**
  * A `Registry` object can store and then provide information about chains, currencies, and locations.
@@ -43,12 +50,15 @@ export class Registry {
   universalLocations: Map<string, InteriorLocation>;
   relativeLocations: Map<string, Location>;
   currencyInfos: Map<string, CurrencyInfo>;
+  apiPromiseFactory: ApiPromiseFactory;
 
-  constructor() {
+  constructor(registryOptions?: RegistryOptions) {
     this.chainInfos = new Map();
     this.universalLocations = new Map();
     this.relativeLocations = new Map();
     this.currencyInfos = new Map();
+    this.apiPromiseFactory =
+      registryOptions?.apiPromiseFactory || defaultApiPromiseFactory;
   }
 
   /**
@@ -184,9 +194,7 @@ export class Registry {
    */
   async addNativeCurrency(chainName: string): Promise<void> {
     const chainInfo = this.chainInfoByName(chainName);
-
-    const provider = new WsProvider(chainInfo.endpoints);
-    const api = await ApiPromise.create({provider});
+    const api = await this.apiPromiseFactory(chainInfo.endpoints);
 
     if (api.registry.chainTokens.length > 0) {
       const symbol = api.registry.chainTokens[0];

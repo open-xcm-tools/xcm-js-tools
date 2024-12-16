@@ -1,4 +1,4 @@
-import {ApiPromise, WsProvider} from '@polkadot/api';
+import type {ApiPromise} from '@polkadot/api';
 import {
   Asset,
   AssetId,
@@ -23,6 +23,7 @@ import {
   TooExpensiveFeeError,
 } from './errors';
 import {
+  type ApiPromiseFactory,
   assetIdIntoCurrentVersion,
   assetsIntoCurrentVersion,
   compareLocation,
@@ -112,15 +113,16 @@ export class Estimator {
 
   /**
    * Connects to the specified chain and creates an Estimator instance.
-   * This method is solely for the convenience of creating ApiPromise internally.
-   * If you already have an ApiPromise instance, please use the constructor instead.
    * @param chainInfo - Information about the chain to connect to.
+   * @param apiPromiseFactory - The factory for creating ApiPromise instances. Optional.
    * @returns A promise that resolves to an Estimator instance.
    */
-  static async connect(chainInfo: ChainInfo) {
-    const api = await ApiPromise.create({
-      provider: new WsProvider(chainInfo.endpoints),
-    });
+  static async connect(
+    chainInfo: ChainInfo,
+    apiPromiseFactory: ApiPromiseFactory,
+  ) {
+    const api = await apiPromiseFactory(chainInfo.endpoints);
+
     const maxXcmVersion = await Estimator.estimateMaxXcmVersion(
       api,
       chainInfo.identity.name,

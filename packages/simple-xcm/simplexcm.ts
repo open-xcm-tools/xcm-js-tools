@@ -128,10 +128,10 @@ export class SimpleXcm {
     );
 
     if ('error' in estimatedFeesResult) {
-      preparedParams.feeAnyAssetRef.fun.fungible +=
-        estimatedFeesResult.error.missingAmount;
+      const missingAmount = estimatedFeesResult.error.missingAmount;
 
-      estimatedFees = preparedParams.feeAnyAssetRef.fun.fungible;
+      preparedParams.feeAnyAssetRef.fun.fungible += missingAmount;
+      estimatedFees = missingAmount;
     } else {
       estimatedFees = estimatedFeesResult.value;
     }

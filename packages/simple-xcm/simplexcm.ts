@@ -106,6 +106,26 @@ export class SimpleXcm {
   xcmVersion: XcmVersion;
 
   /**
+   * Composes an extrinsic for a transfer based on the provided parameters.
+   *
+   * Note:Be aware that this method does not dry-run the extrinsic or estimate/adjust the fees.
+   * @param transferParams
+   */
+  async composeExtrinsic(
+    transferParams: TransferParams,
+  ): Promise<
+    Pick<ComposedXcmTransfer, 'submittableExtrinsic' | 'preparedParams'>
+  > {
+    const preparedParams =
+      await this.#transferBackend().prepareTransferParams(transferParams);
+
+    const submittableExtrinsic =
+      this.#transferBackend().buildSubmittableExtrinsic(preparedParams);
+
+    return {submittableExtrinsic, preparedParams};
+  }
+
+  /**
    * Composes a transfer extrinsic based on the provided parameters.
    * @param transferParams - The parameters for the transfer.
    * @returns A promise that resolves to a SubmittableExtrinsic for the transfer.
@@ -330,7 +350,7 @@ export class SimpleXcm {
     feeAssetId: AssetId,
   ): Promise<{value: bigint} | {error: TooExpensiveFeeError}> {
     try {
-      const estimatedFees = await this.estimator.tryEstimateExtrinsicFees(
+      const estimatedFees = await this.estimator.tryEstimateXcmFees(
         origin,
         tx,
         feeAssetId,

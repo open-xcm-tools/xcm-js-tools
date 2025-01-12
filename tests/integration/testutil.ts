@@ -146,7 +146,7 @@ export function extrinsicRelayRootXcmSendUnpaidTransact(
   api: ApiPromise,
   tx: SubmittableExtrinsic<'promise'>,
   destParaId: number,
-) {
+): SubmittableExtrinsic<'promise'> {
   return api.tx.sudo.sudo(
     api.tx.xcmPallet.send(
       {
@@ -271,17 +271,16 @@ async function relayXcmSendCreatePseudoUsd(
     assetsPalletName,
     owner,
   );
+
   if (createExtrinsic === null) {
     return null;
   }
 
-  const sendExtrinsic = extrinsicRelayRootXcmSendUnpaidTransact(
+  return extrinsicRelayRootXcmSendUnpaidTransact(
     xcmRelay.api,
     createExtrinsic,
     await getParaId(xcmDest.api),
   );
-
-  return sendExtrinsic;
 }
 
 async function extrinsicCreatePseudoUsd(

@@ -136,28 +136,32 @@ export class SimpleXcm {
     const preparedParams =
       await this.#transferBackend().prepareTransferParams(transferParams);
 
-    const txForDryRun =
-      this.#transferBackend().buildSubmittableExtrinsic(preparedParams);
+    let estimatedFeesResult: Awaited<
+      ReturnType<SimpleXcm['estimateExtrinsicXcmFees']>
+    >;
 
-    let estimatedFees: bigint;
+    do {
+      const txToDryRun =
+        this.#transferBackend().buildSubmittableExtrinsic(preparedParams);
 
-    const estimatedFeesResult = await this.estimateExtrinsicXcmFees(
-      preparedParams.origin,
-      txForDryRun,
-      preparedParams.feeAssetId,
-    );
+      estimatedFeesResult = await this.estimateExtrinsicXcmFees(
+        preparedParams.origin,
+        txToDryRun,
+        preparedParams.feeAssetId,
+      );
 
-    if ('error' in estimatedFeesResult) {
-      const missingAmount = estimatedFeesResult.error.missingAmount;
-
-      preparedParams.feeAnyAssetRef.fun.fungible += missingAmount;
-      estimatedFees = missingAmount;
-    } else {
-      estimatedFees = estimatedFeesResult.value;
-    }
+      if ('error' in estimatedFeesResult) {
+        preparedParams.feeAnyAssetRef.fun.fungible +=
+          estimatedFeesResult.error.missingAmount;
+      } else {
+        preparedParams.feeAnyAssetRef.fun.fungible += estimatedFeesResult.value;
+      }
+    } while ('error' in estimatedFeesResult);
 
     const submittableExtrinsic =
       this.#transferBackend().buildSubmittableExtrinsic(preparedParams);
+
+    const estimatedFees = estimatedFeesResult.value;
 
     return {submittableExtrinsic, preparedParams, estimatedFees};
   }

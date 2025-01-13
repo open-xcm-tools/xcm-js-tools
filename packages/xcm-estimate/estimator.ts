@@ -23,12 +23,12 @@ import {
   TooExpensiveFeeError,
 } from './errors';
 import {
-  type ApiPromiseFactory,
   assetIdIntoCurrentVersion,
   assetsIntoCurrentVersion,
   compareLocation,
   convertAssetIdVersion,
   convertLocationVersion,
+  defaultApiPromiseFactory,
   findAssetIdIndex,
   findPalletXcm,
   locationIntoCurrentVersion,
@@ -119,7 +119,7 @@ export class Estimator {
    */
   static async connect(
     chainInfo: ChainInfo,
-    apiPromiseFactory: ApiPromiseFactory,
+    apiPromiseFactory = defaultApiPromiseFactory,
   ) {
     const api = await apiPromiseFactory(chainInfo.endpoints);
 

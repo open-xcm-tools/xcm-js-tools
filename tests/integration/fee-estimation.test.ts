@@ -158,9 +158,9 @@ describe('fee estimation tests', async () => {
 
     const transferAmount = params.transferAmount;
 
-    let tx;
+    let transfer;
     try {
-      tx = await params.fromXcm.composeTransfer({
+      transfer = await params.fromXcm.composeTransfer({
         origin: 'Alice',
         assets: [
           params.fromXcm.adjustedFungible(
@@ -176,7 +176,7 @@ describe('fee estimation tests', async () => {
       throw 'errors' in error ? error.errors : error;
     }
 
-    await tryUntilFinalized(alice, tx);
+    await tryUntilFinalized(alice, transfer.submittableExtrinsic);
 
     const newBalance = await pauseUntilPseudoUsdBalanceIncreased(
       params.destXcm,

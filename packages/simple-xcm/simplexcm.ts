@@ -1,4 +1,4 @@
-import {ApiPromise, WsProvider} from '@polkadot/api';
+import type {ApiPromise} from '@polkadot/api';
 import {SubmittableExtrinsic} from '@polkadot/api/types';
 import {Bytes, Result} from '@polkadot/types-codec';
 import {Codec} from '@polkadot/types-codec/types';
@@ -191,9 +191,7 @@ export class SimpleXcm {
    */
   static async connect(chainName: string, registry: Registry) {
     const chainInfo = registry.chainInfoByName(chainName);
-
-    const provider = new WsProvider(chainInfo.endpoints);
-    const api = await ApiPromise.create({provider});
+    const api = await registry.apiPromiseFactory(chainInfo.endpoints);
 
     const palletXcm = findPalletXcm(api);
     if (!palletXcm) {
@@ -298,6 +296,7 @@ export class SimpleXcm {
           estimatorResolver: (universalLocation: InteriorLocation) =>
             Estimator.connect(
               this.registry.chainInfoByUniversalLocation(universalLocation),
+              this.registry.apiPromiseFactory,
             ),
         },
       );

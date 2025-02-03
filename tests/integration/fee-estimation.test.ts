@@ -38,7 +38,7 @@ describe('fee estimation tests', async () => {
     .addChain({
       identity: {
         name: 'Relay',
-        universalLocation: relaychainUniversalLocation('westend'),
+        universalLocation: relaychainUniversalLocation('kusama'),
       },
       endpoints: [`${BDK_URL}/relay/`],
     })
@@ -46,7 +46,7 @@ describe('fee estimation tests', async () => {
       identity: {
         name: 'AssetHubA',
         universalLocation: parachainUniversalLocation(
-          'westend',
+          'kusama',
           paraIds.assetHubA,
         ),
       },
@@ -56,7 +56,7 @@ describe('fee estimation tests', async () => {
       identity: {
         name: 'AssetHubB',
         universalLocation: parachainUniversalLocation(
-          'westend',
+          'kusama',
           paraIds.assetHubB,
         ),
       },
@@ -66,7 +66,7 @@ describe('fee estimation tests', async () => {
       identity: {
         name: 'AssetHubC',
         universalLocation: parachainUniversalLocation(
-          'westend',
+          'kusama',
           paraIds.assetHubC,
         ),
       },
@@ -75,7 +75,7 @@ describe('fee estimation tests', async () => {
     .addCurrency({
       symbol: pseudoUsdName,
       decimals: pseudoUsdDecimals,
-      universalLocation: universalLocation('westend', [
+      universalLocation: universalLocation('kusama', [
         {parachain: paraIds.assetHubA},
         {palletInstance: 50n},
         {generalIndex: pseudoUsdId},

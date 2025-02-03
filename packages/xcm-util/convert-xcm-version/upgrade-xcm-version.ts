@@ -6,13 +6,18 @@ import {
   InteriorV2,
   InteriorV3,
   InteriorV4,
+  InteriorV5,
   JunctionV2,
   JunctionV3,
+  JunctionV4,
+  JunctionV5,
   LocationV2,
   LocationV3,
   LocationV4,
+  LocationV5,
   NetworkIdV2,
   NetworkIdV3,
+  NetworkIdV5,
   VersionedAsset,
   VersionedAssetId,
   VersionedLocation,
@@ -38,7 +43,11 @@ export function upgradeAssetId(assetId: VersionedAssetId): VersionedAssetId {
   }
 
   if ('v4' in assetId) {
-    throw new Error('upgradeAssetId: assetV4 cannot be downgraded');
+    return {v5: upgradeLocationV4(assetId.v4)};
+  }
+
+  if ('v5' in assetId) {
+    throw new Error('upgradeAssetId: assetV5 cannot be upgraded');
   }
 
   throw new Error('upgradeAsset: unknown XCM version');
@@ -98,7 +107,16 @@ export function upgradeAsset(asset: VersionedAsset): VersionedAsset {
   }
 
   if ('v4' in asset) {
-    throw new Error('upgradeAsset: assetV4 cannot be upgraded');
+    return {
+      v5: {
+        id: upgradeLocationV4(asset.v4.id),
+        fun: asset.v4.fun,
+      },
+    };
+  }
+
+  if ('v5' in asset) {
+    throw new Error('upgradeAsset: assetV5 cannot be upgraded');
   }
 
   throw new Error('upgradeAsset: unknown XCM version');
@@ -116,10 +134,21 @@ export function upgradeLocation(
   }
 
   if ('v4' in location) {
-    throw new Error('downgradeLocation: locationV4 cannot be upgraded');
+    return {v5: upgradeLocationV4(location.v4)};
+  }
+
+  if ('v5' in location) {
+    throw new Error('upgradeLocation: locationV5 cannot be upgraded');
   }
 
   throw new Error('upgradeLocation: unknown XCM version');
+}
+
+export function upgradeLocationV4(location: LocationV4): LocationV5 {
+  return {
+    parents: location.parents,
+    interior: upgradeInteriorV4(location.interior),
+  };
 }
 
 export function upgradeLocationV3(location: LocationV3): LocationV4 {
@@ -134,6 +163,13 @@ export function upgradeLocationV2(location: LocationV2): LocationV3 {
     parents: location.parents,
     interior: upgradeInteriorV2(location.interior),
   };
+}
+
+export function upgradeInteriorV4(interior: InteriorV4): InteriorV5 {
+  const asArray = interiorToArray(4, interior);
+  const interiorV5Array = asArray.map(upgradeJunctionV4);
+
+  return arrayToInterior(5, interiorV5Array);
 }
 
 export function upgradeInteriorV3(interior: InteriorV3): InteriorV4 {
@@ -205,6 +241,42 @@ function upgradeJunctionV2(junction: JunctionV2): JunctionV3 {
   }
 }
 
+function upgradeJunctionV4(junction: JunctionV4): JunctionV5 {
+  if (typeof junction === 'object') {
+    if ('globalConsensus' in junction) {
+      return {
+        globalConsensus: upgradeNetworkIdV4(junction.globalConsensus),
+      };
+    }
+    if ('accountId32' in junction) {
+      return {
+        accountId32: {
+          network: upgradeNetworkIdV4Optional(junction.accountId32.network),
+          id: junction.accountId32.id,
+        },
+      };
+    }
+    if ('accountIndex64' in junction) {
+      return {
+        accountIndex64: {
+          network: upgradeNetworkIdV4Optional(junction.accountIndex64.network),
+          index: junction.accountIndex64.index,
+        },
+      };
+    }
+    if ('accountKey20' in junction) {
+      return {
+        accountKey20: {
+          network: upgradeNetworkIdV4Optional(junction.accountKey20.network),
+          key: junction.accountKey20.key,
+        },
+      };
+    }
+  }
+
+  return junction;
+}
+
 function upgradeNetworkIdV2(networkId: NetworkIdV2): NetworkIdV3 | null {
   switch (networkId) {
     case 'any':
@@ -219,6 +291,24 @@ function upgradeNetworkIdV2(networkId: NetworkIdV2): NetworkIdV3 | null {
         "upgradeNetworkIdV2: 'named' NetworkIdV2 can't be upgraded to V3",
       );
   }
+}
+
+function upgradeNetworkIdV4(networkId: NetworkIdV3): NetworkIdV5 {
+  if (networkId === 'westend' || networkId === 'rococo' || networkId === 'wococo') {
+    throw new Error(
+      `upgradeNetworkIdV4: ${networkId} is not supported in V5`,
+    );
+  }
+
+  return networkId;
+}
+
+function upgradeNetworkIdV4Optional(networkId?: NetworkIdV3 | null): NetworkIdV5 | null | undefined {
+  if (!networkId) {
+    return networkId;
+  }
+
+  return upgradeNetworkIdV4(networkId);
 }
 
 function upgradeBodyIdV2(bodyId: BodyIdV2): BodyIdV3 {

@@ -9,10 +9,12 @@ const commonAssets = new Map<string, number>([
   ['array32', 5],
 ]);
 
+// todo - transform maps here to a Record<XcmVersion, Map<string, number> or smth> to make it more type-safe?
 export const assetInstanceOrder = new Map<XcmVersion, Map<string, number>>([
   [2, new Map<string, number>([...commonAssets, ['blob', 6]])],
   [3, commonAssets],
   [4, commonAssets],
+  [5, commonAssets],
 ]);
 
 const commonNetworks = new Map<string, number>([
@@ -29,10 +31,13 @@ const commonNetworks = new Map<string, number>([
   ['polkadotBulletin', 12],
 ]);
 
+const commonNetworksV5 = new Map([...commonNetworks].filter(([key]) => !['westend', 'rococo', 'wococo'].includes(key)));
+
 export const networkIdOrder = new Map<XcmVersion, Map<string, number>>([
   [2, new Map<string, number>([['any', 2], ['named', 3], ...commonNetworks])],
   [3, commonNetworks],
   [4, commonNetworks],
+  [5, commonNetworksV5],
 ]);
 
 const commonBodyIds = new Map<string, number>([
@@ -51,6 +56,7 @@ export const bodyIdOrder = new Map<XcmVersion, Map<string, number>>([
   [2, new Map<string, number>([['named', 1], ...commonBodyIds])],
   [3, new Map<string, number>([['moniker', 2], ...commonBodyIds])],
   [4, new Map<string, number>([['moniker', 2], ...commonBodyIds])],
+  [5, new Map<string, number>([['moniker', 2], ...commonBodyIds])],
 ]);
 
 const commonBodyParts = new Map<string, number>([
@@ -65,6 +71,7 @@ export const bodyPartOrder = new Map<XcmVersion, Map<string, number>>([
   [2, commonBodyParts],
   [3, commonBodyParts],
   [4, commonBodyParts],
+  [5, commonBodyParts],
 ]);
 
 const commonJunctions = new Map<string, number>([
@@ -83,6 +90,7 @@ export const junctionOrder = new Map<XcmVersion, Map<string, number>>([
   [2, commonJunctions],
   [3, new Map<string, number>([['globalConsensus', 9], ...commonJunctions])],
   [4, new Map<string, number>([['globalConsensus', 9], ...commonJunctions])],
+  [5, new Map<string, number>([['globalConsensus', 9], ...commonJunctions])],
 ]);
 
 const commonAssetIds = new Map<string, number>([

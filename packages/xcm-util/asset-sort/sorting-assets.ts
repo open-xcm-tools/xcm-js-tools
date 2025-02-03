@@ -4,6 +4,7 @@ import {
   AssetV2,
   AssetV3,
   AssetV4,
+  AssetV5,
   CURRENT_XCM_VERSION,
   VersionedAssets,
   XcmVersion,
@@ -42,7 +43,13 @@ export function sortAndDeduplicateVersionedAssets(assets: VersionedAssets) {
   const xcmVersion = extractVersion(assets);
   sortVersionedAssets(xcmVersion, assets);
 
-  if ('v4' in assets) {
+  if ('v5' in assets) {
+    assets.v5 = deduplicateAnySortedAssets(
+      xcmVersion,
+      assets.v5,
+      compareAnyAssetId,
+    ) as AssetV5[];
+  } else if ('v4' in assets) {
     assets.v4 = deduplicateAnySortedAssets(
       xcmVersion,
       assets.v4,
@@ -76,7 +83,9 @@ function sortVersionedAssets(xcmVersion: XcmVersion, assets: VersionedAssets) {
   const sortFunction = (a: AnyAsset, b: AnyAsset) =>
     compareAnyAsset(xcmVersion, a, b);
 
-  if ('v4' in assets) {
+  if ('v5' in assets) {
+    assets.v5.sort(sortFunction);
+  } else if ('v4' in assets) {
     assets.v4.sort(sortFunction);
   } else if ('v3' in assets) {
     assets.v3.sort(sortFunction);

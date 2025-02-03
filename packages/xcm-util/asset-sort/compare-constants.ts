@@ -31,7 +31,11 @@ const commonNetworks = new Map<string, number>([
   ['polkadotBulletin', 12],
 ]);
 
-const commonNetworksV5 = new Map([...commonNetworks].filter(([key]) => !['westend', 'rococo', 'wococo'].includes(key)));
+const commonNetworksV5 = new Map(
+  [...commonNetworks].filter(
+    ([key]) => !['westend', 'rococo', 'wococo'].includes(key),
+  ),
+);
 
 export const networkIdOrder = new Map<XcmVersion, Map<string, number>>([
   [2, new Map<string, number>([['any', 2], ['named', 3], ...commonNetworks])],

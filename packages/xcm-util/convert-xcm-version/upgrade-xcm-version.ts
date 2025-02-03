@@ -294,16 +294,20 @@ function upgradeNetworkIdV2(networkId: NetworkIdV2): NetworkIdV3 | null {
 }
 
 function upgradeNetworkIdV4(networkId: NetworkIdV3): NetworkIdV5 {
-  if (networkId === 'westend' || networkId === 'rococo' || networkId === 'wococo') {
-    throw new Error(
-      `upgradeNetworkIdV4: ${networkId} is not supported in V5`,
-    );
+  if (
+    networkId === 'westend' ||
+    networkId === 'rococo' ||
+    networkId === 'wococo'
+  ) {
+    throw new Error(`upgradeNetworkIdV4: ${networkId} is not supported in V5`);
   }
 
   return networkId;
 }
 
-function upgradeNetworkIdV4Optional(networkId?: NetworkIdV3 | null): NetworkIdV5 | null | undefined {
+function upgradeNetworkIdV4Optional(
+  networkId?: NetworkIdV3 | null,
+): NetworkIdV5 | null | undefined {
   if (!networkId) {
     return networkId;
   }

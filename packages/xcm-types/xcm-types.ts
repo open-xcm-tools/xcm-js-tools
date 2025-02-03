@@ -47,7 +47,11 @@ export type AnyAssetInstance =
   | AssetInstanceV3
   | AssetInstanceV2;
 
-export type AnyNetworkId = NetworkIdV5 | NetworkIdV4 | NetworkIdV3 | NetworkIdV2;
+export type AnyNetworkId =
+  | NetworkIdV5
+  | NetworkIdV4
+  | NetworkIdV3
+  | NetworkIdV2;
 export type AnyBodyId = BodyIdV4 | BodyIdV3 | BodyIdV2;
 export type AnyJunction = JunctionV4 | JunctionV3 | JunctionV2;
 export type AnyInterior = InteriorV4 | InteriorV3 | InteriorV2;
@@ -55,12 +59,31 @@ export type AnyFungibility = FungibilityV4 | FungibilityV3 | FungibilityV2;
 
 export type InteriorLocation = Interior;
 
-export type Versioned<V2, V3, V4, V5> = {v2: V2} | {v3: V3} | {v4: V4} | {v5: V5};
+export type Versioned<V2, V3, V4, V5> =
+  | {v2: V2}
+  | {v3: V3}
+  | {v4: V4}
+  | {v5: V5};
 
-export type VersionedAssetId = Versioned<AssetIdV2, AssetIdV3, AssetIdV4, AssetIdV5>;
+export type VersionedAssetId = Versioned<
+  AssetIdV2,
+  AssetIdV3,
+  AssetIdV4,
+  AssetIdV5
+>;
 export type VersionedAsset = Versioned<AssetV2, AssetV3, AssetV4, AssetV5>;
-export type VersionedAssets = Versioned<AssetV2[], AssetV3[], AssetV4[], AssetV5[]>;
-export type VersionedLocation = Versioned<LocationV2, LocationV3, LocationV4, LocationV5>;
+export type VersionedAssets = Versioned<
+  AssetV2[],
+  AssetV3[],
+  AssetV4[],
+  AssetV5[]
+>;
+export type VersionedLocation = Versioned<
+  LocationV2,
+  LocationV3,
+  LocationV4,
+  LocationV5
+>;
 
 export type Asset = GenericAsset<AssetId, Fungibility>;
 export type FungibleAnyAsset = GenericAsset<AnyAssetId, Fungible>;
@@ -224,14 +247,14 @@ export type NetworkIdV3 =
 export type NetworkIdV4 = NetworkIdV3;
 
 export type NetworkIdV5 =
-| {byGenesis: string | Uint8Array}
-| {byFork: {blockNumber: bigint; blockHash: string | Uint8Array}}
-| 'polkadot'
-| 'kusama'
-| {ethereum: {chainId: bigint}}
-| 'bitcoinCore'
-| 'bitcoinCash'
-| 'polkadotBulletin';
+  | {byGenesis: string | Uint8Array}
+  | {byFork: {blockNumber: bigint; blockHash: string | Uint8Array}}
+  | 'polkadot'
+  | 'kusama'
+  | {ethereum: {chainId: bigint}}
+  | 'bitcoinCore'
+  | 'bitcoinCash'
+  | 'polkadotBulletin';
 
 export type BodyId = BodyIdV5;
 export type BodyIdV2 =
@@ -285,13 +308,13 @@ export type JunctionV3 =
 export type JunctionV4 = JunctionV3;
 
 export type JunctionV5 =
-  | { parachain: bigint }
-  | { accountId32: { network?: NetworkIdV5 | null; id: string | Uint8Array } }
-  | { accountIndex64: { network?: NetworkIdV5 | null; index: bigint } }
-  | { accountKey20: { network?: NetworkIdV5 | null; key: string | Uint8Array } }
-  | { palletInstance: bigint }
-  | { generalIndex: bigint }
-  | { generalKey: { length: bigint; data: string | Uint8Array } }
+  | {parachain: bigint}
+  | {accountId32: {network?: NetworkIdV5 | null; id: string | Uint8Array}}
+  | {accountIndex64: {network?: NetworkIdV5 | null; index: bigint}}
+  | {accountKey20: {network?: NetworkIdV5 | null; key: string | Uint8Array}}
+  | {palletInstance: bigint}
+  | {generalIndex: bigint}
+  | {generalKey: {length: bigint; data: string | Uint8Array}}
   | 'onlyChild'
-  | { plurality: { id: BodyIdV3; part: BodyPart } }
-  | { globalConsensus: NetworkIdV5 };
+  | {plurality: {id: BodyIdV3; part: BodyPart}}
+  | {globalConsensus: NetworkIdV5};

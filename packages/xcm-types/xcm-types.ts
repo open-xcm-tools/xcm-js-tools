@@ -81,7 +81,8 @@ export type AssetIdV5 = AssetIdV4;
 export type AssetIdV3 = {concrete: LocationV3} | {abstract: Uint8Array};
 export type AssetIdV2 = {concrete: LocationV2} | {abstract: Uint8Array};
 
-export type Location = LocationV5;
+// todo - should be a union, V5, or V4 (because V4 is wider than V5)
+export type Location = LocationV4;
 
 type GenericLocation<Interior> = {
   parents: bigint;

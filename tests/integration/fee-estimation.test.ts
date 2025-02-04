@@ -5,6 +5,7 @@ import {
   SimpleXcm,
 } from '@open-xcm-tools/simple-xcm';
 import {universalLocation, location} from '@open-xcm-tools/xcm-util';
+import {NetworkId} from '@open-xcm-tools/xcm-types';
 import {Keyring} from '@polkadot/api';
 import {beforeAll, describe, expect, test} from 'vitest';
 
@@ -22,6 +23,10 @@ import {
 } from './testutil';
 
 describe('fee estimation tests', async () => {
+  const WESTEND_NETWORK_ID: NetworkId = {
+    byGenesis:
+      '0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e',
+  };
   const BDK_URL = process.env.BDK_BALANCER!.replace('http', 'ws');
 
   const keyring = new Keyring({type: 'sr25519'});
@@ -38,7 +43,7 @@ describe('fee estimation tests', async () => {
     .addChain({
       identity: {
         name: 'Relay',
-        universalLocation: relaychainUniversalLocation('westend'),
+        universalLocation: relaychainUniversalLocation(WESTEND_NETWORK_ID),
       },
       endpoints: [`${BDK_URL}/relay/`],
     })
@@ -46,7 +51,7 @@ describe('fee estimation tests', async () => {
       identity: {
         name: 'AssetHubA',
         universalLocation: parachainUniversalLocation(
-          'westend',
+          WESTEND_NETWORK_ID,
           paraIds.assetHubA,
         ),
       },
@@ -56,7 +61,7 @@ describe('fee estimation tests', async () => {
       identity: {
         name: 'AssetHubB',
         universalLocation: parachainUniversalLocation(
-          'westend',
+          WESTEND_NETWORK_ID,
           paraIds.assetHubB,
         ),
       },
@@ -66,7 +71,7 @@ describe('fee estimation tests', async () => {
       identity: {
         name: 'AssetHubC',
         universalLocation: parachainUniversalLocation(
-          'westend',
+          WESTEND_NETWORK_ID,
           paraIds.assetHubC,
         ),
       },
@@ -75,7 +80,7 @@ describe('fee estimation tests', async () => {
     .addCurrency({
       symbol: pseudoUsdName,
       decimals: pseudoUsdDecimals,
-      universalLocation: universalLocation('westend', [
+      universalLocation: universalLocation(WESTEND_NETWORK_ID, [
         {parachain: paraIds.assetHubA},
         {palletInstance: 50n},
         {generalIndex: pseudoUsdId},

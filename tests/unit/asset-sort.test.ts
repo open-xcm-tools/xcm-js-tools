@@ -1143,4 +1143,349 @@ describe('asset sort unit-tests', () => {
       expect(assetArray).toStrictEqual(expectedArray);
     });
   });
+
+  describe('asset v5 sort', () => {
+    test('one asset list', () => {
+      const assetArray: VersionedAssets = {
+        v5: [
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2001n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {fungible: 100n},
+          },
+        ],
+      };
+      const expectedArray = {...assetArray};
+      sortAndDeduplicateVersionedAssets(assetArray);
+      expect(assetArray).toStrictEqual(expectedArray);
+    });
+
+    test('duplicated fungible', () => {
+      const assetArray: VersionedAssets = {
+        v5: [
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2001n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {fungible: 100n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2001n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {fungible: 100n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {fungible: 200n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {fungible: 250n},
+          },
+        ],
+      };
+
+      const expectedArray: VersionedAssets = {
+        v5: [
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+
+            fun: {fungible: 450n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2001n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {fungible: 200n},
+          },
+        ],
+      };
+
+      sortAndDeduplicateVersionedAssets(assetArray);
+      expect(assetArray).toStrictEqual(expectedArray);
+    });
+
+    test('duplicated non-fungible', () => {
+      const assetArray: VersionedAssets = {
+        v5: [
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {nonFungible: {array4: new Uint8Array([10, 20, 30, 40])}},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {nonFungible: {array4: new Uint8Array([10, 20, 30, 40])}},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2002n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {nonFungible: 'undefined'},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2002n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {nonFungible: 'undefined'},
+          },
+        ],
+      };
+
+      const expectedArray: VersionedAssets = {
+        v5: [
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {nonFungible: {array4: new Uint8Array([10, 20, 30, 40])}},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2002n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {nonFungible: 'undefined'},
+          },
+        ],
+      };
+
+      sortAndDeduplicateVersionedAssets(assetArray);
+      expect(assetArray).toStrictEqual(expectedArray);
+    });
+
+    test('duplicated non-fungible + duplicated fungible', () => {
+      const assetArray: VersionedAssets = {
+        v5: [
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {nonFungible: {array4: new Uint8Array([10, 20, 30, 40])}},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2002n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {fungible: 350n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {nonFungible: {array4: new Uint8Array([10, 20, 30, 40])}},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2002n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {nonFungible: 'undefined'},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2002n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {fungible: 350n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2001n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {fungible: 150n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2002n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {nonFungible: 'undefined'},
+          },
+        ],
+      };
+
+      const expectedArray: VersionedAssets = {
+        v5: [
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {nonFungible: {array4: new Uint8Array([10, 20, 30, 40])}},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2001n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {fungible: 150n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2002n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {fungible: 700n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: {
+                x2: [{parachain: 2002n}, {generalIndex: 1002n}],
+              },
+            },
+            fun: {nonFungible: 'undefined'},
+          },
+        ],
+      };
+
+      sortAndDeduplicateVersionedAssets(assetArray);
+      expect(assetArray).toStrictEqual(expectedArray);
+    });
+
+    test('duplicated non-fungible + duplicated fungible in random order', () => {
+      const assetArray: VersionedAssets = {
+        v5: [
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {
+              nonFungible: {
+                array8: new Uint8Array([10, 20, 30, 40, 50, 60, 60, 50]),
+              },
+            },
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {fungible: 200n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {fungible: 200n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {
+              nonFungible: {
+                array8: new Uint8Array([10, 20, 30, 40, 50, 60, 60, 50]),
+              },
+            },
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {fungible: 250n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+            fun: {
+              nonFungible: {
+                array8: new Uint8Array([10, 20, 30, 40, 50, 60, 60, 50]),
+              },
+            },
+          },
+        ],
+      };
+
+      const expectedArray: VersionedAssets = {
+        v5: [
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+
+            fun: {fungible: 650n},
+          },
+          {
+            id: {
+              parents: 1n,
+              interior: 'here',
+            },
+
+            fun: {
+              nonFungible: {
+                array8: new Uint8Array([10, 20, 30, 40, 50, 60, 60, 50]),
+              },
+            },
+          },
+        ],
+      };
+
+      sortAndDeduplicateVersionedAssets(assetArray);
+      expect(assetArray).toStrictEqual(expectedArray);
+    });
+  });
 });

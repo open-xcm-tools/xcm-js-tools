@@ -88,6 +88,10 @@ export function downgradeLocation(
     return {v3: downgradeLocationV4(location.v4)};
   }
 
+  if ('v5' in location) {
+    return {v4: location.v5};
+  }
+
   throw new Error('downgradeLocation: unknown XCM version');
 }
 

@@ -29,7 +29,7 @@ export function convertLocationVersion(
 ): VersionedLocation {
   if ('parents' in location) {
     return convertLocationVersion(version, {
-      v4: location,
+      v5: location,
     });
   }
 

@@ -249,26 +249,32 @@ function upgradeJunctionV4(junction: JunctionV4): JunctionV5 {
       };
     }
     if ('accountId32' in junction) {
+      const {id, network} = junction.accountId32;
+
       return {
         accountId32: {
-          network: upgradeNetworkIdV4Optional(junction.accountId32.network),
-          id: junction.accountId32.id,
+          id,
+          ...(network ? {network: upgradeNetworkIdV4(network)} : {}),
         },
       };
     }
     if ('accountIndex64' in junction) {
+      const {index, network} = junction.accountIndex64;
+
       return {
         accountIndex64: {
-          network: upgradeNetworkIdV4Optional(junction.accountIndex64.network),
-          index: junction.accountIndex64.index,
+          index,
+          ...(network ? {network: upgradeNetworkIdV4(network)} : {}),
         },
       };
     }
     if ('accountKey20' in junction) {
+      const {key, network} = junction.accountKey20;
+
       return {
         accountKey20: {
-          network: upgradeNetworkIdV4Optional(junction.accountKey20.network),
-          key: junction.accountKey20.key,
+          key,
+          ...(network ? {network: upgradeNetworkIdV4(network)} : {}),
         },
       };
     }
@@ -316,16 +322,6 @@ function upgradeNetworkIdV4(networkId: NetworkIdV3): NetworkIdV5 {
   }
 
   return networkId;
-}
-
-function upgradeNetworkIdV4Optional(
-  networkId?: NetworkIdV3 | null,
-): NetworkIdV5 | null | undefined {
-  if (!networkId) {
-    return networkId;
-  }
-
-  return upgradeNetworkIdV4(networkId);
 }
 
 function upgradeBodyIdV2(bodyId: BodyIdV2): BodyIdV3 {

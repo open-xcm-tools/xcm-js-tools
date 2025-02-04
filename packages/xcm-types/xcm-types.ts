@@ -98,14 +98,13 @@ export type AssetV4 = GenericAsset<AssetIdV4, FungibilityV4>;
 export type AssetV3 = GenericAsset<AssetIdV3, FungibilityV3>;
 export type AssetV2 = GenericAsset<AssetIdV2, FungibilityV2>;
 
-export type AssetId = AssetIdV4;
+export type AssetId = AssetIdV5;
+export type AssetIdV5 = LocationV5;
 export type AssetIdV4 = LocationV4;
-export type AssetIdV5 = AssetIdV4;
 export type AssetIdV3 = {concrete: LocationV3} | {abstract: Uint8Array};
 export type AssetIdV2 = {concrete: LocationV2} | {abstract: Uint8Array};
 
-// todo - should be a union, V5, or V4 (because V4 is wider than V5)
-export type Location = LocationV4;
+export type Location = LocationV5;
 
 type GenericLocation<Interior> = {
   parents: bigint;
@@ -184,7 +183,7 @@ export type JunctionsV5<Length extends number> = GenericJunctions<
   Length
 >;
 
-export type Interior = InteriorV4;
+export type Interior = InteriorV5;
 export type InteriorV2 =
   | 'here'
   | {x1: JunctionV2}

@@ -10,12 +10,12 @@ import {
   JunctionV3,
   LocationV2,
   LocationV3,
+  LocationV4,
   NetworkIdV2,
   NetworkIdV3,
   VersionedAsset,
   VersionedAssetId,
   VersionedLocation,
-  Location,
 } from '@open-xcm-tools/xcm-types';
 import {arrayToInterior, interiorToArray} from '../common';
 
@@ -91,7 +91,7 @@ export function downgradeLocation(
   throw new Error('downgradeLocation: unknown XCM version');
 }
 
-export function downgradeLocationV4(location: Location): LocationV3 {
+export function downgradeLocationV4(location: LocationV4): LocationV3 {
   return {
     parents: location.parents,
     interior: downgradeInteriorV4(location.interior),

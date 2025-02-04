@@ -294,12 +294,25 @@ function upgradeNetworkIdV2(networkId: NetworkIdV2): NetworkIdV3 | null {
 }
 
 function upgradeNetworkIdV4(networkId: NetworkIdV3): NetworkIdV5 {
-  if (
-    networkId === 'westend' ||
-    networkId === 'rococo' ||
-    networkId === 'wococo'
-  ) {
-    throw new Error(`upgradeNetworkIdV4: ${networkId} is not supported in V5`);
+  if (networkId === 'westend') {
+    return {
+      byGenesis:
+        '0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e',
+    };
+  }
+
+  if (networkId === 'rococo') {
+    return {
+      byGenesis:
+        '0x6408de7737c59c238890533af25896a2c20608d8b380bb01029acb392781063e',
+    };
+  }
+
+  if (networkId === 'wococo') {
+    return {
+      byGenesis:
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+    };
   }
 
   return networkId;

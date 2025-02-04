@@ -437,7 +437,7 @@ export function compareAnyAssetId(
   assetId1: AnyAssetId,
   assetId2: AnyAssetId,
 ) {
-  if (xcmVersion === 4) {
+  if (xcmVersion === 4 || xcmVersion === 5) {
     return compareAnyLocation(
       xcmVersion,
       assetId1 as LocationV4,

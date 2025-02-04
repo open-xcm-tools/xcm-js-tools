@@ -7,11 +7,11 @@
   "dependencies": {
     "@open-xcm-tools/xcm-types": "workspace:*",
     "@open-xcm-tools/xcm-util": "workspace:*",
-    "@polkadot/api": "13.2.1",
-    "@polkadot/apps-config": "^0.144.1",
-    "@polkadot/keyring": "^13.0.2",
-    "@polkadot/typegen": "^13.2.1",
-    "@polkadot/util": "^13.0.2",
+    "@polkadot/api": "15.5.1",
+    "@polkadot/apps-config": "^0.148.1",
+    "@polkadot/keyring": "^13.3.1",
+    "@polkadot/typegen": "^15.5.1",
+    "@polkadot/util": "^13.3.1",
     "@polkadot/wasm-util": "*"
   },
   "resolutions": {

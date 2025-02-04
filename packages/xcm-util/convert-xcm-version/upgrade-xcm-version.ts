@@ -17,6 +17,7 @@ import {
   LocationV5,
   NetworkIdV2,
   NetworkIdV3,
+  NetworkIdV4,
   NetworkIdV5,
   VersionedAsset,
   VersionedAssetId,
@@ -299,7 +300,7 @@ function upgradeNetworkIdV2(networkId: NetworkIdV2): NetworkIdV3 | null {
   }
 }
 
-function upgradeNetworkIdV4(networkId: NetworkIdV3): NetworkIdV5 {
+function upgradeNetworkIdV4(networkId: NetworkIdV4): NetworkIdV5 {
   if (networkId === 'westend') {
     return {
       byGenesis:

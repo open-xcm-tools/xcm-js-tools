@@ -35,6 +35,11 @@ export function downgradeAssetId(assetId: VersionedAssetId): VersionedAssetId {
       },
     };
   }
+  if ('v5' in assetId) {
+    return {
+      v4: assetId.v5,
+    };
+  }
   throw new Error('downgradeAssetId: unknown XCM version');
 }
 
@@ -67,6 +72,12 @@ export function downgradeAsset(asset: VersionedAsset): VersionedAsset {
         id: {concrete: downgradeLocationV4(asset.v4.id)},
         fun: asset.v4.fun,
       },
+    };
+  }
+
+  if ('v5' in asset) {
+    return {
+      v4: asset.v5,
     };
   }
 

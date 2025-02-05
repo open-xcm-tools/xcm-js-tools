@@ -47,7 +47,7 @@ export function convertAssetIdVersion(
 ) {
   if ('parents' in assetId) {
     return convertAssetIdVersion(version, {
-      v4: assetId,
+      v5: assetId,
     });
   }
 
@@ -65,7 +65,7 @@ export function convertAssetVersion(
 ) {
   if ('id' in asset) {
     return convertAssetVersion(version, {
-      v4: asset,
+      v5: asset,
     });
   }
 
@@ -124,6 +124,8 @@ export function unwrapVersionedAssetId(assetId: VersionedAssetId): AnyAssetId {
     return assetId.v3;
   } else if ('v4' in assetId) {
     return assetId.v4;
+  } else if ('v5' in assetId) {
+    return assetId.v5;
   } else {
     throw new Error('unwrapVersionedAsset: unknown XCM version');
   }
@@ -136,6 +138,8 @@ export function unwrapVersionedAsset(asset: VersionedAsset): AnyAsset {
     return asset.v3;
   } else if ('v4' in asset) {
     return asset.v4;
+  } else if ('v5' in asset) {
+    return asset.v5;
   } else {
     throw new Error('unwrapVersionedAsset: unknown XCM version');
   }
@@ -148,6 +152,8 @@ export function unwrapVersionedAssets(assets: VersionedAssets): AnyAsset[] {
     return assets.v3;
   } else if ('v4' in assets) {
     return assets.v4;
+  } else if ('v5' in assets) {
+    return assets.v5;
   } else {
     throw new Error('unwrapVersionedAssets: unknown XCM version');
   }
@@ -160,6 +166,8 @@ function unwrapVersionedAssetsArray(assets: VersionedAssets): VersionedAsset[] {
     return assets.v3.map(assetV3 => ({v3: assetV3}));
   } else if ('v4' in assets) {
     return assets.v4.map(assetV4 => ({v4: assetV4}));
+  } else if ('v5' in assets) {
+    return assets.v5.map(assetV5 => ({v5: assetV5}));
   } else {
     throw new Error('unwrapVersionedAssetsArray: unknown XCM version');
   }

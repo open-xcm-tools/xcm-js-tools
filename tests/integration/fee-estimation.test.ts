@@ -20,6 +20,9 @@ import {
   pseudoUsdBalance,
   pauseUntilPseudoUsdBalanceIncreased,
   AssetsPalletName,
+  extrinsicSetupExchangePoolPseudoUsd,
+  extrinsicMintPseudoUsd,
+  extrinsicRawTransferPseudoUsd,
 } from './testutil';
 
 describe('fee estimation tests', async () => {
@@ -122,23 +125,17 @@ describe('fee estimation tests', async () => {
       xcmAssetHubC,
     ]);
 
-    const aliceUsdtBalance = await pseudoUsdBalance(
-      xcmAssetHubA,
-      'assets',
-      alice.address,
-    );
-    const initBalance = 1000000000000;
+    // 100 billion pUSD
+    const initBalance = 100000000000000000n;
 
-    if (aliceUsdtBalance < initBalance) {
-      await tryUntilFinalized(
-        alice,
-        xcmAssetHubA.api.tx.assets.mint(
-          pseudoUsdId,
-          alice.address,
-          initBalance,
-        ),
-      );
-    }
+    await tryUntilFinalized(
+      alice,
+      await extrinsicMintPseudoUsd(
+        xcmAssetHubA,
+        alice.address,
+        initBalance,
+      ),
+    );
 
     const newRelaySessionIndex =
       await xcmRelay.api.query.session.currentIndex();
@@ -147,6 +144,70 @@ describe('fee estimation tests', async () => {
     if (newRelaySessionIndex === oldRelaySessionIndex && channelJustOpened) {
       await pauseUntilNextSession(xcmRelay.api);
     }
+
+    const poolOptions = {
+      relayToken: {
+        // 1 billion relay token
+        desiredAmount: 1000000000000000000000n,
+
+        // 1 relay token
+        minAmount: 1000000000000n,
+      },
+      pseudoUsd: {
+        // 8 billion pUSD
+        desiredAmount: 8000000000000000n,
+
+        // 1 pUSD
+        minAmount: 1000000n,
+      },
+    };
+
+    await tryUntilFinalized(
+      alice,
+      extrinsicRawTransferPseudoUsd(
+        xcmAssetHubA,
+        xcmAssetHubB,
+        alice.address,
+        2n * poolOptions.pseudoUsd.desiredAmount,
+      ),
+    );
+
+    await tryUntilFinalized(
+      alice,
+      extrinsicRawTransferPseudoUsd(
+        xcmAssetHubA,
+        xcmAssetHubC,
+        alice.address,
+        2n * poolOptions.pseudoUsd.desiredAmount,
+      ),
+    );
+
+    await tryUntilFinalized(
+      alice,
+      extrinsicSetupExchangePoolPseudoUsd(
+        xcmAssetHubA,
+        alice.address,
+        poolOptions,
+      ),
+    );
+
+    await tryUntilFinalized(
+      alice,
+      extrinsicSetupExchangePoolPseudoUsd(
+        xcmAssetHubB,
+        alice.address,
+        poolOptions,
+      ),
+    );
+
+    await tryUntilFinalized(
+      alice,
+      extrinsicSetupExchangePoolPseudoUsd(
+        xcmAssetHubC,
+        alice.address,
+        poolOptions,
+      ),
+    );
   });
 
   const xcTransferAndCheckBalanceIncrease = async (params: {

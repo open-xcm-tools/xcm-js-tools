@@ -13,7 +13,7 @@ export const pseudoUsdDecimals = 6;
 export const pseudoUsdMinBalance = 10000;
 
 async function pauseUntil(fn: () => Promise<boolean>) {
-  const maxIters = 120;
+  const maxIters = 240;
   let iter = 0;
 
   while (iter <= maxIters) {
@@ -144,7 +144,7 @@ export async function pauseUntilNextSession(api: ApiPromise) {
   await pauseUntil(async () => {
     const newSessionIndex = await api.query.session.currentIndex();
 
-    return newSessionIndex > oldSessionIndex;
+    return newSessionIndex.toJSON()! > oldSessionIndex.toJSON()!;
   });
 }
 
@@ -326,21 +326,13 @@ export async function extrinsicMintPseudoUsd(
   owner: string,
   initBalance: bigint,
 ) {
-    const aliceBalance = await pseudoUsdBalance(
-      xcm,
-      'assets',
-      owner,
-    );
+  const aliceBalance = await pseudoUsdBalance(xcm, 'assets', owner);
 
-    if (aliceBalance >= initBalance) {
-      return null;
-    }
+  if (aliceBalance >= initBalance) {
+    return null;
+  }
 
-    return xcm.api.tx.assets.mint(
-      pseudoUsdId,
-      owner,
-      initBalance,
-    );
+  return xcm.api.tx.assets.mint(pseudoUsdId, owner, initBalance);
 }
 
 export function extrinsicSetupExchangePoolPseudoUsd(
@@ -348,13 +340,13 @@ export function extrinsicSetupExchangePoolPseudoUsd(
   owner: string,
   poolOptions: {
     relayToken: {
-      desiredAmount: bigint,
-      minAmount: bigint,
-    },
+      desiredAmount: bigint;
+      minAmount: bigint;
+    };
     pseudoUsd: {
-      desiredAmount: bigint,
-      minAmount: bigint,
-    },
+      desiredAmount: bigint;
+      minAmount: bigint;
+    };
   },
 ) {
   const relayTokenId = xcm.resolveRelativeLocation('Relay');
@@ -387,7 +379,9 @@ export function extrinsicRawTransferPseudoUsd(
   const feeItemIndex = 0;
   const weightLimit = 'Unlimited';
 
-  const destLocation = src.resolveRelativeLocation(dst.chainInfo.identity.universalLocation);
+  const destLocation = src.resolveRelativeLocation(
+    dst.chainInfo.identity.universalLocation,
+  );
   const beneficiaryLocation: Location = {
     parents: 0n,
     interior: {
@@ -429,14 +423,14 @@ export async function pseudoUsdBalance(
   return await xcm.api.query[assetsPalletName]
     .account(assetId, account)
     .then(b => b.toJSON() as any)
-    .then(b => (b ? (b.balance as number) : 0));
+    .then(b => (b ? BigInt(b.balance.toString()) : 0n));
 }
 
 export async function pauseUntilPseudoUsdBalanceIncreased(
   xcm: SimpleXcm,
   assetsPalletName: AssetsPalletName,
   account: string,
-  oldBalance: number,
+  oldBalance: bigint,
 ) {
   let newBalance = oldBalance;
 
@@ -447,4 +441,17 @@ export async function pauseUntilPseudoUsdBalanceIncreased(
   });
 
   return newBalance;
+}
+
+export async function pauseUntilPseudoUsdBalanceAtLeast(
+  xcm: SimpleXcm,
+  assetsPalletName: AssetsPalletName,
+  account: string,
+  atLeastBalance: bigint,
+) {
+  await pauseUntil(async () => {
+    const balance = await pseudoUsdBalance(xcm, assetsPalletName, account);
+
+    return balance >= atLeastBalance;
+  });
 }

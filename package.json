@@ -12,7 +12,7 @@
     "fmt:check": "prettier --check .",
     "check": "yarn lint && yarn fmt:check",
     "fix": "yarn lint:fix && yarn fmt",
-    "test": "vitest --hookTimeout 300000 --testTimeout 300000",
+    "test": "vitest --hookTimeout 900000 --testTimeout 300000",
     "release:build": "tsc",
     "release:clean": "bash -c 'shopt -s globstar && rm -f {packages,tests}/**/*.{js,d.ts,map}'",
     "release:publish": "yarn release:build ; yarn workspaces foreach -t -v --worktree --no-private npm publish --tolerate-republish --access=public ; yarn release:clean"

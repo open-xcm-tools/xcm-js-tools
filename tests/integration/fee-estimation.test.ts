@@ -23,6 +23,7 @@ import {
   extrinsicSetupExchangePoolPseudoUsd,
   extrinsicMintPseudoUsd,
   extrinsicRawTransferPseudoUsd,
+  pauseUntilPseudoUsdBalanceAtLeast,
 } from './testutil';
 
 describe('fee estimation tests', async () => {
@@ -130,11 +131,7 @@ describe('fee estimation tests', async () => {
 
     await tryUntilFinalized(
       alice,
-      await extrinsicMintPseudoUsd(
-        xcmAssetHubA,
-        alice.address,
-        initBalance,
-      ),
+      await extrinsicMintPseudoUsd(xcmAssetHubA, alice.address, initBalance),
     );
 
     const newRelaySessionIndex =
@@ -172,6 +169,13 @@ describe('fee estimation tests', async () => {
       ),
     );
 
+    await pauseUntilPseudoUsdBalanceAtLeast(
+      xcmAssetHubB,
+      'foreignAssets',
+      alice.address,
+      poolOptions.pseudoUsd.desiredAmount,
+    );
+
     await tryUntilFinalized(
       alice,
       extrinsicRawTransferPseudoUsd(
@@ -180,6 +184,13 @@ describe('fee estimation tests', async () => {
         alice.address,
         2n * poolOptions.pseudoUsd.desiredAmount,
       ),
+    );
+
+    await pauseUntilPseudoUsdBalanceAtLeast(
+      xcmAssetHubC,
+      'foreignAssets',
+      alice.address,
+      poolOptions.pseudoUsd.desiredAmount,
     );
 
     await tryUntilFinalized(
@@ -211,7 +222,7 @@ describe('fee estimation tests', async () => {
   });
 
   const xcTransferAndCheckBalanceIncrease = async (params: {
-    transferAmount: number;
+    transferAmount: bigint;
     fromXcm: SimpleXcm;
     destXcm: SimpleXcm;
     destAssetsPalletName: AssetsPalletName;
@@ -231,7 +242,7 @@ describe('fee estimation tests', async () => {
         assets: [
           params.fromXcm.adjustedFungible(
             pseudoUsdName,
-            transferAmount.toFixed(),
+            transferAmount.toString(),
           ),
         ],
         feeAssetId: pseudoUsdName,
@@ -252,20 +263,20 @@ describe('fee estimation tests', async () => {
     );
 
     const balanceIncrease = newBalance - oldBalance;
-    expect(balanceIncrease).be.greaterThanOrEqual(transferAmount);
+    expect(balanceIncrease >= transferAmount).to.be.true;
   };
 
   describe('SimpleXcm.composeTransfer fee estimation', () => {
     test('A -> B -> A', async () => {
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 30,
+        transferAmount: 30n,
         fromXcm: xcmAssetHubA,
         destXcm: xcmAssetHubB,
         destAssetsPalletName: 'foreignAssets',
       });
 
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 15,
+        transferAmount: 15n,
         fromXcm: xcmAssetHubB,
         destXcm: xcmAssetHubA,
         destAssetsPalletName: 'assets',
@@ -274,14 +285,14 @@ describe('fee estimation tests', async () => {
 
     test('A -> C -> A', async () => {
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 30,
+        transferAmount: 30n,
         fromXcm: xcmAssetHubA,
         destXcm: xcmAssetHubC,
         destAssetsPalletName: 'foreignAssets',
       });
 
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 15,
+        transferAmount: 15n,
         fromXcm: xcmAssetHubC,
         destXcm: xcmAssetHubA,
         destAssetsPalletName: 'assets',
@@ -290,14 +301,14 @@ describe('fee estimation tests', async () => {
 
     test('A -> B -> C', async () => {
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 30,
+        transferAmount: 30n,
         fromXcm: xcmAssetHubA,
         destXcm: xcmAssetHubB,
         destAssetsPalletName: 'foreignAssets',
       });
 
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 15,
+        transferAmount: 15n,
         fromXcm: xcmAssetHubB,
         destXcm: xcmAssetHubC,
         destAssetsPalletName: 'foreignAssets',

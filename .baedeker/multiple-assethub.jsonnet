@@ -61,6 +61,7 @@ local assethubA = {
             parentConnection: 'internal-samedir',
             expectedDataPath: '/parity',    
             extraArgs: [
+                '--pool-type=fork-aware',
                 '-lxcm=trace',
             ],
         },

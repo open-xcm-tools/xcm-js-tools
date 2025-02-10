@@ -21,17 +21,27 @@ import {TransferParams} from './simplexcm';
 export function relaychainUniversalLocation(
   networkId: NetworkId,
 ): InteriorLocation {
-  const validNetworks = ['polkadot', 'kusama', 'rococo', 'westend', 'wococo'];
+  if (typeof networkId === 'object') {
+    if ('byGenesis' in networkId) {
+      return {
+        x1: [{globalConsensus: networkId}],
+      };
+    }
 
-  if (typeof networkId !== 'string' || !validNetworks.includes(networkId)) {
-    throw new Error(
-      'Non-Parity network id passed. Please, use only Parity-related ecosystems',
-    );
+    if ('byFork' in networkId) {
+      return {
+        x1: [{globalConsensus: networkId}],
+      };
+    }
+  } else if (['polkadot', 'kusama'].includes(networkId)) {
+    return {
+      x1: [{globalConsensus: networkId}],
+    };
   }
 
-  return {
-    x1: [{globalConsensus: networkId}],
-  };
+  throw new Error(
+    'Non-Parity network id passed. Please, use only Parity-related ecosystems',
+  );
 }
 
 /**

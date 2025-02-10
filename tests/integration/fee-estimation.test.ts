@@ -5,6 +5,7 @@ import {
   SimpleXcm,
 } from '@open-xcm-tools/simple-xcm';
 import {universalLocation, location} from '@open-xcm-tools/xcm-util';
+import {NetworkId} from '@open-xcm-tools/xcm-types';
 import {Keyring} from '@polkadot/api';
 import {beforeAll, describe, expect, test} from 'vitest';
 
@@ -19,9 +20,17 @@ import {
   pseudoUsdBalance,
   pauseUntilPseudoUsdBalanceIncreased,
   AssetsPalletName,
+  extrinsicSetupExchangePoolPseudoUsd,
+  extrinsicMintPseudoUsd,
+  extrinsicRawTransferPseudoUsd,
+  pauseUntilPseudoUsdBalanceAtLeast,
 } from './testutil';
 
 describe('fee estimation tests', async () => {
+  const WESTEND_NETWORK_ID: NetworkId = {
+    byGenesis:
+      '0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e',
+  };
   const BDK_URL = process.env.BDK_BALANCER!.replace('http', 'ws');
 
   const keyring = new Keyring({type: 'sr25519'});
@@ -38,7 +47,7 @@ describe('fee estimation tests', async () => {
     .addChain({
       identity: {
         name: 'Relay',
-        universalLocation: relaychainUniversalLocation('westend'),
+        universalLocation: relaychainUniversalLocation(WESTEND_NETWORK_ID),
       },
       endpoints: [`${BDK_URL}/relay/`],
     })
@@ -46,7 +55,7 @@ describe('fee estimation tests', async () => {
       identity: {
         name: 'AssetHubA',
         universalLocation: parachainUniversalLocation(
-          'westend',
+          WESTEND_NETWORK_ID,
           paraIds.assetHubA,
         ),
       },
@@ -56,7 +65,7 @@ describe('fee estimation tests', async () => {
       identity: {
         name: 'AssetHubB',
         universalLocation: parachainUniversalLocation(
-          'westend',
+          WESTEND_NETWORK_ID,
           paraIds.assetHubB,
         ),
       },
@@ -66,7 +75,7 @@ describe('fee estimation tests', async () => {
       identity: {
         name: 'AssetHubC',
         universalLocation: parachainUniversalLocation(
-          'westend',
+          WESTEND_NETWORK_ID,
           paraIds.assetHubC,
         ),
       },
@@ -75,7 +84,7 @@ describe('fee estimation tests', async () => {
     .addCurrency({
       symbol: pseudoUsdName,
       decimals: pseudoUsdDecimals,
-      universalLocation: universalLocation('westend', [
+      universalLocation: universalLocation(WESTEND_NETWORK_ID, [
         {parachain: paraIds.assetHubA},
         {palletInstance: 50n},
         {generalIndex: pseudoUsdId},
@@ -117,23 +126,13 @@ describe('fee estimation tests', async () => {
       xcmAssetHubC,
     ]);
 
-    const aliceUsdtBalance = await pseudoUsdBalance(
-      xcmAssetHubA,
-      'assets',
-      alice.address,
-    );
-    const initBalance = 1000000000000;
+    // 100 billion pUSD
+    const initBalance = 100000000000000000n;
 
-    if (aliceUsdtBalance < initBalance) {
-      await tryUntilFinalized(
-        alice,
-        xcmAssetHubA.api.tx.assets.mint(
-          pseudoUsdId,
-          alice.address,
-          initBalance,
-        ),
-      );
-    }
+    await tryUntilFinalized(
+      alice,
+      await extrinsicMintPseudoUsd(xcmAssetHubA, alice.address, initBalance),
+    );
 
     const newRelaySessionIndex =
       await xcmRelay.api.query.session.currentIndex();
@@ -142,10 +141,88 @@ describe('fee estimation tests', async () => {
     if (newRelaySessionIndex === oldRelaySessionIndex && channelJustOpened) {
       await pauseUntilNextSession(xcmRelay.api);
     }
+
+    const poolOptions = {
+      relayToken: {
+        // 1 billion relay token
+        desiredAmount: 1000000000000000000000n,
+
+        // 1 relay token
+        minAmount: 1000000000000n,
+      },
+      pseudoUsd: {
+        // 8 billion pUSD
+        desiredAmount: 8000000000000000n,
+
+        // 1 pUSD
+        minAmount: 1000000n,
+      },
+    };
+
+    await tryUntilFinalized(
+      alice,
+      extrinsicRawTransferPseudoUsd(
+        xcmAssetHubA,
+        xcmAssetHubB,
+        alice.address,
+        2n * poolOptions.pseudoUsd.desiredAmount,
+      ),
+    );
+
+    await pauseUntilPseudoUsdBalanceAtLeast(
+      xcmAssetHubB,
+      'foreignAssets',
+      alice.address,
+      poolOptions.pseudoUsd.desiredAmount,
+    );
+
+    await tryUntilFinalized(
+      alice,
+      extrinsicRawTransferPseudoUsd(
+        xcmAssetHubA,
+        xcmAssetHubC,
+        alice.address,
+        2n * poolOptions.pseudoUsd.desiredAmount,
+      ),
+    );
+
+    await pauseUntilPseudoUsdBalanceAtLeast(
+      xcmAssetHubC,
+      'foreignAssets',
+      alice.address,
+      poolOptions.pseudoUsd.desiredAmount,
+    );
+
+    await tryUntilFinalized(
+      alice,
+      extrinsicSetupExchangePoolPseudoUsd(
+        xcmAssetHubA,
+        alice.address,
+        poolOptions,
+      ),
+    );
+
+    await tryUntilFinalized(
+      alice,
+      extrinsicSetupExchangePoolPseudoUsd(
+        xcmAssetHubB,
+        alice.address,
+        poolOptions,
+      ),
+    );
+
+    await tryUntilFinalized(
+      alice,
+      extrinsicSetupExchangePoolPseudoUsd(
+        xcmAssetHubC,
+        alice.address,
+        poolOptions,
+      ),
+    );
   });
 
   const xcTransferAndCheckBalanceIncrease = async (params: {
-    transferAmount: number;
+    transferAmount: bigint;
     fromXcm: SimpleXcm;
     destXcm: SimpleXcm;
     destAssetsPalletName: AssetsPalletName;
@@ -165,7 +242,7 @@ describe('fee estimation tests', async () => {
         assets: [
           params.fromXcm.adjustedFungible(
             pseudoUsdName,
-            transferAmount.toFixed(),
+            transferAmount.toString(),
           ),
         ],
         feeAssetId: pseudoUsdName,
@@ -186,20 +263,20 @@ describe('fee estimation tests', async () => {
     );
 
     const balanceIncrease = newBalance - oldBalance;
-    expect(balanceIncrease).be.greaterThanOrEqual(transferAmount);
+    expect(balanceIncrease >= transferAmount).to.be.true;
   };
 
   describe('SimpleXcm.composeTransfer fee estimation', () => {
     test('A -> B -> A', async () => {
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 30,
+        transferAmount: 30n,
         fromXcm: xcmAssetHubA,
         destXcm: xcmAssetHubB,
         destAssetsPalletName: 'foreignAssets',
       });
 
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 15,
+        transferAmount: 15n,
         fromXcm: xcmAssetHubB,
         destXcm: xcmAssetHubA,
         destAssetsPalletName: 'assets',
@@ -208,14 +285,14 @@ describe('fee estimation tests', async () => {
 
     test('A -> C -> A', async () => {
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 30,
+        transferAmount: 30n,
         fromXcm: xcmAssetHubA,
         destXcm: xcmAssetHubC,
         destAssetsPalletName: 'foreignAssets',
       });
 
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 15,
+        transferAmount: 15n,
         fromXcm: xcmAssetHubC,
         destXcm: xcmAssetHubA,
         destAssetsPalletName: 'assets',
@@ -224,14 +301,14 @@ describe('fee estimation tests', async () => {
 
     test('A -> B -> C', async () => {
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 30,
+        transferAmount: 30n,
         fromXcm: xcmAssetHubA,
         destXcm: xcmAssetHubB,
         destAssetsPalletName: 'foreignAssets',
       });
 
       await xcTransferAndCheckBalanceIncrease({
-        transferAmount: 15,
+        transferAmount: 15n,
         fromXcm: xcmAssetHubB,
         destXcm: xcmAssetHubC,
         destAssetsPalletName: 'foreignAssets',

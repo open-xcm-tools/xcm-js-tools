@@ -6,13 +6,19 @@ import {
   InteriorV2,
   InteriorV3,
   InteriorV4,
+  InteriorV5,
   JunctionV2,
   JunctionV3,
+  JunctionV4,
+  JunctionV5,
   LocationV2,
   LocationV3,
   LocationV4,
+  LocationV5,
   NetworkIdV2,
   NetworkIdV3,
+  NetworkIdV4,
+  NetworkIdV5,
   VersionedAsset,
   VersionedAssetId,
   VersionedLocation,
@@ -38,7 +44,11 @@ export function upgradeAssetId(assetId: VersionedAssetId): VersionedAssetId {
   }
 
   if ('v4' in assetId) {
-    throw new Error('upgradeAssetId: assetV4 cannot be downgraded');
+    return {v5: upgradeLocationV4(assetId.v4)};
+  }
+
+  if ('v5' in assetId) {
+    throw new Error('upgradeAssetId: assetV5 cannot be upgraded');
   }
 
   throw new Error('upgradeAsset: unknown XCM version');
@@ -98,7 +108,16 @@ export function upgradeAsset(asset: VersionedAsset): VersionedAsset {
   }
 
   if ('v4' in asset) {
-    throw new Error('upgradeAsset: assetV4 cannot be upgraded');
+    return {
+      v5: {
+        id: upgradeLocationV4(asset.v4.id),
+        fun: asset.v4.fun,
+      },
+    };
+  }
+
+  if ('v5' in asset) {
+    throw new Error('upgradeAsset: assetV5 cannot be upgraded');
   }
 
   throw new Error('upgradeAsset: unknown XCM version');
@@ -116,10 +135,21 @@ export function upgradeLocation(
   }
 
   if ('v4' in location) {
-    throw new Error('downgradeLocation: locationV4 cannot be upgraded');
+    return {v5: upgradeLocationV4(location.v4)};
+  }
+
+  if ('v5' in location) {
+    throw new Error('upgradeLocation: locationV5 cannot be upgraded');
   }
 
   throw new Error('upgradeLocation: unknown XCM version');
+}
+
+export function upgradeLocationV4(location: LocationV4): LocationV5 {
+  return {
+    parents: location.parents,
+    interior: upgradeInteriorV4(location.interior),
+  };
 }
 
 export function upgradeLocationV3(location: LocationV3): LocationV4 {
@@ -134,6 +164,13 @@ export function upgradeLocationV2(location: LocationV2): LocationV3 {
     parents: location.parents,
     interior: upgradeInteriorV2(location.interior),
   };
+}
+
+export function upgradeInteriorV4(interior: InteriorV4): InteriorV5 {
+  const asArray = interiorToArray(4, interior);
+  const interiorV5Array = asArray.map(upgradeJunctionV4);
+
+  return arrayToInterior(5, interiorV5Array);
 }
 
 export function upgradeInteriorV3(interior: InteriorV3): InteriorV4 {
@@ -205,6 +242,48 @@ function upgradeJunctionV2(junction: JunctionV2): JunctionV3 {
   }
 }
 
+function upgradeJunctionV4(junction: JunctionV4): JunctionV5 {
+  if (typeof junction === 'object') {
+    if ('globalConsensus' in junction) {
+      return {
+        globalConsensus: upgradeNetworkIdV4(junction.globalConsensus),
+      };
+    }
+    if ('accountId32' in junction) {
+      const {id, network} = junction.accountId32;
+
+      return {
+        accountId32: {
+          id,
+          ...(network ? {network: upgradeNetworkIdV4(network)} : {}),
+        },
+      };
+    }
+    if ('accountIndex64' in junction) {
+      const {index, network} = junction.accountIndex64;
+
+      return {
+        accountIndex64: {
+          index,
+          ...(network ? {network: upgradeNetworkIdV4(network)} : {}),
+        },
+      };
+    }
+    if ('accountKey20' in junction) {
+      const {key, network} = junction.accountKey20;
+
+      return {
+        accountKey20: {
+          key,
+          ...(network ? {network: upgradeNetworkIdV4(network)} : {}),
+        },
+      };
+    }
+  }
+
+  return junction;
+}
+
 function upgradeNetworkIdV2(networkId: NetworkIdV2): NetworkIdV3 | null {
   switch (networkId) {
     case 'any':
@@ -219,6 +298,31 @@ function upgradeNetworkIdV2(networkId: NetworkIdV2): NetworkIdV3 | null {
         "upgradeNetworkIdV2: 'named' NetworkIdV2 can't be upgraded to V3",
       );
   }
+}
+
+function upgradeNetworkIdV4(networkId: NetworkIdV4): NetworkIdV5 {
+  if (networkId === 'westend') {
+    return {
+      byGenesis:
+        '0xe143f23803ac50e8f6f8e62695d1ce9e4e1d68aa36c1cd2cfd15340213f3423e',
+    };
+  }
+
+  if (networkId === 'rococo') {
+    return {
+      byGenesis:
+        '0x6408de7737c59c238890533af25896a2c20608d8b380bb01029acb392781063e',
+    };
+  }
+
+  if (networkId === 'wococo') {
+    return {
+      byGenesis:
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+    };
+  }
+
+  return networkId;
 }
 
 function upgradeBodyIdV2(bodyId: BodyIdV2): BodyIdV3 {

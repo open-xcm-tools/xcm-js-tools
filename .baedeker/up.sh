@@ -15,14 +15,14 @@ BDK_DIR=$(dirname $(readlink -f "$0"))
 
 RUST_LOG=info ./baedeker \
     --spec=docker \
-    -J./vendor/ \
-    --generator=docker_compose=./.bdk-env \
-    --generator=docker_compose_discover=./.bdk-env/discover.env \
-    --secret=file=./.bdk-env/secret \
-    --tla-str=relay_spec=rococo-local \
+    -J$BDK_DIR/vendor/ \
+    --generator=docker_compose=$BDK_DIR/.bdk-env \
+    --generator=docker_compose_discover=$BDK_DIR/.bdk-env/discover.env \
+    --secret=file=$BDK_DIR/.bdk-env/secret \
+    --tla-str=relay_spec=westend-local \
     --input-modules='lib:baedeker-library/ops/nginx-dev.libsonnet' \
     --input-modules='lib:baedeker-library/ops/devtools.libsonnet' \
-    --tla-str=repoDir=$(realpath .) \
+    --tla-str=repoDir=$(realpath $BDK_DIR/..) \
     $@ \
     $BDK_DIR/rewrites.jsonnet
 

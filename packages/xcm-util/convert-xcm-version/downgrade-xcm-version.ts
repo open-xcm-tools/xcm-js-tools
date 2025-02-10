@@ -10,12 +10,12 @@ import {
   JunctionV3,
   LocationV2,
   LocationV3,
+  LocationV4,
   NetworkIdV2,
   NetworkIdV3,
   VersionedAsset,
   VersionedAssetId,
   VersionedLocation,
-  Location,
 } from '@open-xcm-tools/xcm-types';
 import {arrayToInterior, interiorToArray} from '../common';
 
@@ -33,6 +33,11 @@ export function downgradeAssetId(assetId: VersionedAssetId): VersionedAssetId {
       v3: {
         concrete: downgradeLocationV4(assetId.v4),
       },
+    };
+  }
+  if ('v5' in assetId) {
+    return {
+      v4: assetId.v5,
     };
   }
   throw new Error('downgradeAssetId: unknown XCM version');
@@ -70,6 +75,12 @@ export function downgradeAsset(asset: VersionedAsset): VersionedAsset {
     };
   }
 
+  if ('v5' in asset) {
+    return {
+      v4: asset.v5,
+    };
+  }
+
   throw new Error('downgradeAsset: unknown XCM version');
 }
 
@@ -88,10 +99,14 @@ export function downgradeLocation(
     return {v3: downgradeLocationV4(location.v4)};
   }
 
+  if ('v5' in location) {
+    return {v4: location.v5};
+  }
+
   throw new Error('downgradeLocation: unknown XCM version');
 }
 
-export function downgradeLocationV4(location: Location): LocationV3 {
+export function downgradeLocationV4(location: LocationV4): LocationV3 {
   return {
     parents: location.parents,
     interior: downgradeInteriorV4(location.interior),

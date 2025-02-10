@@ -1,5 +1,5 @@
-export type XcmVersion = 2 | 3 | 4;
-export const CURRENT_XCM_VERSION: XcmVersion = 4;
+export type XcmVersion = 2 | 3 | 4 | 5;
+export const CURRENT_XCM_VERSION: XcmVersion = 5;
 export const MIN_XCM_VERSION: XcmVersion = 2;
 
 export type Ecosystem = 'Polkadot' | 'Kusama';
@@ -38,15 +38,20 @@ export type InteriorLocationLookup = InteriorLocation | RegistryLookup;
 export type AssetIdLookup = AssetId | RegistryLookup;
 export type AssetLookup = GenericAsset<AssetId | RegistryLookup, Fungibility>;
 
-export type AnyLocation = LocationV2 | LocationV3 | LocationV4;
-export type AnyAssetId = AssetIdV2 | AssetIdV3 | AssetIdV4;
-export type AnyAsset = AssetV2 | AssetV3 | AssetV4;
+export type AnyLocation = LocationV2 | LocationV3 | LocationV4 | LocationV5;
+export type AnyAssetId = AssetIdV2 | AssetIdV3 | AssetIdV4 | AssetIdV5;
+export type AnyAsset = AssetV2 | AssetV3 | AssetV4 | AssetV5;
 export type AnyAssetInstance =
+  | AssetInstanceV5
   | AssetInstanceV4
   | AssetInstanceV3
   | AssetInstanceV2;
 
-export type AnyNetworkId = NetworkIdV4 | NetworkIdV3 | NetworkIdV2;
+export type AnyNetworkId =
+  | NetworkIdV5
+  | NetworkIdV4
+  | NetworkIdV3
+  | NetworkIdV2;
 export type AnyBodyId = BodyIdV4 | BodyIdV3 | BodyIdV2;
 export type AnyJunction = JunctionV4 | JunctionV3 | JunctionV2;
 export type AnyInterior = InteriorV4 | InteriorV3 | InteriorV2;
@@ -54,12 +59,31 @@ export type AnyFungibility = FungibilityV4 | FungibilityV3 | FungibilityV2;
 
 export type InteriorLocation = Interior;
 
-export type Versioned<V2, V3, V4> = {v2: V2} | {v3: V3} | {v4: V4};
+export type Versioned<V2, V3, V4, V5> =
+  | {v2: V2}
+  | {v3: V3}
+  | {v4: V4}
+  | {v5: V5};
 
-export type VersionedAssetId = Versioned<AssetIdV2, AssetIdV3, AssetIdV4>;
-export type VersionedAsset = Versioned<AssetV2, AssetV3, AssetV4>;
-export type VersionedAssets = Versioned<AssetV2[], AssetV3[], AssetV4[]>;
-export type VersionedLocation = Versioned<LocationV2, LocationV3, LocationV4>;
+export type VersionedAssetId = Versioned<
+  AssetIdV2,
+  AssetIdV3,
+  AssetIdV4,
+  AssetIdV5
+>;
+export type VersionedAsset = Versioned<AssetV2, AssetV3, AssetV4, AssetV5>;
+export type VersionedAssets = Versioned<
+  AssetV2[],
+  AssetV3[],
+  AssetV4[],
+  AssetV5[]
+>;
+export type VersionedLocation = Versioned<
+  LocationV2,
+  LocationV3,
+  LocationV4,
+  LocationV5
+>;
 
 export type Asset = GenericAsset<AssetId, Fungibility>;
 export type FungibleAnyAsset = GenericAsset<AnyAssetId, Fungible>;
@@ -69,16 +93,18 @@ type GenericAsset<Id, Fun> = {
   fun: Fun;
 };
 
+export type AssetV5 = GenericAsset<AssetIdV5, FungibilityV5>;
 export type AssetV4 = GenericAsset<AssetIdV4, FungibilityV4>;
 export type AssetV3 = GenericAsset<AssetIdV3, FungibilityV3>;
 export type AssetV2 = GenericAsset<AssetIdV2, FungibilityV2>;
 
-export type AssetId = AssetIdV4;
-export type AssetIdV4 = Location;
+export type AssetId = AssetIdV5;
+export type AssetIdV5 = LocationV5;
+export type AssetIdV4 = LocationV4;
 export type AssetIdV3 = {concrete: LocationV3} | {abstract: Uint8Array};
 export type AssetIdV2 = {concrete: LocationV2} | {abstract: Uint8Array};
 
-export type Location = LocationV4;
+export type Location = LocationV5;
 
 type GenericLocation<Interior> = {
   parents: bigint;
@@ -88,12 +114,14 @@ type GenericLocation<Interior> = {
 export type LocationV2 = GenericLocation<InteriorV2>;
 export type LocationV3 = GenericLocation<InteriorV3>;
 export type LocationV4 = GenericLocation<InteriorV4>;
+export type LocationV5 = GenericLocation<InteriorV5>;
 
-export type Fungibility = FungibilityV4;
+export type Fungibility = FungibilityV5;
 export type VersionedFungibility = Versioned<
   FungibilityV2,
   FungibilityV3,
-  FungibilityV4
+  FungibilityV4,
+  FungibilityV5
 >;
 
 type Fungible = {fungible: bigint};
@@ -104,6 +132,7 @@ type GenericFungibility<Instance> = Fungible | NonFungible<Instance>;
 export type FungibilityV2 = GenericFungibility<AssetInstanceV2>;
 export type FungibilityV3 = GenericFungibility<AssetInstanceV3>;
 export type FungibilityV4 = GenericFungibility<AssetInstanceV4>;
+export type FungibilityV5 = GenericFungibility<AssetInstanceV5>;
 
 export type AssetInstance = AssetInstanceV4;
 
@@ -120,6 +149,7 @@ export type AssetInstanceV3 = Exclude<
   {blob: string | Uint8Array}
 >;
 export type AssetInstanceV4 = AssetInstanceV3;
+export type AssetInstanceV5 = AssetInstanceV4;
 
 type GenericJunctions<
   J,
@@ -148,8 +178,12 @@ export type JunctionsV4<Length extends number> = GenericJunctions<
   JunctionV4,
   Length
 >;
+export type JunctionsV5<Length extends number> = GenericJunctions<
+  JunctionV5,
+  Length
+>;
 
-export type Interior = InteriorV4;
+export type Interior = InteriorV5;
 export type InteriorV2 =
   | 'here'
   | {x1: JunctionV2}
@@ -180,8 +214,18 @@ export type InteriorV4 =
   | JunctionsV4<6>
   | JunctionsV4<7>
   | JunctionsV4<8>;
+export type InteriorV5 =
+  | 'here'
+  | JunctionsV5<1>
+  | JunctionsV5<2>
+  | JunctionsV5<3>
+  | JunctionsV5<4>
+  | JunctionsV5<5>
+  | JunctionsV5<6>
+  | JunctionsV5<7>
+  | JunctionsV5<8>;
 
-export type NetworkId = NetworkIdV4;
+export type NetworkId = NetworkIdV5;
 export type NetworkIdV2 =
   | 'any'
   | {named: string | Uint8Array}
@@ -201,7 +245,17 @@ export type NetworkIdV3 =
   | 'polkadotBulletin';
 export type NetworkIdV4 = NetworkIdV3;
 
-export type BodyId = BodyIdV4;
+export type NetworkIdV5 =
+  | {byGenesis: string | Uint8Array}
+  | {byFork: {blockNumber: bigint; blockHash: string | Uint8Array}}
+  | 'polkadot'
+  | 'kusama'
+  | {ethereum: {chainId: bigint}}
+  | 'bitcoinCore'
+  | 'bitcoinCash'
+  | 'polkadotBulletin';
+
+export type BodyId = BodyIdV5;
 export type BodyIdV2 =
   | 'unit'
   | {named: string | Uint8Array}
@@ -217,6 +271,7 @@ export type BodyIdV3 =
   | Exclude<BodyIdV2, {named: string | Uint8Array}>
   | {moniker: string | Uint8Array};
 export type BodyIdV4 = BodyIdV3;
+export type BodyIdV5 = BodyIdV4;
 
 export type Fraction = {nom: bigint; denom: bigint};
 export type BodyPart =
@@ -226,7 +281,7 @@ export type BodyPart =
   | {atLeastProportion: Fraction}
   | {moreThanProportion: Fraction};
 
-export type Junction = JunctionV4;
+export type Junction = JunctionV5;
 export type JunctionV2 =
   | {parachain: bigint}
   | {accountId32: {network: NetworkIdV2; id: string | Uint8Array}}
@@ -250,3 +305,15 @@ export type JunctionV3 =
   | {plurality: {id: BodyIdV3; part: BodyPart}}
   | {globalConsensus: NetworkIdV3};
 export type JunctionV4 = JunctionV3;
+
+export type JunctionV5 =
+  | {parachain: bigint}
+  | {accountId32: {network?: NetworkIdV5 | null; id: string | Uint8Array}}
+  | {accountIndex64: {network?: NetworkIdV5 | null; index: bigint}}
+  | {accountKey20: {network?: NetworkIdV5 | null; key: string | Uint8Array}}
+  | {palletInstance: bigint}
+  | {generalIndex: bigint}
+  | {generalKey: {length: bigint; data: string | Uint8Array}}
+  | 'onlyChild'
+  | {plurality: {id: BodyIdV3; part: BodyPart}}
+  | {globalConsensus: NetworkIdV5};

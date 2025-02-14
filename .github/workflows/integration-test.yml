@@ -45,7 +45,7 @@ jobs:
           jpath: |
             .baedeker/vendor
           tla-str: |
-            relay_spec=rococo-local
+            relay_spec=westend-local
           inputs: |
             .baedeker/multiple-assethub.jsonnet
             snippet:(import 'baedeker-library/ops/rewrites.libsonnet').rewriteNodePaths({'bin/polkadot':{dockerImage:'uniquenetwork/ci-unique-assethub:polkadot'}})

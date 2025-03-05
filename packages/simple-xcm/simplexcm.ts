@@ -167,6 +167,12 @@ export class SimpleXcm {
     const submittableExtrinsic =
       this.#transferBackend().buildSubmittableExtrinsic(preparedParams);
 
+    await Estimator.dryRunExtrinsic(
+      this.api,
+      preparedParams.origin,
+      submittableExtrinsic,
+    );
+
     const estimatedFees = estimatedFeesResult.value;
 
     return {submittableExtrinsic, preparedParams, estimatedFees};

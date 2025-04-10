@@ -229,12 +229,10 @@ export class SimpleXcm {
   }
 
   /**
-   * Disconnects ApiPromise instance.
-   *
-   * Note: More likely you don't want to call this method if you are using custom ApiPromiseFactory.
+   * Finalizes ApiPromise instance.
    */
-  async disconnect() {
-    await this.api.disconnect();
+  async finalize() {
+    await this.registry.apiPromiseFactory.finalize(this.api);
   }
 
   /**
@@ -269,7 +267,7 @@ export class SimpleXcm {
    */
   static async connect(chainName: string, registry: Registry) {
     const chainInfo = registry.chainInfoByName(chainName);
-    const api = await registry.apiPromiseFactory(chainInfo.endpoints);
+    const api = await registry.apiPromiseFactory.get(chainInfo.endpoints);
 
     const palletXcm = findPalletXcm(api);
     if (!palletXcm) {
@@ -285,7 +283,12 @@ export class SimpleXcm {
       CURRENT_XCM_VERSION,
       maxXcmVersion,
     ) as XcmVersion;
-    const estimator = new Estimator(api, chainInfo.identity, xcmVersionToUse);
+    const estimator = new Estimator(
+      api,
+      registry.apiPromiseFactory.finalize,
+      chainInfo.identity,
+      xcmVersionToUse,
+    );
 
     return new SimpleXcm(api, registry, chainInfo, palletXcm, estimator);
   }

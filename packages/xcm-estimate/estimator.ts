@@ -80,22 +80,26 @@ export type XcmExecutionEffect = {
 export class Estimator {
   chainIdentity: ChainIdentity; // The identity of the chain associated with this estimator.
   api: ApiPromise; // The API instance for interacting with the blockchain.
+  finalizeApi: (api: ApiPromise) => Promise<void>; // The finalizer for the provided API promise (i.e., how to gracefully shutdown the API instance).
   xcmVersion: XcmVersion; // The version of XCM being used.
 
   /**
    * Creates an instance of Estimator.
    * @param api - The API instance for the blockchain.
+   * @param finalizeApi - the finalizer for the API instance.
    * @param chainIdentity - The identity of the chain.
    * @param xcmVersion - The version of XCM to use.
    * @throws If the dry-run or XCM payment APIs are not implemented.
    */
   constructor(
     api: ApiPromise,
+    finalizeApi: (api: ApiPromise) => Promise<void>,
     chainIdentity: ChainIdentity,
     xcmVersion: XcmVersion,
   ) {
     this.chainIdentity = chainIdentity;
     this.api = api;
+    this.finalizeApi = finalizeApi;
     this.xcmVersion = xcmVersion;
 
     if (this.api.call.dryRunApi === undefined) {
@@ -121,7 +125,7 @@ export class Estimator {
     chainInfo: ChainInfo,
     apiPromiseFactory = defaultApiPromiseFactory,
   ) {
-    const api = await apiPromiseFactory(chainInfo.endpoints);
+    const api = await apiPromiseFactory.get(chainInfo.endpoints);
 
     const maxXcmVersion = await Estimator.estimateMaxXcmVersion(
       api,
@@ -132,15 +136,20 @@ export class Estimator {
       maxXcmVersion,
     ) as XcmVersion;
 
-    return new Estimator(api, chainInfo.identity, xcmVersionToUse);
+    return new Estimator(
+      api,
+      apiPromiseFactory.finalize,
+      chainInfo.identity,
+      xcmVersionToUse,
+    );
   }
 
   /**
-   * Disconnects from the blockchain.
-   * @returns A promise that resolves when the disconnection is complete.
+   * Finalizes the ApiPromise instance.
+   * @returns A promise that resolves when the finalization is complete.
    */
-  async disconnect() {
-    await this.api.disconnect();
+  async finalize() {
+    await this.finalizeApi(this.api);
   }
 
   /**
@@ -618,7 +627,7 @@ export class Estimator {
             );
           } finally {
             if (destEstimator) {
-              await destEstimator.disconnect();
+              await destEstimator.finalize();
             }
           }
         }),

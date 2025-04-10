@@ -193,10 +193,10 @@ await xcm.composeTransfer({
 
 > Note: In the `composeTransfer` method, all arguments representing locations and asset IDs can be passed as strings. In this case, the library will retrieve them from the `Registry`.
 
-Don't forget to disconnect your XCM connection after completing all operations:
+Don't forget to finalize your XCM connection after completing all operations:
 
 ```typescript
-await xcm.disconnect();
+await xcm.finalize();
 ```
 
 You can easily enforce the XCM version used to interact with the parachain. By default, `SimpleXcm` uses the maximum XCM version supported by the parachain.

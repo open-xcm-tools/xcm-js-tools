@@ -194,7 +194,7 @@ export class Registry {
    */
   async addNativeCurrency(chainName: string): Promise<void> {
     const chainInfo = this.chainInfoByName(chainName);
-    const api = await this.apiPromiseFactory(chainInfo.endpoints);
+    const api = await this.apiPromiseFactory.get(chainInfo.endpoints);
 
     if (api.registry.chainTokens.length > 0) {
       const symbol = api.registry.chainTokens[0];
@@ -218,7 +218,7 @@ export class Registry {
       console.warn(`${chainName}: no chain tokens found, skip`);
     }
 
-    await api.disconnect();
+    await this.apiPromiseFactory.finalize(api);
   }
 
   /**
